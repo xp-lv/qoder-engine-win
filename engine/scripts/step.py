@@ -32,8 +32,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state, resolve_app_path
-from filelock import acquire_lock, release_lock
-import tempfile
+from state_io import load_state, save_state
 
 # 可配置超时（与 orchestrator.py 保持一致）
 _SCRIPT_TIMEOUT = int(os.environ.get("STATE_OP_TIMEOUT", "30"))
@@ -50,21 +49,7 @@ def _build_subprocess_env():
 
 
 # ─── 工具函数 ───
-
-def _save_state_locked(state_path, st):
-    """原子写入 STATE.json（文件锁 + tempfile + rename）。"""
-    lock_path = state_path + ".lock"
-    with open(lock_path, "w") as lock_file:
-        if not acquire_lock(lock_file):
-            return
-        try:
-            d = os.path.dirname(state_path)
-            fd, tmp_path = tempfile.mkstemp(suffix=".tmp", dir=d)
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                json.dump(st, f, ensure_ascii=False, indent=2)
-            os.replace(tmp_path, state_path)
-        finally:
-            release_lock(lock_file)
+# v4.2: _save_state_locked 已删除，所有写入通过 state_io.save_state()
 
 def run_engine(args_list):
     """调用引擎脚本并返回 (success, result_dict)。

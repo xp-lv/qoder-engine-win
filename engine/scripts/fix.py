@@ -6,6 +6,7 @@ Usage: python scripts/fix.py --type <rework|reset|jump> [--step <STEP_N>] [--sta
 import argparse, json, os, sys, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state, resolve_app_path
+from state_io import load_state, save_state
 
 def output(data):
     print(json.dumps(data, ensure_ascii=False))
@@ -111,8 +112,6 @@ def _do_jump(state_path, app_path, workspace_id, target_step):
     """
     import uuid
     from datetime import datetime, timezone
-    import tempfile
-    from filelock import acquire_lock, release_lock
 
     def now_iso():
         return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -167,18 +166,8 @@ def _do_jump(state_path, app_path, workspace_id, target_step):
     # 4. 清理 pending_dispatches（让 --next 走正常 router 路径）
     state["pending_dispatches"] = None
 
-    # 5. 原子写入
-    lock_path = state_path + ".lock"
-    with open(lock_path, "w") as lock_file:
-        if not acquire_lock(lock_file):
-            output({"status": "failure", "error_code": "OIC-E202", "message": "获取文件锁失败"})
-        fd, tmp_path = tempfile.mkstemp(suffix=".tmp", dir=os.path.dirname(state_path))
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                json.dump(state, f, ensure_ascii=False, indent=2)
-            os.replace(tmp_path, state_path)
-        finally:
-            release_lock(lock_file)
+    # 5. 通过 state_io 统一写入
+    save_state(state_path, state)
 
     print(f"[fix] jump to {target_step}: 跳过 {len(predecessor_steps)} 个前置步骤", file=sys.stderr)
     return state

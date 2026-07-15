@@ -13,7 +13,7 @@ import argparse, json, os, sys, subprocess, uuid
 from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state, resolve_app_path, resolve_workspace_output, get_edge_targets, is_edge_backward
-from filelock import acquire_lock, release_lock
+from state_io import load_state, save_state
 
 def now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -51,37 +51,7 @@ def run_script(cmd):
         return False, {"error": str(e)}
 
 # ─── 工具函数 ───
-
-def load_state(state_path):
-    with open(state_path, "r", encoding="utf-8-sig") as f:
-        return json.load(f)
-
-def save_state(state_path, st):
-    """v-longrun-R4: 原子写入——先写临时文件再 rename，防止写入过程中崩溃导致 STATE.json 损坏。"""
-    import tempfile, os
-    d = os.path.dirname(state_path)
-    fd, tmp_path = tempfile.mkstemp(suffix=".tmp", dir=d)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(st, f, ensure_ascii=False, indent=2)
-        os.replace(tmp_path, state_path)  # 原子 rename
-    except Exception:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise
-
-def save_state_locked(state_path, st):
-    """使用文件锁保护 STATE.json 写入。"""
-    lock_path = state_path + ".lock"
-    with open(lock_path, "w") as lock_file:
-        if not acquire_lock(lock_file):
-            output_error("OIC-E013", "获取 STATE.json 文件锁失败")
-        try:
-            save_state(state_path, st)
-        finally:
-            release_lock(lock_file)
+# v4.2: 所有 STATE.json 读写统一通过 state_io 模块（唯一入口）
 
 def cache_dispatches(state_path, dispatches):
     """将 dispatches 缓存到 STATE.json，供 dispatch 阶段读取。
@@ -92,7 +62,7 @@ def cache_dispatches(state_path, dispatches):
     st = load_state(state_path)
     existing = st.get("pending_dispatches") or []
     st["pending_dispatches"] = existing + dispatches
-    save_state_locked(state_path, st)
+    save_state(state_path, st)
 
 # ─── 状态转换统一 API ───
 
@@ -101,7 +71,7 @@ def mark_complete(state_path):
     st = load_state(state_path)
     if not st.get("terminal_state"):
         st["terminal_state"] = "completed"
-        save_state_locked(state_path, st)
+        save_state(state_path, st)
 
 def load_router_and_registry(app_path):
     """加载 ROUTER.json 和 registry.json，返回 (router_steps, registry, reg_map, step_role_map)."""
@@ -133,7 +103,7 @@ def _get_pending_routes(st):
 def _clear_pending_routes(state_path, st):
     """清空 pending_routes（路由完成后调用）。"""
     st["pending_routes"] = {}
-    save_state_locked(state_path, st)
+    save_state(state_path, st)
 
 def _process_dispatch_pipeline(dispatches, st, app_path):
     """统一管道：converge → dedup → cross-state filter。
@@ -172,7 +142,7 @@ def phase_dispatch(state_path, app_path, workspace_id, from_steps, on_result, ta
     pending = st.get("pending_dispatches")
     if pending:
         st["pending_dispatches"] = None
-        save_state_locked(state_path, st)
+        save_state(state_path, st)
         dispatches = pending
         # 消费 pending_routes（瞬态信号，用完即清空）
         _clear_pending_routes(state_path, st)
@@ -433,7 +403,8 @@ def phase_post_execute(state_path, app_path, workspace_id, results_json):
                     "errors": gate_result.get("errors", []),
                 })
 
-    # 清理 failed 步骤的状态（直接从 step_status 删除）
+    # v4.2: 清理 failed 步骤（Win版保留 rollback 委托方式，因 set_state.py 有 do_rollback 增强功能）
+    # 僵尸 executing 的深度清理由 state_health_check.py Z1 统一接管
     for f in failed:
         reset_cmd = [
             sys.executable, "engine/scripts/set_state.py",

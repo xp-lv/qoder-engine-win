@@ -15,6 +15,7 @@ _ENGINE_SCRIPTS = os.path.normpath(os.path.join(_HOOK_DIR, "..", "..", "engine",
 sys.path.insert(0, _ENGINE_SCRIPTS)
 
 from session_path import resolve_ws_state, resolve_app_path, resolve_ws_base, read_workspace_root
+from state_io import load_state, save_state
 
 # 项目根目录
 _PROJECT_ROOT = os.path.normpath(os.path.join(_HOOK_DIR, "..", ".."))
@@ -204,23 +205,27 @@ def handle_analyzer_return(tool_output, workspace_id):
     action = data.get("action", "")
     sid = data.get("workspace_id", workspace_id or "default")
 
-    # ── 状态不变量：analyzer 路径入口，executing 必须不存在 ──
-    # 原理：用户能发送新消息 = 上一轮执行周期已结束
-    #       上一轮结束 = 所有 executing 要么 advance 要么 awaiting_confirmation
-    #       所以 analyzer 路径中存在 executing = 会话被异常中断，无条件 rollback
+    # ── 全局 STATE 健康检测（在所有 intent 分支前执行）──
+    # 原理：主 Agent 可能违规调用 --next/step.py，或 Task 被取消后留下僵尸状态。
+    # 每次进入 analyzer 路径时，基于 ROUTER.json DAG 拓扑做全局一致性校验+修复。
+    # 这不替代扰动分析器的意图分类，而是确保引擎状态在处理用户意图前是合法的。
     _inv_state_path = resolve_ws_state(sid)
     if os.path.exists(_inv_state_path):
-        _inv_state = load_json_file(_inv_state_path) or {}
-        _orphaned = [
-            s for s, info in _inv_state.get("step_status", {}).items()
-            if isinstance(info, dict) and info.get("status") == "executing"
-        ]
-        if _orphaned:
-            for s in _orphaned:
-                run_script(["engine/scripts/set_state.py",
-                            "--action", "rollback",
-                            "--step", s,
-                            "--state-path", _inv_state_path])
+        _hc_result = run_script([
+            "engine/scripts/state_health_check.py",
+            "--workspace-id", sid,
+            "--fix"
+        ])
+        if _hc_result and not _hc_result.get("_error"):
+            _summary = _hc_result.get("summary", {})
+            _fixes = _hc_result.get("fix_actions", [])
+            if _summary.get("critical", 0) > 0 or _summary.get("major", 0) > 0:
+                _hook2_log(f"HEALTH_CHECK: status={_hc_result.get('status')} fixes={_fixes}")
+            elif _fixes:
+                _hook2_log(f"HEALTH_CHECK: minor fixes applied: {_fixes}")
+        else:
+            _err = _hc_result.get("_error", "unknown") if _hc_result else "no result"
+            _hook2_log(f"HEALTH_CHECK: failed - {_err}")
 
     # ── 1. chitchat ──
     if intent == "chitchat":
@@ -369,31 +374,6 @@ def handle_analyzer_return(tool_output, workspace_id):
     emit(f"BLOCKING：扰动分析器返回了未知的 intent='{intent}'，原始数据：{json.dumps(data, ensure_ascii=False)[:300]}")
 
 
-def _scan_awaiting_confirmation(state):
-    """v4.0: 只扫描主线 step_status（无并行分支）。"""
-    for s, info in state.get("step_status", {}).items():
-        if isinstance(info, dict) and info.get("status") == "awaiting_confirmation":
-            return True
-    return False
-
-
-def _save_state_locked(state_path, state):
-    """文件锁保护写入 STATE.json。"""
-    try:
-        import tempfile
-        lock_path = state_path + ".lock"
-        from filelock import acquire_lock, release_lock
-        with open(lock_path, "w") as lf:
-            if acquire_lock(lf):
-                fd, tmp = tempfile.mkstemp(suffix=".tmp", dir=os.path.dirname(state_path))
-                with os.fdopen(fd, "w", encoding="utf-8") as f:
-                    json.dump(state, f, ensure_ascii=False, indent=2)
-                os.replace(tmp, state_path)
-                release_lock(lf)
-    except Exception:
-        pass
-
-
 def _collect_all_gate_errors(results):
     """从多个 submit_result 中合并所有 Gate FAIL 错误详情。"""
     all_errors = []
@@ -498,7 +478,7 @@ def handle_role_executor_return(tool_output, workspace_id):
             "failed": submit_result.get("failed", []),
             "reason": submit_result.get("reason", ""),
         })
-        _save_state_locked(state_path, state)
+        save_state(state_path, state)
         sys.exit(0)
 
     # pbc == 0：最后一个分支返回（step_status 已空），统一决策
@@ -514,14 +494,22 @@ def handle_role_executor_return(tool_output, workspace_id):
 
     # 清空缓存
     state["cached_branch_results"] = []
-    _save_state_locked(state_path, state)
+    save_state(state_path, state)
 
     # ══════════════════════════════════════════════════════
-    # pbc == 0：统一决策
-    # 优先级：error > blocking(awaiting_confirmation) > complete > wait > --next
+    # pbc == 0：统一决策（v4.3 优先级修订）
+    # 优先级：error > confirm > delegate > complete(all) > wait(all) > --next
+    #
+    # v4.3 变更：
+    #   1. delegate 提升至 complete 和 wait 之前——JOIN 场景下先完成分支的
+    #      delegate 信号（pending_dispatches 已缓存）不得被 wait 误报淹没。
+    #   2. _scan_awaiting_confirmation 移除（pbc=0 时 step_status 必为空，死代码），
+    #      改为从 submit/cached 结果中检测 confirm 信号。
+    #   3. wait 判定从 any 改为 all——只要存在 delegate 或其他推进信号就不 BLOCKING。
     # ══════════════════════════════════════════════════════
 
     all_submit_nexts = [r.get("next", "") for r in all_results]
+    _hook2_log(f"DECISION: all_submit_nexts={all_submit_nexts}")
 
     # ① error：任一分支失败 → 汇总所有 failed 详情
     if any(n == "error" for n in all_submit_nexts):
@@ -531,23 +519,13 @@ def handle_role_executor_return(tool_output, workspace_id):
         emit(f"BLOCKING：引擎错误 — {all_failed}")
         return
 
-    # ② blocking：有任一分支 awaiting_confirmation → 等待用户确认
-    # 注意：此处严禁调用 --next，否则会消费 pending_dispatches
-    # 导致其他 auto 分支的独立后继变成僵尸步骤。
-    # pending_dispatches 保持不动，由 analyzer Hook② 在用户确认后统一消费。
-    state = load_json_file(state_path) or {}
-    has_blocking = _scan_awaiting_confirmation(state)
-    _hook2_log(f"DECISION: all_submit_nexts={all_submit_nexts} has_blocking={has_blocking}")
-    if has_blocking:
-        # 直接从 STATE.json 扫描 awaiting_confirmation 条目
-        pending_steps = []
-        for s, info in state.get("step_status", {}).items():
-            if isinstance(info, dict) and info.get("status") == "awaiting_confirmation":
-                pending_steps.append({"step": s})
-
+    # ② confirm：任一分支返回 confirm → 展示确认请求，严禁 --next
+    if any(n == "confirm" for n in all_submit_nexts):
+        all_pending = []
+        for r in all_results:
+            all_pending.extend(r.get("pending", []))
         all_gate_errors = _collect_all_gate_errors(all_results)
-
-        steps_desc = ", ".join(p.get("step", "?") for p in pending_steps)
+        steps_desc = ", ".join(p.get("step", "?") for p in all_pending) if all_pending else "未知步骤"
         lines = [f"向用户展示确认请求：{steps_desc}。"]
         if all_gate_errors:
             lines.append(f"Gate 详情：{all_gate_errors}")
@@ -555,23 +533,26 @@ def handle_role_executor_return(tool_output, workspace_id):
         emit("\n".join(lines))
         return
 
-    # ③ complete：所有分支都返回 complete
-    if all(n == "complete" for n in all_submit_nexts):
+    # ③ delegate：任一分支返回 delegate → 有 pending_dispatches 待消费
+    has_delegate = any(n == "delegate" for n in all_submit_nexts)
+
+    # ④ complete：无 delegate 且所有分支都返回 complete
+    if not has_delegate and all(n == "complete" for n in all_submit_nexts):
         emit("任务已全部完成，向用户报告结果并结束。")
         return
 
-    # ④ wait：无 blocking，但引擎无可调度 = 异常状态
-    if any(n == "wait" for n in all_submit_nexts):
+    # ⑤ wait：无 delegate 且所有分支都返回 wait = 引擎无可调度
+    if not has_delegate and all(n == "wait" for n in all_submit_nexts):
         reasons = [r.get("reason", "等待中") for r in all_results if r.get("next") == "wait"]
         _hook2_log(f"BLOCKING_WAIT: reasons={reasons}")
         emit(f"BLOCKING：{' | '.join(reasons)}")
         return
 
-    # ⑤ 正常推进：调 --next 获取下一步 task_prompt
-    _hook2_log(f"CALLING_NEXT: ⑤正常推进路径")
+    # ⑥ 正常推进 / delegate 推进：调 --next 获取下一步 task_prompt
+    _decision = "delegate" if has_delegate else "正常"
+    _hook2_log(f"CALLING_NEXT: ⑥{_decision}推进路径")
     step_result = run_script(["engine/scripts/step.py", "--next", "--workspace-id", sid])
     if step_result.get("_error"):
-        _decrement_pbc_on_error(sid)
         emit(f"BLOCKING：step.py --next 执行失败 — {step_result['_error']}")
         return
     next_action = step_result.get("action", "")

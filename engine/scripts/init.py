@@ -8,6 +8,7 @@ from session_path import (
     resolve_ws_base, resolve_ws_state, resolve_ws_process,
     derive_ws_id, get_app_name, get_edge_targets, resolve_workspace_output,
 )
+from state_io import save_state
 from datetime import datetime, timezone
 
 def now_iso():
@@ -245,8 +246,7 @@ def main():
         "metadata": {"started_at": now_iso(), "last_advance_at": None, "user_request": ""}
     }
 
-    with open(state_path, "w", encoding="utf-8") as f:
-        json.dump(initial_state, f, ensure_ascii=False, indent=2)
+    save_state(state_path, initial_state)
 
     message = "force_reinitialized" if args.force else "initialized"
     output_success(message, initial_state, registry, router)

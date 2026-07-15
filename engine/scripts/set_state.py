@@ -3,10 +3,10 @@
 所有 STATE.json 修改都通过此脚本完成（跨平台文件锁保护）。
 Usage: python3 scripts/set_state.py --action <action> --step <STEP_N> [options]
 """
-import argparse, json, os, sys, tempfile
+import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state
-from filelock import acquire_lock, release_lock
+from state_io import load_state, save_state
 from datetime import datetime, timezone
 
 
@@ -20,23 +20,6 @@ class ValidationException(Exception):
 
 def now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-def _atomic_write_state(state_path, state):
-    """v-longrun-R4: 原子写入 STATE.json——先写临时文件再 rename。
-    防止写入过程中异常导致文件损坏（磁盘满、权限变更等）。
-    """
-    d = os.path.dirname(state_path)
-    fd, tmp_path = tempfile.mkstemp(suffix=".tmp", dir=d)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
-        os.replace(tmp_path, state_path)  # 原子 rename
-    except Exception:
-        try:
-            os.unlink(tmp_path)
-        except OSError:
-            pass
-        raise
 
 def output_success(state):
     print(json.dumps({"status": "success", "error_code": None, "new_state": state}, ensure_ascii=False))
@@ -175,68 +158,48 @@ def main():
     if not args.state_path:
         args.state_path = resolve_ws_state(args.workspace_id)
 
-    state_dir = os.path.dirname(args.state_path)
-    if state_dir:
-        os.makedirs(state_dir, exist_ok=True)
+    # v4.2: 通过 state_io 统一读写（文件锁 + 原子写入由 state_io 内部管理）
+    state = load_state(args.state_path)
+    if state is None:
+        state = create_initial_state()
 
-    lock_path = args.state_path + ".lock"
-    with open(lock_path, "w") as lock_file:
-        if not acquire_lock(lock_file):
-            output_failure("OIC-E202", "获取文件锁失败")
+    try:
+        validate_action(state, args.action, args.step)
 
-        # v3.2: try/except/finally 结构确保锁在任何情况下都被释放
-        state = None
-        try:
-            if os.path.exists(args.state_path):
+        if args.action == "rollback":
+            do_rollback(state, args.step)
+        elif args.action == "reset":
+            do_reset(state)
+        elif args.action == "advance":
+            do_advance(state, args.step, args.role, args.dispatch_id, args.verdict)
+        elif args.action == "resume":
+            do_resume(state, args.step)
+        elif args.action == "terminal":
+            state["terminal_state"] = args.terminal_state or "COMPLETE"
+        elif args.action == "set_status":
+            if not args.status:
+                raise ValidationException("OIC-E201", "set_status 需要 --status 参数")
+            from_steps = None
+            if args.from_steps:
                 try:
-                    with open(args.state_path, "r", encoding="utf-8-sig") as f:
-                        state = json.load(f)
+                    from_steps = json.loads(args.from_steps)
                 except (json.JSONDecodeError, ValueError):
-                    raise ValidationException("OIC-E203", "STATE.json 格式损坏")
-            else:
-                state = create_initial_state()
+                    pass
+            do_set_status(state, args.step, args.status, args.role, args.dispatch_id, from_steps)
 
-            target = state
-
-            validate_action(target, args.action, args.step)
-
-            if args.action == "rollback":
-                do_rollback(target, args.step)
-            elif args.action == "reset":
-                do_reset(target)
-            elif args.action == "advance":
-                do_advance(target, args.step, args.role, args.dispatch_id, args.verdict)
-            elif args.action == "resume":
-                do_resume(target, args.step)
-            elif args.action == "terminal":
-                target["terminal_state"] = args.terminal_state or "COMPLETE"
-            elif args.action == "set_status":
-                if not args.status:
-                    raise ValidationException("OIC-E201", "set_status 需要 --status 参数")
-                from_steps = None
-                if args.from_steps:
-                    try:
-                        from_steps = json.loads(args.from_steps)
-                    except (json.JSONDecodeError, ValueError):
-                        pass
-                do_set_status(target, args.step, args.status, args.role, args.dispatch_id, from_steps)
-
-            append_history(state, args.action, args.step, "success")
-
-            # v-longrun-R4: 原子写入——先写临时文件再 rename
-            _atomic_write_state(args.state_path, state)
-
-            release_lock(lock_file)
-            output_success(state)
-        except ValidationException as ve:
-            release_lock(lock_file)
-            output_failure(ve.error_code, ve.message)
-        except Exception as e:
-            if state is not None:
-                append_history(state, args.action, args.step, f"failure: {e}")
-                _atomic_write_state(args.state_path, state)
-            release_lock(lock_file)
-            output_failure("OIC-E207", str(e))
+        append_history(state, args.action, args.step, "success")
+        save_state(args.state_path, state)
+        output_success(state)
+    except ValidationException as ve:
+        output_failure(ve.error_code, ve.message)
+    except Exception as e:
+        if state is not None:
+            append_history(state, args.action, args.step, f"failure: {e}")
+            try:
+                save_state(args.state_path, state)
+            except Exception:
+                pass
+        output_failure("OIC-E207", str(e))
 
 if __name__ == "__main__":
     main()
