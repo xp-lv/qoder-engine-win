@@ -5,9 +5,9 @@
 所有控制流确定性，无 LLM 参与。
 
 Usage:
-  python3 engine/scripts/orchestrator.py --phase dispatch [--task-request <text>] [--app-path <path>]
-  python3 engine/scripts/orchestrator.py --phase post_execute --results <json>
-  python3 engine/scripts/orchestrator.py --phase post_confirm --decisions <json>
+  python engine/scripts/orchestrator.py --phase dispatch [--task-request <text>] [--app-path <path>]
+  python engine/scripts/orchestrator.py --phase post_execute --results <json>
+  python engine/scripts/orchestrator.py --phase post_confirm --decisions <json>
 """
 import argparse, json, os, sys, subprocess, uuid
 from datetime import datetime, timezone
@@ -53,7 +53,7 @@ def run_script(cmd):
 # ─── 工具函数 ───
 
 def load_state(state_path):
-    with open(state_path, "r", encoding="utf-8") as f:
+    with open(state_path, "r", encoding="utf-8-sig") as f:
         return json.load(f)
 
 def save_state(state_path, st):
@@ -110,11 +110,11 @@ def load_router_and_registry(app_path):
     router_steps = []
     registry = []
     if os.path.exists(router_path):
-        with open(router_path, "r", encoding="utf-8") as f:
+        with open(router_path, "r", encoding="utf-8-sig") as f:
             router_data = json.load(f)
         router_steps = router_data.get("steps", [])
     if os.path.exists(registry_path):
-        with open(registry_path, "r", encoding="utf-8") as f:
+        with open(registry_path, "r", encoding="utf-8-sig") as f:
             registry = json.load(f)
     reg_map = {r["role_name"]: r for r in registry} if registry else {}
     step_role_map = {s["step"]: s["role"] for s in router_steps}
@@ -267,7 +267,7 @@ def _global_converge(dispatches, st, app_path):
     reg_path = os.path.join(app_path, "registry.json")
     if not os.path.exists(reg_path):
         return dispatches
-    with open(reg_path, "r", encoding="utf-8") as f:
+    with open(reg_path, "r", encoding="utf-8-sig") as f:
         registry = json.load(f)
     
     # 构建 role_name → input_groups 映射，再通过 dispatch 的 role 查找

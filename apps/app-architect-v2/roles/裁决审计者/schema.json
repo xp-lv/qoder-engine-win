@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "object",
+      "required": [
+        "verdict",
+        "summary"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "arch_breach_overturned",
+            "arch_breach_upheld",
+            "arch_rootcause_overturned",
+            "arch_rootcause_upheld",
+            "conditional_pass",
+            "confirmed",
+            "loop",
+            "req_challenge_overturned",
+            "req_challenge_upheld",
+            "requirement_defect"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array"
+        },
+        "errors": {
+          "type": "array"
+        }
+      }
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "_required_files": [
+    {
+      "name": "裁决审计报告",
+      "path": "outputs/裁决审计报告.json",
+      "type": "process"
+    }
+  ]
+}

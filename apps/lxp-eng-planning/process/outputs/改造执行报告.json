@@ -1,0 +1,225 @@
+{
+  "result": {
+    "verdict": "confirmed",
+    "summary": "改造执行完成。按照改造方案（回退修订版）逐项执行 4 项手动修改 + 1 项编译器连带修复，共修复 1 critical + 2 major + 2 minor 五项 findings。app.yaml 3 项修复（CRITICAL blocking_mode注释污染、MAJOR1后端级联、MAJOR2可选输入遗漏）+ 预览部署者 skill.md 1 项修复（MINOR1硬编码路径）。编译通过（22 roles / 22 steps），三个编译产物全部存在。registry.json 前端预览确认 blocking_mode 值为纯 'manual'（无注释残留），CRITICAL 验证通过。ROUTER.json 前端预览确认 fail 边 carries 已自动包含 feedback.json（MINOR2 连带修复）。所有改动项执行状态 confirmed。"
+  },
+
+  "执行的改动项": [
+    {
+      "序号": "CRITICAL",
+      "目标文件": "apps/lxp-eng-planning/app.yaml — 前端预览确认 confirm 字段",
+      "改动类型": "修复",
+      "改动内容": "confirm 字段行内注释移到上一行独立行，值只写纯枚举 'manual'。修复前：`confirm: manual    # 全局第3个manual节点...`。修复后：`# 全局第3个manual节点...` 独立行 + `confirm: manual` 纯值行。",
+      "执行状态": "confirmed",
+      "编译验证": "registry.json blocking_mode = 'manual'（纯值，无注释残留）✓",
+      "关联finding": "CRITICAL — blocking_mode 注释污染导致人工确认闸门失效"
+    },
+    {
+      "序号": "MAJOR1",
+      "目标文件": "apps/lxp-eng-planning/app.yaml — edges 段 前端预览反馈循环边",
+      "改动类型": "修复",
+      "改动内容": "needs_revision 回退边目标从 [交互逻辑设计师, 美学布局设计师, 接口翻译师] 缩减为 [交互逻辑设计师, 美学布局设计师]，移除接口翻译师。补充注释说明 MAJOR1 修复原因（避免后端级联）。",
+      "执行状态": "confirmed",
+      "编译验证": "ROUTER.json needs_revision targets = ['交互逻辑设计师', '美学布局设计师']（不含接口翻译师）✓",
+      "关联finding": "MAJOR1 — needs_revision 回退含接口翻译师引发后端链路级联"
+    },
+    {
+      "序号": "MAJOR2-交互逻辑设计师",
+      "目标文件": "apps/lxp-eng-planning/app.yaml — 交互逻辑设计师 inputs",
+      "改动类型": "修改",
+      "改动内容": "inputs 新增 `- 前端预览确认报告: outputs/前端预览确认报告.json, type=process # [可选输入]`，位于交叉审核报告之后。",
+      "执行状态": "confirmed",
+      "关联finding": "MAJOR2 — 可选输入遗漏修复"
+    },
+    {
+      "序号": "MAJOR2-美学布局设计师",
+      "目标文件": "apps/lxp-eng-planning/app.yaml — 美学布局设计师 inputs",
+      "改动类型": "修改",
+      "改动内容": "inputs 新增 `- 前端预览确认报告: outputs/前端预览确认报告.json, type=process # [可选输入]`，位于交叉审核报告之后。",
+      "执行状态": "confirmed",
+      "关联finding": "MAJOR2 — 可选输入遗漏修复"
+    },
+    {
+      "序号": "MAJOR2-接口翻译师",
+      "目标文件": "apps/lxp-eng-planning/app.yaml — 接口翻译师 inputs",
+      "改动类型": "修改",
+      "改动内容": "inputs 新增 `- 前端预览确认报告: outputs/前端预览确认报告.json, type=process # [可选输入]`，位于交叉审核报告之后。保持前端设计组三角色输入契约一致性。",
+      "执行状态": "confirmed",
+      "关联finding": "MAJOR2 — 可选输入遗漏修复（保持输入契约一致性）"
+    },
+    {
+      "序号": "MINOR1",
+      "目标文件": "apps/lxp-eng-planning/roles/预览部署者/skill.md",
+      "改动类型": "修复",
+      "改动内容": "删除执行步骤第1步中硬编码路径 'outputs/src/frontend/'。修复前：`读取 dispatch 注入的输入文件（前端代码目录 outputs/src/frontend/）`。修复后：`读取 dispatch 注入的输入文件（前端代码目录）`。路径来源由 app.yaml inputs 声明决定。",
+      "执行状态": "confirmed",
+      "关联finding": "MINOR1 — skill.md 硬编码路径"
+    },
+    {
+      "序号": "MINOR2",
+      "目标文件": "编译产物 ROUTER.json（编译器自动生成）",
+      "改动类型": "连带修复",
+      "改动内容": "CRITICAL 修复后编译器正确识别 confirm=manual 模式，自动为前端预览确认 fail→self-loop 路径生成 carries=[前端预览确认报告.json, gate-result.json, 前端预览确认-feedback.json]。其中 feedback.json（用户反馈）为 manual 模式专属 carries。",
+      "执行状态": "confirmed（编译器自动）",
+      "编译验证": "ROUTER.json 前端预览确认 fail carries 包含 'outputs/前端预览确认-feedback.json' ✓",
+      "关联finding": "MINOR2 — fail carries 缺少 feedback.json（CRITICAL 修复后连带解决）"
+    }
+  ],
+
+  "未修改的文件确认": [
+    {
+      "文件": "roles/交互逻辑设计师/skill.md",
+      "状态": "无需修改",
+      "原因": "skill.md 执行步骤第1步已正确引用 '前端预览确认报告[可选]'，verdict判定规则已包含 needs_revision 回退场景说明，回退场景响应约束和自检项均已完善。app.yaml inputs 的 MAJOR2 修复使输入契约与 skill.md 引用一致。"
+    },
+    {
+      "文件": "roles/美学布局设计师/skill.md",
+      "状态": "无需修改",
+      "原因": "skill.md 执行步骤第1步已正确引用 '前端预览确认报告[可选]'，verdict判定规则已包含 needs_revision 回退场景说明，回退场景响应约束和自检项均已完善。app.yaml inputs 的 MAJOR2 修复使输入契约与 skill.md 引用一致。"
+    },
+    {
+      "文件": "roles/接口翻译师/skill.md",
+      "状态": "无需修改",
+      "原因": "skill.md 执行步骤第1步已正确引用 '前端预览确认报告[可选]'，verdict判定规则已包含 needs_revision 回退场景说明，回退场景响应约束和自检项均已完善。app.yaml inputs 的 MAJOR2 修复使输入契约与 skill.md 引用一致。"
+    }
+  ],
+
+  "编译结果": {
+    "状态": "pass",
+    "编译命令": "python engine/scripts/compiler.py --app-path apps/lxp-eng-planning",
+    "编译输出": "22 steps, 22 roles, 5 dirs, 22 个角色骨架文件, 5 个 knowledge 骨架文件",
+    "错误信息": "无"
+  },
+
+  "编译产物检查": {
+    "ROUTER.json": "存在 ✓",
+    "registry.json": "存在 ✓",
+    "manifest.json": "存在 ✓"
+  },
+
+  "registry.json 专项验证": {
+    "前端预览确认_blocking_mode": {
+      "值": "manual",
+      "是否纯值无注释": true,
+      "对比_其他manual角色": {
+        "需求接收者": "manual",
+        "综合裁决者": "manual",
+        "前端预览确认": "manual"
+      },
+      "CRITICAL修复结论": "pass — blocking_mode 为纯 'manual'，引擎 == \"manual\" 精确匹配成功，人工确认闸门恢复生效"
+    }
+  },
+
+  "ROUTER.json 专项验证": {
+    "前端预览确认_transitions": {
+      "confirmed": {
+        "targets": ["合并校验者"],
+        "type": "normal",
+        "结论": "✓ confirmed 路由正确"
+      },
+      "needs_revision": {
+        "targets": ["交互逻辑设计师", "美学布局设计师"],
+        "type": "normal",
+        "max_executions": 3,
+        "MAJOR1修复结论": "pass — 回退目标仅 2 角色，不含接口翻译师，后端级联风险消除"
+      },
+      "fail": {
+        "targets": ["前端预览确认"],
+        "type": "backward",
+        "carries": [
+          "outputs/前端预览确认报告.json (feedback)",
+          "outputs/前端预览确认-gate-result.json (feedback)",
+          "outputs/前端预览确认-feedback.json (feedback)"
+        ],
+        "MINOR2连带修复结论": "pass — fail carries 包含 feedback.json，编译器正确识别 manual 模式后自动补充"
+      },
+      "verdict完备性": "pass — confirmed/needs_revision/fail 三路径均有路由目标"
+    }
+  },
+
+  "checksum比对": {
+    "实际变更文件清单": [
+      "apps/lxp-eng-planning/app.yaml",
+      "apps/lxp-eng-planning/roles/预览部署者/skill.md",
+      "apps/lxp-eng-planning/ROUTER.json (编译产物)",
+      "apps/lxp-eng-planning/registry.json (编译产物)",
+      "apps/lxp-eng-planning/manifest.json (编译产物)"
+    ],
+    "预期变更文件清单": [
+      "apps/lxp-eng-planning/app.yaml (CRITICAL + MAJOR1 + MAJOR2)",
+      "apps/lxp-eng-planning/roles/预览部署者/skill.md (MINOR1)",
+      "编译产物 (MINOR2 连带 + 全量重编译)"
+    ],
+    "一致率": "100%",
+    "说明": "实际变更文件清单与预期完全一致。源文件变更 2 个（app.yaml + 预览部署者 skill.md），编译产物变更 3 个（ROUTER.json + registry.json + manifest.json 全量重编译生成）。"
+  },
+
+  "findings修复追踪": [
+    {"finding_id": "CRITICAL", "修复操作": "confirm注释移到独立行，值只写manual", "目标文件": "app.yaml", "执行状态": "confirmed", "编译验证": "pass"},
+    {"finding_id": "MAJOR1", "修复操作": "needs_revision回退目标移除接口翻译师", "目标文件": "app.yaml edges", "执行状态": "confirmed", "编译验证": "pass"},
+    {"finding_id": "MAJOR2", "修复操作": "3角色inputs添加前端预览确认报告[可选输入]", "目标文件": "app.yaml roles", "执行状态": "confirmed"},
+    {"finding_id": "MINOR1", "修复操作": "删除硬编码路径outputs/src/frontend/", "目标文件": "roles/预览部署者/skill.md", "执行状态": "confirmed"},
+    {"finding_id": "MINOR2", "修复操作": "CRITICAL修复后编译器自动补充fail carries feedback.json", "目标文件": "编译产物ROUTER.json", "执行状态": "confirmed(连带)"}
+  ],
+
+  "修改后的文件内容": {
+    "app.yaml_关键片段_CRITICAL修复": [
+      "  前端预览确认:",
+      "    type: standard",
+      "    # 全局第3个manual节点（需求接收者、综合裁决者、前端预览确认）",
+      "    confirm: manual",
+      "    inputs:",
+      "      - 预览部署报告: outputs/预览部署报告.json, type=process",
+      "    outputs:",
+      "      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process"
+    ],
+    "app.yaml_关键片段_MAJOR1修复": [
+      "  # 前端预览反馈循环（backward·needs_revision回退·max:3）",
+      "  # 用户预览不满意时打回前端设计组，形成 预览→反馈→修改→再预览 的闭环",
+      "  # [MAJOR1修复] 回退目标仅 [交互逻辑设计师, 美学布局设计师]，不含接口翻译师，避免后端级联",
+      "  - 前端预览确认 → [交互逻辑设计师, 美学布局设计师] when: result.verdict == \"needs_revision\" max_executions: 3"
+    ],
+    "app.yaml_关键片段_MAJOR2修复_交互逻辑设计师": [
+      "  交互逻辑设计师:",
+      "    type: standard",
+      "    confirm: auto",
+      "    inputs:",
+      "      - 前端需求规格文档: outputs/前端需求规格文档.md",
+      "      - 前端交互规范: outputs/前端交互规范.md",
+      "      - 交叉审核报告: outputs/交叉审核报告.json, type=process",
+      "      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process      # [可选输入]",
+      "    outputs:",
+      "      - 交互逻辑设计文档: outputs/交互逻辑设计文档.md"
+    ],
+    "app.yaml_关键片段_MAJOR2修复_美学布局设计师": [
+      "  美学布局设计师:",
+      "    type: standard",
+      "    confirm: auto",
+      "    inputs:",
+      "      - 前端需求规格文档: outputs/前端需求规格文档.md",
+      "      - 前端交互规范: outputs/前端交互规范.md",
+      "      - 交叉审核报告: outputs/交叉审核报告.json, type=process",
+      "      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process      # [可选输入]",
+      "    outputs:",
+      "      - 美学布局设计文档: outputs/美学布局设计文档.md"
+    ],
+    "app.yaml_关键片段_MAJOR2修复_接口翻译师": [
+      "  接口翻译师:",
+      "    type: standard",
+      "    confirm: auto",
+      "    inputs:",
+      "      - 前端需求规格文档: outputs/前端需求规格文档.md",
+      "      - 后端需求规格文档: outputs/后端需求规格文档.md",
+      "      - 后端业务逻辑文档: outputs/后端业务逻辑文档.md",
+      "      - 交叉审核报告: outputs/交叉审核报告.json, type=process",
+      "      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process      # [可选输入]",
+      "    outputs:",
+      "      - 接口翻译文档: outputs/接口翻译文档.md"
+    ],
+    "预览部署者skill.md_关键片段_MINOR1修复": [
+      "## 执行步骤",
+      "",
+      "1. **读取输入**：读取 dispatch 注入的输入文件（前端代码目录）"
+    ]
+  }
+}

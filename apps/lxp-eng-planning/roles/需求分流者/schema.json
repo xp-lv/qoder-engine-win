@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "object",
+      "required": [
+        "verdict",
+        "summary"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "confirmed"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array"
+        },
+        "errors": {
+          "type": "array"
+        }
+      }
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "_required_files": [
+    {
+      "name": "前端需求摘要",
+      "path": "outputs/前端需求摘要.md",
+      "type": "deliverable"
+    },
+    {
+      "name": "后端需求摘要",
+      "path": "outputs/后端需求摘要.md",
+      "type": "deliverable"
+    }
+  ]
+}

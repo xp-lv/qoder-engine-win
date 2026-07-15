@@ -1,0 +1,100 @@
+{
+  "result": {
+    "verdict": "confirmed",
+    "summary": "app-modifier 知识文档设计清单完成。共设计 6 份知识文档，覆盖 10 个角色中的 8 个核心角色（R1 改造需求接收者为 producer 入口、R10 改造报告生成者为终点聚合者，二者不需要专门方法论知识文档）。知识文档类型涵盖：方法论文档（编排范式、七维模拟验证方法论、改造影响分析方法论）、执行规范文档（改造执行规范）、审阅标准文档（审阅标准手册）、裁决标准文档（裁决与审计标准）。每份文档的 path 和 inject_to 与 app.yaml knowledge 段完全对齐，inject_to 中的角色名与 roles 定义完全一致。content_guide 每份至少 5 个具体要点，为技能填充者提供充分的内容大纲。"
+  },
+  "知识文档清单": [
+    {
+      "name": "编排范式",
+      "path": "knowledge/编排范式.md",
+      "description": "app.yaml 声明式编排范式——角色定义、边编排、verdict路由、编译器自动行为的完整规范",
+      "inject_to": ["改造分析师", "改造执行者", "结构审阅者", "合规审阅者"],
+      "content_guide": [
+        "设计原则三要素：唯一权威源（路由目标只在edges中声明，verdict只在when中声明，循环上限只在max_executions中声明）、编译期确定性（所有路由/物料/同步约束由compiler.py编译期计算写入ROUTER.json，运行时只读取不推断）、边的平等性（normal/backward由verdict语义自动推断，无特殊边类型）",
+        "角色定义字段规范：type(producer自动展开校验角色/standard普通角色)、confirm(manual需用户确认/auto自动推进)、inputs/outputs(物料声明，支持deliverable用户可读/process中间报告两种type)",
+        "四种原子模式：单步前进(A→B)、并行扇出(A→[B,C,D]同时启动)、同步汇入([A,B,C]→D全部完成后才执行D)、终态出口(A→完成工作流结束)",
+        "条件路由规范：when表达式语法(result.verdict=='xxx')、verdict从edges的when自动提取到schema.json enum(唯一权威源)、max_executions边级执行上限(超过则router掐断)",
+        "编译器七大自动行为：fail边反推(从confirmed来源反推生成backward边)、carries推导(normal边携带gate-result/backward边携带源产出+gate+反馈)、input_groups计算(BFS可达集分析+显式声明合并)、producer展开(自动创建校验角色+校验step)、verdicts同步(提取when值同步到schema enum)、knowledge注入(按inject_to选择性合并)、骨架生成(生成skill.md/schema.json骨架)",
+        "文档驱动分层模式：文档层(只产文档不修改文件)/执行层(只按方案操作不修改方案)/治理层(只审查不产出交付物)三层正交设计原则"
+      ]
+    },
+    {
+      "name": "七维模拟验证方法论",
+      "path": "knowledge/七维模拟验证方法论.md",
+      "description": "对改造后APP执行七维度dry-run校验的逐步方法论，含向后兼容性检查方法",
+      "inject_to": ["模拟验证者", "改造红队"],
+      "content_guide": [
+        "维度一 DAG可达性校验：BFS从入口(producer角色)到完成节点遍历，检测死角色(有入边无出边且非完成节点)、孤儿边(指向不存在角色的边)、有向环(backward边不构成环路的验证方法)",
+        "维度二 verdict完备性校验：提取所有when表达式的verdict值，与各角色schema.json的verdict enum逐一对比，一致率必须100%；无条件边默认verdict=confirmed；系统保留词fail为Gate FAIL自动生成",
+        "维度三 数据流完整性校验：对每个角色inputs中的每个物料项，在上游角色outputs或knowledge inject中查找来源，无来源则标记data_flow_broken；可选输入标注(#[可选输入])不强制校验",
+        "维度四 同步约束正确性校验：input_groups的AND(组内全部完成)OR(组间任一完成)语义验证；fork扇出必须有对应join汇聚；检测悬挂fork(扇出后无汇聚)和悬挂join(无对应fork的同步汇入)",
+        "维度五 producer展开正确性校验：producer角色自动生成{角色名}（校验）角色；校验角色inputs继承执行角色outputs；校验角色outputs自动生成{角色名}-validation.json；校验边confirmed→下游、fail/loop→回退执行角色",
+        "维度六 knowledge注入正确性校验：knowledge段inject_to列表中的每个角色名必须在roles定义中存在；inject路径(knowledge/xxx.md)必须在manifest中有对应记录；缺省inject_to则不注入",
+        "维度七 物料分类正确性校验：deliverable(用户可读最终产出如需求文档/架构文件/报告) vs process(角色间中间报告如审阅报告/验证报告)的分配合理性；检查是否有中间报告误标为deliverable或最终产出误标为process",
+        "向后兼容性检查方法：步骤1 计算改造前DAG可达集(BFS从入口出发的可达节点集合)；步骤2 计算改造后DAG可达集；步骤3 对比两个集合，未被改造涉及的角色→完成节点的路径必须仍可达；步骤4 输出compatibility_check结果(pass/broken_paths列表)"
+      ]
+    },
+    {
+      "name": "改造影响分析方法论",
+      "path": "knowledge/改造影响分析方法论.md",
+      "description": "从改造要求推导到受影响的文件/角色/边/verdict集合的影响分析方法",
+      "inject_to": ["改造分析师"],
+      "content_guide": [
+        "改造类型六分类及识别方法：新增角色(需求中要求扩展能力→需同步设计edges+verdict+skill+schema)、删除角色(需求中要求精简流程→需处理被删角色所有上下游边引用)、修改角色(需求中要求更新执行逻辑/格式约束→更新skill.md/schema.json)、调整编排(需求中要求改路由/流程→增删边/改verdict路由/调max_executions)、更新知识(需求中要求增删知识文档→调knowledge段inject_to)、修复缺陷(已知结构性问题→修verdict不一致/死角色/孤儿边)",
+        "影响范围推导方法：从改动点出发，向上游BFS追溯输入来源角色(谁给我数据)、向下游BFS追踪输出消费者角色(谁消费我的数据)；记录沿途经过的所有角色和边",
+        "文件影响分析矩阵：改造类型→受影响文件映射表——新增角色影响(app.yaml roles段+edges段+新skill.md+新schema.json)、删除角色影响(app.yaml+所有引用该角色的edges+knowledge inject_to)、修改角色影响(对应skill.md+schema.json)、调整编排影响(app.yaml edges段+受影响schema.json verdict enum)",
+        "边与verdict影响分析：新增角色→需要新verdict路由吗(条件边when表达式)、删除角色→边引用清理检查(edges中无残留引用)、修改verdict→路由完备性检查(每条条件边verdict值在schema enum中有定义)",
+        "向后兼容性评估框架：改造前DAG可达集 vs 改造后DAG可达集对比分析；原有路径(未被改造涉及的角色→完成节点)不丢失原则；新增角色不影响原有路径原则",
+        "风险评估清单（四类风险）：死循环风险(backward边max_executions是否合理设置)、孤儿边风险(删除角色后所有边引用是否清理完毕)、死角色风险(新增角色是否有入边和出边)、verdict不完备风险(条件边verdict是否在schema enum中有定义、无条件边默认confirmed是否有对应出边)",
+        "改造方案文档结构标准：改动清单(每项含目标文件+改动类型[新增/删除/修改]+改动内容摘要)+影响范围(上下游角色/受影响边/verdict变化)+向后兼容性评估(可达集对比结果)+风险评估(四类风险逐项分析)"
+      ]
+    },
+    {
+      "name": "改造执行规范",
+      "path": "knowledge/改造执行规范.md",
+      "description": "改造执行者的增量修改原则与操作规范，确保只修改方案涉及的文件",
+      "inject_to": ["改造执行者"],
+      "content_guide": [
+        "增量修改核心原则：只修改改造方案中涉及的文件，不重写未触及的文件；每处改动必须在改造方案中有对应条目(改动原因+影响范围)；方案即契约——只改方案涉及的文件，不自行扩大范围",
+        "app.yaml编辑操作规范：YAML格式保持(缩进/引号/注释)；roles段增删改(角色定义字段完整性)；edges段增删改(边的语法正确性、when表达式格式、max_executions声明)；knowledge段调整(inject_to角色名与roles定义一致)；注释块维护(设计约定注释同步更新)",
+        "skill.md编写规范：无硬编码路径(路径由dispatch注入到task_prompt的输入文件和产出物路径中)；语义描述为主(角色定位/执行步骤/verdict判定规则)；可选输入标注约定(#[可选输入]仅在特定条件时存在)；skill.md中写路径会与dispatch注入产生重复权威源",
+        "schema.json调整规范：verdict enum必须与edges when表达式完全一致(编译器自动同步但手动修改时需检查)；_required_files与outputs声明对齐；format约束定义(result.verdict必填、允许值枚举)",
+        "改造类型执行指南——新增角色完整流程：步骤1 在roles中定义角色(type/confirm/inputs/outputs)→步骤2 在edges中添加连接边(上游→新角色→下游)→步骤3 声明when条件(如有条件路由)→步骤4 设置max_executions(如有backward边)→步骤5 生成skill.md+schema.json骨架",
+        "改造类型执行指南——删除角色完整流程：步骤1 从roles中删除角色定义→步骤2 清理edges中所有引用该角色的边(上游边和下游边)→步骤3 检查knowledge inject_to是否有该角色引用并清理→步骤4 验证DAG无孤儿引用(BFS检查)",
+        "compiler.py调用规范：修改完成后必须调用compiler.py重新编译目标APP；检查三个编译产物(ROUTER.json路由表/registry.json物料注册表/manifest.json目录模板)均生成且内容非空；编译失败则记录错误信息",
+        "checksum比对验证方法：步骤1 改造前扫描目标APP目录所有文件计算SHA-256；步骤2 改造后重新计算；步骤3 对比checksum变化文件清单与改造方案预期修改清单；步骤4 一致率必须100%(不依赖git或任何版本控制工具)"
+      ]
+    },
+    {
+      "name": "审阅标准手册",
+      "path": "knowledge/审阅标准手册.md",
+      "description": "治理层三路审阅角色的统一审阅标准与对抗测试规范，确保verdict值域统一",
+      "inject_to": ["改造红队", "结构审阅者", "合规审阅者"],
+      "content_guide": [
+        "verdict统一规范：R5改造红队/R6结构审阅者/R7合规审阅者三路审阅verdict值域统一为confirmed(通过审阅无重大问题)/issues_found(发现需修复的问题)，确保R8综合裁决者接收一致格式输入；verdict字段写在result.verdict中",
+        "结构维度审阅项(R6结构审阅者)：DAG拓扑完整性(所有节点可达完成节点，BFS验证)、角色定义完备性(每个角色有outputs字段，producer角色正确标记type=producer，confirm字段存在)、边引用一致性(edges中出现的角色名与roles定义完全对应，无引用不存在角色的边)",
+        "合规维度审阅项(R7合规审阅者)：唯一权威源检查(路由目标只在edges中声明不在角色定义中、verdict只在when表达式中不在角色verdicts列表中、循环上限只在max_executions中)、编译期确定性(不依赖运行时推断的路由/物料/同步约束)、物料分类(deliverable用于用户可读最终产出/process用于中间报告)、skill.md无硬编码路径(路径由dispatch注入)",
+        "对抗维度审阅项(R5改造红队)：死循环检测(backward边max_executions是否合理——验证回退默认3、改造迭代回路R8 needs_revision→R2 max:3 + R9 overturned→R2 max:2 合计≤5、全局迭代R8→R1 max:2)、不可达路径检测(删除角色后是否产生断边或孤立节点)、verdict路由完备性(每条条件边when的verdict值在对应角色schema enum中有定义)、producer展开正确性(producer角色自动展开为执行+校验两步)、knowledge inject_to有效性(inject_to中的角色名全部存在)",
+        "findings编写规范：每个finding必须包含——具体引用(角色名/边名/verdict值等具名标识，不允许泛泛描述)、严重级别(critical=阻断性缺陷/major=重要缺陷需修复/minor=建议性改进)、问题描述+建议修复方案",
+        "审阅报告格式标准：报告结构(审阅摘要→各审阅项逐项结果[pass/fail]→findings列表→result.verdict字段)；最小内容要求(正文>=200字，含>=3个具名引用如具体角色名/边名/verdict值)",
+        "向后兼容性专项检查：改造是否破坏原有可达路径——对比改造前后DAG可达集(BFS从入口到完成节点的可达节点集合)，原有路径(未被改造涉及的角色→完成节点)必须仍可达"
+      ]
+    },
+    {
+      "name": "裁决与审计标准",
+      "path": "knowledge/裁决与审计标准.md",
+      "description": "综合裁决者三路径裁决规则与裁决审计者双路径审计规则，含迭代回路触发判据",
+      "inject_to": ["综合裁决者", "裁决审计者"],
+      "content_guide": [
+        "R8综合裁决三路径判定规则：confirmed(三路审阅R5/R6/R7均无critical/major级findings，或问题已在本轮修复)→路由至R9裁决审计者做最终复核；needs_revision(存在需修改方案的major级findings，改造方向正确但方案需调整)→路由至R2改造分析师(backward max:3)；requirements_revision_needed(同类findings连续>=3轮未消解，或needs_revision backward边执行次数已达上限，判定改造方向/需求本身有误)→路由至R1改造需求接收者(backward max:2)",
+        "R8裁决输入分析规范：合并R5改造红队/R6结构审阅者/R7合规审阅者三路findings，按严重级别排序(critical>major>minor)；critical级findings直接触发needs_revision或requirements_revision_needed；裁决需引用三路审阅的具体findings(具名引用R5/R6/R7的产出)",
+        "R8裁决书格式标准：顶层result.verdict字段(confirmed/needs_revision/requirements_revision_needed三选一)；result.summary字段(裁决理由概述)；findings数组(引用R5/R6/R7具体findings条目)；裁决依据说明(为何选择此verdict而非其他)",
+        "R9审计范围严格限定：仅审计R8的confirmed裁决(放行决策)——拓扑中唯一到达R9的边为R8 confirmed→R9；R8的needs_revision和requirements_revision_needed不经R9审计，直接路由至R2/R1；R9不审计回退决策，只复核放行决策",
+        "R9双路径判定规则：upheld(审计者同意R8的confirmed——经全链路对抗复核确认改造确实合格可以放行)→路由至R10改造报告生成者；overturned(审计者认为R8的confirmed有误——从最严苛角度发现R8遗漏的critical/major问题，改造实际不合格不应放行)→路由至R2改造分析师(backward max:2)",
+        "R9审计方法论：全链路对抗复核——不信任R8的confirmed判断，独立重新审视R5/R6/R7三路findings；检查R8是否有遗漏的critical/major问题；检查R8是否错误地将critical降级为minor；从最严苛角度检验改造质量",
+        "迭代回路触发判据与计数规则：改造迭代回路(R8 needs_revision→R2 max:3 或 R9 overturned→R2 max:2)两条backward边合计≤5，满足验收标准QUA-1的总执行次数约束；全局迭代回路(R8 requirements_revision_needed→R1)max_executions=2；触发全局回退判据——needs_revision边执行次数达上限(3次)或同类findings连续>=3轮未消解",
+        "迭代超限处理机制：全局迭代回路(R8→R1 max:2)耗尽后，所有backward边被router掐断，引擎在终止前调用R10改造报告生成者生成iteration_exhausted模式失败报告(含迭代超限诊断+已尝试方案+失败原因)"
+      ]
+    }
+  ]
+}

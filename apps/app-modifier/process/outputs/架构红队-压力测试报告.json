@@ -1,0 +1,244 @@
+{
+  "result": {
+    "verdict": "confirmed",
+    "summary": "第二轮六维对抗性压力测试完成，未发现 critical 级别系统性风险。app.yaml 拓扑在修复 CF-2（R8→R2 max:3 + R9→R2 max:2 = 5≤5）后架构健壮性达标。STRESS-1 至 STRESS-6 六个维度全部通过：回退路径完备（编译器自动生成 fail 自环 + 显式 backward 边覆盖所有异常出口）、并行时序安全（JOIN barrier 同步无竞争）、跨层回退链路一致（R8→R1 全局回路可选输入正确标记）、数据流极端场景鲁棒（carries 传播 + workspace 读取双通道保障 R5/R6/R7 数据可达）、对抗路径真实有效（4 条 backward 边均为实质修复回路非虚假环路）、循环终止性数学可证（总 backward 上界 = 3+3+2+2 = 10，所有环路有界且存在退出 verdict）。上一轮 CF-1（R9 verdict 语义一致性）和 CF-3（carries 可达性）经复核确认为假阳性，本轮维持该判定。发现 1 个 info 级别观察项（需求文档 §4.1/§4.3 中 R8→R2 和 R9→R2 的 max_executions 仍标注为旧值 5，与 app.yaml 修复后的 3/2 不一致），不影响运行时行为，app.yaml 为编译权威源。"
+  },
+
+  "test_round": {
+    "round": 2,
+    "context": "上一轮发现的 CF-2（max_executions 配额矛盾）已修复。本轮重新评估修复后的架构。",
+    "previous_findings_status": [
+      {
+        "id": "CF-1",
+        "description": "R9 裁决审计者 verdict 语义与拓扑不一致",
+        "previous_verdict": "假阳性（裁决审计者判定）",
+        "round2_reassessment": "维持假阳性判定。app.yaml 中 R9 仅有一条到达边（R8 confirmed→R9），upheld→R10 / overturned→R2 语义自洽。§5.4 语义一致性声明与拓扑完全对齐。无矛盾。",
+        "status": "closed"
+      },
+      {
+        "id": "CF-2",
+        "description": "max_executions 配额矛盾（R8→R2 max:5 + R9→R2 max:5 = 10 > 5 违反 QUA-1）",
+        "previous_verdict": "critical（第一轮）",
+        "round2_reassessment": "已修复。app.yaml 中 R8→R2 max_executions:3（line 254）+ R9→R2 max_executions:2（line 266）= 5 ≤ 5，满足 QUA-1。设计注释 §2/§6 显式记录修复理由。",
+        "status": "resolved"
+      },
+      {
+        "id": "CF-3",
+        "description": "carries 可达性——R5/R6/R7 的 inputs 引用 R3 产出物但无直接 DAG 边",
+        "previous_verdict": "假阳性（裁决审计者判定）",
+        "round2_reassessment": "维持假阳性判定。R3→R4→R5/R6/R7 路径上 carries 自动传播 R3 的改造执行报告；且 outputs/改造执行报告.json 作为 process 类型文件持久存在于 workspace。双通道保障数据可达。",
+        "status": "closed"
+      }
+    ]
+  },
+
+  "stress_test_dimensions": [
+    {
+      "dimension": "STRESS-1：回退路径完备性",
+      "status": "pass",
+      "tests": [
+        {
+          "test": "对每个角色模拟 Gate FAIL，检查是否有恢复路径",
+          "analysis": "逐角色检查 Gate FAIL 恢复路径：\n\n• R1 改造需求接收者（producer, manual）：人工确认失败 → 由人工介入重试，producer 入口的标准行为。路径校验失败（目标 APP 不存在/无 app.yaml）→ verdict=fail，由编译器自动生成的 fail 自环处理。\n• R2 改造分析师（standard, auto）：Gate FAIL → 编译器自动生成 fail 自环（默认 max:3），重试后仍失败则进入终止流程。\n• R3 改造执行者（standard, auto）：Gate FAIL → 编译器自动生成 fail 自环（默认 max:3）。\n• R4 模拟验证者：显式 fail→R3 backward 边（max:3），有明确的局部回退恢复路径。\n• R5/R6/R7（standard, auto）：Gate FAIL → 编译器自动生成 fail 自环（默认 max:3）。\n• R8 综合裁决者（standard, auto）：Gate FAIL → 编译器自动生成 fail 自环（默认 max:3）。\n• R9 裁决审计者（standard, auto）：Gate FAIL → 编译器自动生成 fail 自环（默认 max:3）。\n• R10 改造报告生成者（standard, auto）：Gate FAIL → 编译器自动生成 fail 自环（默认 max:3）。作为终态前角色，自环耗尽后进入终止流程。\n\n所有角色的 Gate FAIL 均有恢复路径（自环或显式 backward 边），无裸奔角色。",
+          "result": "pass"
+        },
+        {
+          "test": "检查入口角色和终点角色的 fail 边处理",
+          "analysis": "• 入口角色 R1（producer, manual）：唯一人工确认点，fail 由人工介入处理——符合 producer 入口的标准设计范式。\n• 终点角色 R10（standard, auto）：Gate FAIL → 自环重试（max:3），耗尽后引擎终止并触发 iteration_exhausted 失败报告。R10 兼任失败报告产出者，设计注释 §7 已显式声明此职责。\n• 两端角色的 fail 处理均有明确机制，无设计空白。",
+          "result": "pass"
+        }
+      ]
+    },
+    {
+      "dimension": "STRESS-2：并行时序竞争",
+      "status": "pass",
+      "tests": [
+        {
+          "test": "检查 FORK/JOIN 并行分支间的时序依赖安全性",
+          "analysis": "FORK 点：R4 validated → [R5 改造红队, R6 结构审阅者, R7 合规审阅者]（3 条条件边，同一 verdict 触发）。\nJOIN 点：[R5, R6, R7] → R8 综合裁决者（barrier 同步）。\n\n时序安全性分析：\n1. 三路审阅由同一 FORK 触发（R4 validated），不存在一路依赖另一路输出的情况——R5/R6/R7 的 inputs 均为改造执行报告（来自 R3，经 carries 传播），不互相依赖。\n2. JOIN barrier 要求三路全部完成后 R8 才执行——不存在部分完成导致的半成品裁决。\n3. 无跨分支数据依赖：R5/R6/R7 各自独立审阅同一份改造执行报告，产出各自独立的审阅报告，不存在读-写竞争。\n4. 若某一路因 Gate FAIL 自环耗尽而无法产出 token，引擎层面会终止整个流程（包括 JOIN 等待），不会导致死锁。",
+          "result": "pass"
+        },
+        {
+          "test": "检查并行分支产出物命名冲突",
+          "analysis": "三路审阅产出物：\n• R5 → 对抗分析报告: outputs/对抗分析报告.json\n• R6 → 结构审阅报告: outputs/结构审阅报告.json\n• R7 → 合规审阅报告: outputs/合规审阅报告.json\n\n文件名完全不同，无命名冲突。R8 的 inputs 分别引用三个不同文件名，映射关系清晰。",
+          "result": "pass"
+        }
+      ]
+    },
+    {
+      "dimension": "STRESS-3：跨层回退链路",
+      "status": "pass",
+      "tests": [
+        {
+          "test": "模拟 R8→R1 级联回退效应",
+          "analysis": "R8 requirements_revision_needed → R1（max:2）触发全局回退时的级联路径：\n\n1. R8 输出 requirements_revision_needed → R1 重新执行\n2. R1 重新接收改造要求 → R1→R2\n3. R2 重新分析 → R2 的可选输入（综合裁决书/审计裁决书）在此路径上不存在（它们来自 R8/R9 backward，而非 R1→R2 正向边）→ 但这些是可选输入，缺失不影响 R2 基本执行\n4. R2→R3→R4→[R5,R6,R7]→R8 全链路重新执行\n\n中间层产出物一致性：R2 的可选输入设计正确——改造方案仅依赖改造需求文档（来自 R1，此路径上必然存在），综合裁决书/审计裁决书为可选增量信息。无中间层不一致风险。",
+          "result": "pass"
+        },
+        {
+          "test": "检查 R8→R2 和 R9→R2 回退后中间层产出物一致性",
+          "analysis": "R8 needs_revision→R2（max:3）回退时：\n• R2 收到综合裁决书（R8 的产出），包含审阅 findings → R2 基于反馈修改方案\n• R2 inputs 中显式声明综合裁决书为可选输入（type=process）→ 数据注入路径正确\n\nR9 overturned→R2（max:2）回退时：\n• R2 收到审计裁决书（R9 的产出），包含审计 findings → R2 基于审计反馈修改方案\n• R2 inputs 中显式声明审计裁决书为可选输入（type=process）→ 数据注入路径正确\n\n两种回退路径下，R2 的核心输入（改造需求文档）始终存在，可选输入根据回退来源注入。产出物链路一致。",
+          "result": "pass"
+        }
+      ]
+    },
+    {
+      "dimension": "STRESS-4：数据流极端场景",
+      "status": "pass",
+      "tests": [
+        {
+          "test": "模拟可选输入全部缺失时的角色行为",
+          "analysis": "R2 改造分析师的可选输入场景：\n• 首次执行（R1→R2 正向路径）：综合裁决书和审计裁决书均不存在 → R2 仅基于改造需求文档 + 现有 APP 文件分析 → 正常执行\n• R8 needs_revision 回退：综合裁决书存在、审计裁决书不存在 → R2 利用裁决反馈修改方案\n• R9 overturned 回退：审计裁决书存在、综合裁决书可能存在（取决于上一轮是否经过 R8）→ R2 利用审计反馈修改方案\n\n所有场景下 R2 的核心输入（改造需求文档）均存在，可选输入缺失不影响基本功能。设计正确。",
+          "result": "pass"
+        },
+        {
+          "test": "检查 R5/R6/R7 carries 物料注入在所有路径上一致",
+          "analysis": "R5/R6/R7 的 inputs 声明改造执行报告（outputs/改造执行报告.json, type=process），该产出物来自 R3。DAG 路径为 R3→R4→R5/R6/R7（经 FORK）。\n\nCarries 传播链：\n• R3→R4 边：carries 携带 R3 的改造执行报告到 R4\n• R4→R5/R6/R7 边（when:validated）：carries 累积传播，包括 R3 的改造执行报告\n• 到达 R5/R6/R7 时，改造执行报告已通过 carries 到达\n\n备选通道：outputs/改造执行报告.json 作为 process 类型文件写入 workspace，R5/R6/R7 可直接从 workspace 读取。\n\n结论：双通道（carries + workspace）保障 R5/R6/R7 的数据可达性，在所有迭代路径上一致。",
+          "result": "pass"
+        },
+        {
+          "test": "检查 R10 多源输入数据可达性",
+          "analysis": "R10 inputs 声明 7 个输入：审计裁决书（主输入，来自 R9 upheld 边）+ 6 个可选输入（综合裁决书/验证报告/改造执行报告/对抗分析报告/结构审阅报告/合规审阅报告）。\n\n执行触发边：R9 upheld→R10。此时 R9 已执行，审计裁决书必然存在。\n6 个可选输入的可达性：这些产出物在 R10 执行前的 forward 链路（R1→R2→R3→R4→[R5,R6,R7]→R8→R9→R10）中均已生成并存在于 workspace。即使 carries 未显式传播，workspace 读取亦可获取。\n\n结论：R10 的数据输入在正常审计通过路径上全部可达。",
+          "result": "pass"
+        }
+      ]
+    },
+    {
+      "dimension": "STRESS-5：对抗路径真实性",
+      "status": "pass",
+      "tests": [
+        {
+          "test": "检查每条对抗回退路径是否真实有效（不是虚假环路）",
+          "analysis": "4 条 backward 边逐一检验：\n\n1. R4→R3 when:fail（默认 max:3）——验证回退\n   • 真实性：R3 重新执行改造，基于 R4 的验证失败信息修复编译/校验问题。R3 的 inputs（改造方案）仍然存在，R3 可重新执行。\n   • 有效性：R3 修复后 R4 重新验证，形成 R3→R4→(fail)→R3 局部修复环路。每次迭代 R3 有机会修复不同问题。\n   • 判定：真实有效 ✓\n\n2. R8→R2 when:needs_revision（max:3）——改造迭代回路\n   • 真实性：R2 重新分析，基于 R8 综合裁决书的 findings 修改改造方案。R2 的可选输入（综合裁决书）通过 backward 边 carries 注入。\n   • 有效性：R2 修改方案后 R3→R4→[R5,R6,R7]→R8 全链路重新执行，审阅者重新评估修改后的改造。\n   • 判定：真实有效 ✓\n\n3. R8→R1 when:requirements_revision_needed（max:2）——全局迭代回路\n   • 真实性：R1 重新接收改造要求，基于全局反馈重新定义需求。R1→R2 全链路重新执行。\n   • 有效性：R8 在改造迭代回路接近耗尽时触发此路径，将问题升级到需求层。触发判据明确（同类 findings 连续≥3 轮或 needs_revision 边达上限）。\n   • 判定：真实有效 ✓\n\n4. R9→R2 when:overturned（max:2）——审计回退\n   • 真实性：R2 重新分析，基于 R9 审计裁决书的审计 findings 修改方案。R2 的可选输入（审计裁决书）通过 backward 边 carries 注入。\n   • 有效性：R2 修改后全链路重新执行，包括重新经过 R8→R9 审计。\n   • 判定：真实有效 ✓\n\n所有 backward 边均连接到不同角色、携带不同反馈信息、服务于不同的修复目的。无虚假环路。",
+          "result": "pass"
+        },
+        {
+          "test": "检查 max_executions 耗尽后的兜底行为",
+          "analysis": "逐条 backward 边分析耗尽后的兜底：\n\n1. R4→R3（fail, max:3）耗尽后：\n   • R4 的 validated 边仍可用 → R4 可选择放行（validated→FORK→审阅）\n   • 若 R4 仍产出 fail 但边已掐断 → 引擎终止，R10 产出 iteration_exhausted 失败报告\n   • 兜底：有（引擎终止 + 失败报告）\n\n2. R8→R2（needs_revision, max:3）耗尽后：\n   • R8 的其他两条边仍可用：confirmed→R9（放行路径）和 requirements_revision_needed→R1（全局回退, max:2）\n   • R8 可主动选择升级到全局回退或放行\n   • 兜底：有（多路径备选 + 全局回退）\n\n3. R9→R2（overturned, max:2）耗尽后：\n   • R9 的 upheld 边仍可用 → R9 必须产出 upheld→R10（强制放行）\n   • 语义：审计者已用尽 2 次推翻机会，改造在 R8→R2 迭代后仍被 R8 判定 confirmed，R9 只能放行\n   • 兜底：有（强制放行到 R10）\n\n4. R8→R1（requirements_revision_needed, max:2）耗尽后：\n   • R8 的其他两条边可能仍可用（取决于各自的剩余配额）：confirmed→R9 或 needs_revision→R2\n   • 若所有 backward 边均耗尽 → R8 只能产出 confirmed→R9，R9 只能产出 upheld→R10\n   • 兜底：有（强制走 happy path 到 R10→完成）\n\n全局耗尽终态：所有 backward 边耗尽后，R8→confirmed→R9→upheld→R10→完成 是唯一可达路径。流程必然终止（不会无限等待），R10 产出最终报告。\n\n结论：每条 backward 边耗尽后均有明确的兜底行为，无悬挂状态。",
+          "result": "pass"
+        }
+      ]
+    },
+    {
+      "dimension": "STRESS-6：循环终止性证明",
+      "status": "pass",
+      "tests": [
+        {
+          "test": "对所有 backward 边，数学证明其终止性（有界 + 有退出 verdict）",
+          "analysis": "数学证明——4 条 backward 边的终止性：\n\n定理：app-modifier DAG 中所有环路均有界终止。\n\n证明：\n设 backward 边集 B = {b1, b2, b3, b4}，其中：\n• b1 = R4→R3 (fail), max(b1) = 3\n• b2 = R8→R2 (needs_revision), max(b2) = 3\n• b3 = R8→R1 (requirements_revision_needed), max(b3) = 2\n• b4 = R9→R2 (overturned), max(b4) = 2\n\n上界分析：\n总 backward 执行次数上界 = max(b1) + max(b2) + max(b3) + max(b4) = 3 + 3 + 2 + 2 = 10\n每次 backward 执行后触发一条 forward 链（至少 4 步：到最近的下一个分支点），故总步数上界 = 10 × L + 1（初始 forward），其中 L 为最长 forward 链长度（R1→R2→R3→R4→R5/R6/R7→R8→R9→R10→完成，约 8 步）。\n总步数上界 ≈ 10 × 8 + 1 = 81 步（保守估计），有限。\n\n退出 verdict 分析（每条 backward 边耗尽后的可用 verdict）：\n• b1 耗尽 → R4 可用 verdict: {validated}（fail 被掐断）→ 退出到 FORK\n• b2 耗尽 → R8 可用 verdict: {confirmed, requirements_revision_needed} → 退出到 R9 或 R1\n• b3 耗尽 → R8 可用 verdict: {confirmed, needs_revision}（若 b2 未耗尽）→ 退出到 R9 或 R2\n• b4 耗尽 → R9 可用 verdict: {upheld}（overturned 被掐断）→ 退出到 R10\n\n当 B 中所有边耗尽时：\n• R4 可用 verdict: {validated}（仅 validated）\n• R8 可用 verdict: {confirmed}（仅 confirmed）\n• R9 可用 verdict: {upheld}（仅 upheld）\n→ 唯一路径 R4→validated→[R5,R6,R7]→R8→confirmed→R9→upheld→R10→完成\n→ 流程必然到达终态。 ∎\n\n交叉配额验证（QUA-1 约束）：\n• b2 + b4 = 3 + 2 = 5 ≤ 5（QUA-1: 改造迭代回路 ≤5）✓\n• b3 = 2 ≤ 2（QUA-2: 全局迭代回路 ≤2）✓\n• b1 = 3 ≤ 3（QUA-3: 验证回退 ≤3）✓",
+          "result": "pass"
+        },
+        {
+          "test": "检查是否存在潜在的无限循环",
+          "analysis": "穷举所有环路：\n\n环路 1：R3→R4→(fail)→R3\n• 包含 backward 边 b1 (max:3)\n• 有界 ✓\n\n环路 2：R2→R3→R4→[R5,R6,R7]→R8→(needs_revision)→R2\n• 包含 backward 边 b2 (max:3)\n• 有界 ✓\n\n环路 3：R1→R2→R3→R4→[R5,R6,R7]→R8→(requirements_revision_needed)→R1\n• 包含 backward 边 b3 (max:2)\n• 有界 ✓\n\n环路 4：R2→R3→R4→[R5,R6,R7]→R8→R9→(overturned)→R2\n• 包含 backward 边 b4 (max:2)\n• 有界 ✓\n\n复合环路检查：是否存在不经过任何 backward 边的环路？\n• Forward 边集合形成严格有向无环图（R1→R2→R3→R4→[R5,R6,R7]→R8→R9→R10→完成）\n• 所有 forward 边严格向下游推进，无 forward 环路\n• 所有环路必经至少 1 条 backward 边，而所有 backward 边有界\n\n结论：不存在无限循环。流程必然在有限步内终止。",
+          "result": "pass"
+        }
+      ]
+    }
+  ],
+
+  "backward_edge_exhaustion_matrix": {
+    "description": "backward 边穷举耗尽后的系统行为矩阵",
+    "edges": [
+      {
+        "edge": "R4→R3 (fail)",
+        "max_executions": 3,
+        "constraint": "QUA-3: 验证回退 ≤3",
+        "exhausted_behavior": "R4 只能产出 validated（fail 边掐断）→ 进入审阅流程；若改造确实无法通过验证，R4 产出 fail 无路可走 → 引擎终止 → R10 iteration_exhausted 报告",
+        "has_fallback": true,
+        "fallback_type": "引擎终止 + 失败报告"
+      },
+      {
+        "edge": "R8→R2 (needs_revision)",
+        "max_executions": 3,
+        "constraint": "QUA-1: R8→R2 + R9→R2 合计 ≤5",
+        "exhausted_behavior": "R8 可选 confirmed→R9（放行）或 requirements_revision_needed→R1（全局回退, max:2）。R8 应主动触发全局回退",
+        "has_fallback": true,
+        "fallback_type": "多路径备选（confirmed 放行 / requirements_revision_needed 全局回退）"
+      },
+      {
+        "edge": "R9→R2 (overturned)",
+        "max_executions": 2,
+        "constraint": "QUA-1: R8→R2 + R9→R2 合计 ≤5",
+        "exhausted_behavior": "R9 只能产出 upheld→R10（强制放行）。语义：审计者已用尽推翻配额，接受 R8 的 confirmed 裁决",
+        "has_fallback": true,
+        "fallback_type": "强制放行（upheld→R10）"
+      },
+      {
+        "edge": "R8→R1 (requirements_revision_needed)",
+        "max_executions": 2,
+        "constraint": "QUA-2: 全局迭代回路 ≤2",
+        "exhausted_behavior": "R8 可选 confirmed→R9 或 needs_revision→R2（若仍有配额）。若所有 backward 边均耗尽，R8 强制产出 confirmed→R9→upheld→R10→完成",
+        "has_fallback": true,
+        "fallback_type": "强制走 happy path 到终态"
+      }
+    ],
+    "all_exhausted_terminal_state": "R4→validated→[R5,R6,R7]→R8→confirmed→R9→upheld→R10→完成。流程必然终止，R10 产出最终报告。",
+    "total_backward_upper_bound": "3 + 3 + 2 + 2 = 10 次 backward 执行"
+  },
+
+  "verdict_completeness_audit": {
+    "description": "每个角色的 verdict 值域与对应边的完备性审计",
+    "roles": [
+      {
+        "role": "R1 改造需求接收者",
+        "type": "producer",
+        "verdicts": ["confirmed"],
+        "edges": ["R1→R2 (confirmed, default)"],
+        "fail_edge": "编译器自动生成 fail 自环（producer 标准 fail 处理）",
+        "complete": true
+      },
+      {
+        "role": "R4 模拟验证者",
+        "verdicts": ["validated", "fail"],
+        "edges": ["R4→R5/R6/R7 (validated)", "R4→R3 (fail, backward max:3)"],
+        "complete": true
+      },
+      {
+        "role": "R5/R6/R7 审阅者",
+        "verdicts": ["confirmed", "issues_found"],
+        "edges": ["→R8 JOIN (confirmed, default)", "→R8 (issues_found, explicit)"],
+        "complete": true
+      },
+      {
+        "role": "R8 综合裁决者",
+        "verdicts": ["confirmed", "needs_revision", "requirements_revision_needed"],
+        "edges": ["R8→R9 (confirmed)", "R8→R2 (needs_revision, max:3)", "R8→R1 (requirements_revision_needed, max:2)"],
+        "complete": true
+      },
+      {
+        "role": "R9 裁决审计者",
+        "verdicts": ["upheld", "overturned"],
+        "edges": ["R9→R10 (upheld)", "R9→R2 (overturned, max:2)"],
+        "complete": true
+      },
+      {
+        "role": "R10 改造报告生成者",
+        "verdicts": ["confirmed"],
+        "edges": ["R10→完成 (confirmed, default)"],
+        "fail_edge": "编译器自动生成 fail 自环（standard 标准 fail 处理）",
+        "complete": true
+      }
+    ],
+    "all_verdicts_covered": true
+  },
+
+  "observations": [
+    {
+      "id": "OBS-1",
+      "severity": "info",
+      "title": "需求文档 §4.1/§4.3 中 backward 边 max_executions 标注与 app.yaml 不一致",
+      "description": "需求文档 00-需求描述.md 的 §4.1 拓扑图（line 146, 148）和 §4.3 流程类型标注（line 177, 178）中，R8 needs_revision→R2 和 R9 overturned→R2 的 max_executions 仍标注为旧值 5（每条边各 5）。而 app.yaml 修复后分别为 max:3（R8→R2, line 254）和 max:2（R9→R2, line 266）。需求文档 §4.2（line 165）和 §9（line 316）将改造迭代回路描述为合并配额 max:5，与 app.yaml 的 3+2=5 一致。QUA-1（line 303）也明确要求总执行次数 ≤5，与 app.yaml 一致。",
+      "impact": "不影响运行时行为。app.yaml 为编译权威源，compiler.py 以 app.yaml edges 段为准。需求文档的旧值仅影响人类阅读时的理解。",
+      "recommendation": "后续可在需求文档迭代中同步更新 §4.1/§4.3 中 individual edge 的 max_executions 标注（5→3 和 5→2），以消除歧义。非阻塞性问题。"
+    }
+  ],
+
+  "overall_assessment": {
+    "critical_findings_count": 0,
+    "major_findings_count": 0,
+    "minor_findings_count": 0,
+    "info_observations_count": 1,
+    "verdict_rationale": "app.yaml 拓扑在 CF-2 修复后通过全部六个维度的对抗性压力测试。4 条 backward 边均有界且每条耗尽后有明确兜底行为；总 backward 上界 10 次确保流程必然终止；QUA-1/QUA-2/QUA-3 三项配额约束全部满足；所有角色 verdict 完备；FORK/JOIN 并行拓扑安全；跨层数据流一致。唯一观察项 OBS-1 为需求文档标注陈旧（info 级别），不影响架构正确性。",
+    "confidence": "high"
+  }
+}

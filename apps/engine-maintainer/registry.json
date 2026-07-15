@@ -1,0 +1,472 @@
+[
+  {
+    "role_name": "需求接收者",
+    "skill_path": "roles/需求接收者/skill.md",
+    "blocking_mode": "manual",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/需求接收者/principles.md",
+    "input_groups": [
+      [
+        "需求接收者-validate"
+      ],
+      [
+        "需求接收者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "需求接收者（校验）",
+    "skill_path": "roles/需求接收者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "需求接收者校验报告",
+        "path": "outputs/需求接收者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/需求接收者/principles.md",
+    "input_groups": [
+      [
+        "需求接收者"
+      ],
+      [
+        "需求接收者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "loop"
+    ]
+  },
+  {
+    "role_name": "引擎诊断师",
+    "skill_path": "roles/引擎诊断师/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "引擎诊断报告",
+        "path": "outputs/引擎诊断报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "SDK规范",
+        "path": "knowledge/SDK_SPEC.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "编排范式",
+        "path": "knowledge/编排范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "引擎代码分析方法论",
+        "path": "knowledge/引擎代码分析方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "需求接收者-validate"
+      ],
+      [
+        "引擎诊断师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "变更设计师",
+    "skill_path": "roles/变更设计师/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "变更设计文档",
+        "path": "outputs/变更设计文档.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "引擎诊断报告",
+        "path": "outputs/引擎诊断报告.json",
+        "type": "process"
+      },
+      {
+        "name": "维护报告",
+        "path": "维护报告.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "编排范式",
+        "path": "knowledge/编排范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "变更设计方法论",
+        "path": "knowledge/变更设计方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "引擎诊断师"
+      ],
+      [
+        "知识管理者"
+      ],
+      [
+        "变更设计师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "代码实施者",
+    "skill_path": "roles/代码实施者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "变更摘要",
+        "path": "outputs/变更摘要.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "变更设计文档",
+        "path": "outputs/变更设计文档.json",
+        "type": "process"
+      },
+      {
+        "name": "维护报告",
+        "path": "维护报告.md",
+        "type": "deliverable"
+      }
+    ],
+    "input_groups": [
+      [
+        "变更设计师"
+      ],
+      [
+        "知识管理者"
+      ],
+      [
+        "代码实施者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "回归验证者",
+    "skill_path": "roles/回归验证者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "回归验证报告",
+        "path": "outputs/回归验证报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "变更设计文档",
+        "path": "outputs/变更设计文档.json",
+        "type": "process"
+      },
+      {
+        "name": "变更摘要",
+        "path": "outputs/变更摘要.json",
+        "type": "process"
+      },
+      {
+        "name": "SDK规范",
+        "path": "knowledge/SDK_SPEC.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "回归验证标准手册",
+        "path": "knowledge/回归验证标准手册.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "代码实施者"
+      ],
+      [
+        "回归验证者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "架构红队",
+    "skill_path": "roles/架构红队/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "对抗审阅报告",
+        "path": "outputs/架构红队-对抗报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "变更设计文档",
+        "path": "outputs/变更设计文档.json",
+        "type": "process"
+      },
+      {
+        "name": "变更摘要",
+        "path": "outputs/变更摘要.json",
+        "type": "process"
+      },
+      {
+        "name": "SDK规范",
+        "path": "knowledge/SDK_SPEC.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "回归验证标准手册",
+        "path": "knowledge/回归验证标准手册.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "代码实施者"
+      ],
+      [
+        "架构红队"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "知识管理者",
+    "skill_path": "roles/知识管理者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "维护报告",
+        "path": "维护报告.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "引擎诊断报告",
+        "path": "outputs/引擎诊断报告.json",
+        "type": "process"
+      },
+      {
+        "name": "变更设计文档",
+        "path": "outputs/变更设计文档.json",
+        "type": "process"
+      },
+      {
+        "name": "变更摘要",
+        "path": "outputs/变更摘要.json",
+        "type": "process"
+      },
+      {
+        "name": "回归验证报告",
+        "path": "outputs/回归验证报告.json",
+        "type": "process"
+      },
+      {
+        "name": "对抗审阅报告",
+        "path": "outputs/架构红队-对抗报告.json",
+        "type": "process"
+      },
+      {
+        "name": "维护报告编写指南",
+        "path": "knowledge/维护报告编写指南.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "回归验证者",
+        "架构红队"
+      ],
+      [
+        "知识管理者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "loop",
+      "major_rework"
+    ]
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "schema_version": "2.0",
+  "app_name": "engine-doc-distiller",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "knowledge",
+      "outputs",
+      "文档族"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/SDK_SPEC.md",
+        "to": "knowledge/SDK_SPEC.md"
+      },
+      {
+        "from": "knowledge/引擎文档族范式.md",
+        "to": "knowledge/引擎文档族范式.md"
+      },
+      {
+        "from": "knowledge/app.yaml编排范式.md",
+        "to": "knowledge/app.yaml编排范式.md"
+      },
+      {
+        "from": "knowledge/文档族分层设计方法论.md",
+        "to": "knowledge/文档族分层设计方法论.md"
+      },
+      {
+        "from": "knowledge/引擎特性提炼指南.md",
+        "to": "knowledge/引擎特性提炼指南.md"
+      },
+      {
+        "from": "knowledge/文档审阅与对抗标准手册.md",
+        "to": "knowledge/文档审阅与对抗标准手册.md"
+      }
+    ]
+  }
+}

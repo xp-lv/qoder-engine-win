@@ -1,0 +1,134 @@
+{
+  "schema_version": "2.0",
+  "entry": "设计者",
+  "steps": [
+    {
+      "step": "设计者",
+      "role": "设计者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "设计者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/设计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 设计者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "设计者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "产出-app.yaml",
+              "type": "feedback",
+              "name": "[反馈] 应用编排方案"
+            },
+            {
+              "path": "outputs/设计者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 设计者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "审阅者",
+      "role": "审阅者",
+      "transitions": {
+        "confirmed": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/审阅者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 审阅者"
+            }
+          ]
+        },
+        "challenged": {
+          "targets": [
+            "设计者"
+          ],
+          "type": "normal",
+          "max_executions": 2,
+          "carries": [
+            {
+              "path": "outputs/审阅者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 审阅者"
+            },
+            {
+              "path": "outputs/审阅报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 审阅报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "审阅者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/审阅报告.json",
+              "type": "feedback",
+              "name": "[反馈] 审阅报告"
+            },
+            {
+              "path": "outputs/审阅者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 审阅者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "设计者-validate",
+      "role": "设计者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "审阅者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/设计者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 设计者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "设计者-validate"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/设计者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 设计者校验报告"
+            },
+            {
+              "path": "outputs/设计者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 设计者-validate Gate校验结果"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

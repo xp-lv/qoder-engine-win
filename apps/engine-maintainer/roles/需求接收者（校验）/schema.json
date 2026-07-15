@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["result"],
+  "properties": {
+    "result": {
+      "type": "object",
+      "required": ["verdict", "summary"],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": ["confirmed", "loop"]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 10
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "dimension": {"type": "string"},
+              "status": {"type": "string", "enum": ["pass", "fail"]},
+              "detail": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  },
+  "_required_files": [
+    {"name": "需求校验报告", "path": "outputs/需求接收者-validation.json"}
+  ]
+}

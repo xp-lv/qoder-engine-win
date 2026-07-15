@@ -6,14 +6,14 @@
   2. 检查模式（--check）：读已生成的 ROUTER.json → 静态分析
 
 用法：
-  python3 engine/scripts/compiler.py --app-path apps/xxx          # 编译
-  python3 engine/scripts/compiler.py --app-path apps/xxx --check  # 检查
+  python engine/scripts/compiler.py --app-path apps/xxx          # 编译
+  python engine/scripts/compiler.py --app-path apps/xxx --check  # 检查
 """
 import argparse, json, os, sys, re
 from collections import deque
 
 def load_json(path):
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, "r", encoding="utf-8-sig") as f:
         return json.load(f)
 
 def save_json(path, data):
@@ -182,7 +182,7 @@ def compile_app(app_path, force=False):
         print(f"错误：{yaml_path} 不存在")
         sys.exit(1)
 
-    with open(yaml_path, "r", encoding="utf-8") as f:
+    with open(yaml_path, "r", encoding="utf-8-sig") as f:
         content = f.read()
 
     # 简易 YAML 解析（不依赖 PyYAML）
@@ -1601,7 +1601,7 @@ def check_app(app_path, strict=False):
         skill_full = os.path.join(app_path, skill_path)
         if not os.path.exists(skill_full):
             continue
-        with open(skill_full, "r", encoding="utf-8") as f:
+        with open(skill_full, "r", encoding="utf-8-sig") as f:
             skill_content = f.read()
         # 检查是否有任何 verdict enum 值未在 skill 中被提及
         undocumented = [v for v in verdict_enum if v not in skill_content]

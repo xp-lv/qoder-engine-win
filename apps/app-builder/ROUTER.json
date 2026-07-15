@@ -1,0 +1,786 @@
+{
+  "schema_version": "2.0",
+  "entry": "需求接收者-validate",
+  "steps": [
+    {
+      "step": "需求接收者-validate",
+      "role": "需求接收者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "需求红队"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者-validate"
+            }
+          ]
+        },
+        "loop": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "需求接收者-validate"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者校验报告"
+            },
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者-validate Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "需求红队",
+      "role": "需求红队",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "架构师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求红队-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求红队"
+            }
+          ]
+        },
+        "challenged": {
+          "targets": [
+            "裁决审计者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求红队-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求红队"
+            },
+            {
+              "path": "outputs/需求红队-对抗分析报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 对抗分析报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "需求红队"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/需求红队-对抗分析报告.json",
+              "type": "feedback",
+              "name": "[反馈] 对抗分析报告"
+            },
+            {
+              "path": "outputs/需求红队-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 需求红队 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "需求接收者",
+      "role": "需求接收者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "需求接收者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "00-需求描述.md",
+              "type": "feedback",
+              "name": "[反馈] 需求文档"
+            },
+            {
+              "path": "outputs/需求接收者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者 Gate校验结果"
+            },
+            {
+              "path": "outputs/需求接收者-feedback.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者 用户反馈"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "架构师",
+      "role": "架构师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "技能填充者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/架构师-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 架构师"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "架构师"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "app.yaml",
+              "type": "feedback",
+              "name": "[反馈] App架构文件"
+            },
+            {
+              "path": "outputs/知识文档设计.json",
+              "type": "feedback",
+              "name": "[反馈] 知识文档设计清单"
+            },
+            {
+              "path": "outputs/架构师-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 架构师 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "技能填充者",
+      "role": "技能填充者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "模拟验证者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/技能填充者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 技能填充者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "技能填充者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/技能填充报告.json",
+              "type": "feedback",
+              "name": "[反馈] 技能填充报告"
+            },
+            {
+              "path": "roles/",
+              "type": "feedback",
+              "name": "[反馈] 角色文件树"
+            },
+            {
+              "path": "knowledge/",
+              "type": "feedback",
+              "name": "[反馈] 知识文档"
+            },
+            {
+              "path": "outputs/技能填充者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 技能填充者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "模拟验证者",
+      "role": "模拟验证者",
+      "transitions": {
+        "validated": {
+          "targets": [
+            "结构审阅者",
+            "合规审阅者",
+            "架构红队"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/模拟验证者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 模拟验证者"
+            },
+            {
+              "path": "outputs/模拟验证报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 模拟验证报告"
+            }
+          ]
+        },
+        "defects_detected": {
+          "targets": [
+            "架构师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/模拟验证者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 模拟验证者"
+            },
+            {
+              "path": "outputs/模拟验证报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 模拟验证报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "模拟验证者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/模拟验证报告.json",
+              "type": "feedback",
+              "name": "[反馈] 模拟验证报告"
+            },
+            {
+              "path": "outputs/模拟验证者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 模拟验证者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "结构审阅者",
+      "role": "结构审阅者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "综合裁决者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/结构审阅者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 结构审阅者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "结构审阅者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/结构审阅报告.json",
+              "type": "feedback",
+              "name": "[反馈] 结构审阅报告"
+            },
+            {
+              "path": "outputs/结构审阅者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 结构审阅者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "合规审阅者",
+      "role": "合规审阅者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "综合裁决者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/合规审阅者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 合规审阅者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "合规审阅者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/合规审阅报告.json",
+              "type": "feedback",
+              "name": "[反馈] 合规审阅报告"
+            },
+            {
+              "path": "outputs/合规审阅者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 合规审阅者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "架构红队",
+      "role": "架构红队",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "综合裁决者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/架构红队-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 架构红队"
+            }
+          ]
+        },
+        "challenged": {
+          "targets": [
+            "裁决审计者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/架构红队-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 架构红队"
+            },
+            {
+              "path": "outputs/架构红队-压力测试报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 压力测试报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "架构红队"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/架构红队-压力测试报告.json",
+              "type": "feedback",
+              "name": "[反馈] 压力测试报告"
+            },
+            {
+              "path": "outputs/架构红队-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 架构红队 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "综合裁决者",
+      "role": "综合裁决者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "裁决审计者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/综合裁决者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 综合裁决者"
+            }
+          ]
+        },
+        "loop": {
+          "targets": [
+            "裁决审计者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/综合裁决者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 综合裁决者"
+            },
+            {
+              "path": "outputs/审阅报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 审阅报告"
+            }
+          ]
+        },
+        "conditional_pass": {
+          "targets": [
+            "裁决审计者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/综合裁决者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 综合裁决者"
+            },
+            {
+              "path": "outputs/审阅报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 审阅报告"
+            }
+          ]
+        },
+        "requirement_defect": {
+          "targets": [
+            "裁决审计者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/综合裁决者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 综合裁决者"
+            },
+            {
+              "path": "outputs/审阅报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 审阅报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "综合裁决者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/审阅报告.json",
+              "type": "feedback",
+              "name": "[反馈] 审阅报告"
+            },
+            {
+              "path": "outputs/综合裁决者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 综合裁决者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "裁决审计者",
+      "role": "裁决审计者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "知识管理者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/裁决审计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 裁决审计者"
+            }
+          ]
+        },
+        "loop": {
+          "targets": [
+            "架构师"
+          ],
+          "type": "normal",
+          "max_executions": 10,
+          "carries": [
+            {
+              "path": "outputs/裁决审计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 裁决审计者"
+            },
+            {
+              "path": "outputs/裁决审计报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 裁决审计报告"
+            }
+          ]
+        },
+        "conditional_pass": {
+          "targets": [
+            "架构师"
+          ],
+          "type": "normal",
+          "max_executions": 10,
+          "carries": [
+            {
+              "path": "outputs/裁决审计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 裁决审计者"
+            },
+            {
+              "path": "outputs/裁决审计报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 裁决审计报告"
+            }
+          ]
+        },
+        "requirement_defect": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/裁决审计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 裁决审计者"
+            },
+            {
+              "path": "outputs/裁决审计报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 裁决审计报告"
+            }
+          ]
+        },
+        "req_challenge_upheld": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "normal",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/裁决审计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 裁决审计者"
+            },
+            {
+              "path": "outputs/裁决审计报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 裁决审计报告"
+            }
+          ]
+        },
+        "req_challenge_overturned": {
+          "targets": [
+            "架构师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/裁决审计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 裁决审计者"
+            },
+            {
+              "path": "outputs/裁决审计报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 裁决审计报告"
+            }
+          ]
+        },
+        "arch_challenge_upheld": {
+          "targets": [
+            "架构师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/裁决审计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 裁决审计者"
+            },
+            {
+              "path": "outputs/裁决审计报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 裁决审计报告"
+            }
+          ]
+        },
+        "arch_challenge_overturned": {
+          "targets": [
+            "知识管理者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/裁决审计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 裁决审计者"
+            },
+            {
+              "path": "outputs/裁决审计报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 裁决审计报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "裁决审计者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/裁决审计报告.json",
+              "type": "feedback",
+              "name": "[反馈] 裁决审计报告"
+            },
+            {
+              "path": "outputs/裁决审计者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 裁决审计者 Gate校验结果"
+            }
+          ]
+        }
+      },
+      "verdict_context": {
+        "需求红队": [
+          "req_challenge_upheld",
+          "req_challenge_overturned"
+        ],
+        "架构红队": [
+          "arch_challenge_upheld",
+          "arch_challenge_overturned"
+        ],
+        "综合裁决者": [
+          "confirmed",
+          "loop",
+          "conditional_pass",
+          "requirement_defect"
+        ]
+      }
+    },
+    {
+      "step": "知识管理者",
+      "role": "知识管理者",
+      "transitions": {
+        "tracked": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "normal",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/知识管理者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 知识管理者"
+            },
+            {
+              "path": "outputs/知识演进追踪表.json",
+              "type": "deliverable",
+              "name": "[上游分析] 知识演进追踪表"
+            }
+          ]
+        },
+        "completed": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/知识管理者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 知识管理者"
+            },
+            {
+              "path": "outputs/知识演进追踪表.json",
+              "type": "deliverable",
+              "name": "[上游分析] 知识演进追踪表"
+            }
+          ]
+        },
+        "proposal_ready": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/知识管理者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 知识管理者"
+            },
+            {
+              "path": "outputs/知识演进追踪表.json",
+              "type": "deliverable",
+              "name": "[上游分析] 知识演进追踪表"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "知识管理者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/知识演进追踪表.json",
+              "type": "feedback",
+              "name": "[反馈] 知识演进追踪表"
+            },
+            {
+              "path": "构建报告.md",
+              "type": "feedback",
+              "name": "[反馈] 构建报告"
+            },
+            {
+              "path": "outputs/知识管理者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 知识管理者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

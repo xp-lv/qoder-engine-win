@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "result"
+  ],
+  "properties": {
+    "result": {
+      "type": "object",
+      "required": [
+        "verdict",
+        "summary"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "confirmed",
+            "loop"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array"
+        },
+        "errors": {
+          "type": "array"
+        }
+      }
+    }
+  },
+  "_required_files": [
+    {
+      "name": "前端实现者校验报告",
+      "path": "outputs/前端实现者-validation.json",
+      "type": "deliverable"
+    }
+  ]
+}

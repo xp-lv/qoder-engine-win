@@ -1,0 +1,22 @@
+{
+  "schema_version": "2.0",
+  "app_name": "app-architect",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "knowledge",
+      "outputs",
+      "outputs/versions"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/SDK_SPEC.md",
+        "to": "knowledge/SDK_SPEC.md"
+      }
+    ]
+  }
+}

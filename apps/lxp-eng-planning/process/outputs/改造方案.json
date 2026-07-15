@@ -1,0 +1,527 @@
+{
+  "result": {
+    "verdict": "confirmed",
+    "summary": "第三轮增量改造方案（回退修订版）：在 lxp-eng-planning app 前端实现链路插入「预览部署者」和「前端预览确认」两个新角色，建立预览-反馈-修改-再预览闭环。本轮针对综合裁决书的 1 critical + 2 major + 2 minor 共 5 项 findings 进行方案修订：(1) CRITICAL — app.yaml confirm 字段行内注释导致 registry.json blocking_mode 被污染，修复为注释移到独立行；(2) MAJOR1 — needs_revision 回退边缩减为仅 [交互逻辑设计师, 美学布局设计师]，移除接口翻译师以消除后端级联；(3) MAJOR2 — 三角色 app.yaml inputs 补充前端预览确认报告可选输入声明；(4) MINOR1 — 预览部署者 skill.md 移除硬编码路径；(5) MINOR2 — confirm 注释修复后编译器将正确识别 manual 并自动补充 fail carries feedback.json。四类风险全部 pass，向后兼容性 pass。"
+  },
+
+  "改造方案主体": {
+    "改造类型": ["新增角色", "调整编排", "修复缺陷"],
+    "改造类型概述": "在前端实现链路中增量插入「预览部署者」角色与「前端预览确认」人工节点，建立预览-反馈-修改-再预览的闭环。同时修复综合裁决书发现的多项缺陷：confirm 字段注释污染、后端级联、可选输入遗漏、硬编码路径。改造后前端流程：前端设计组→前端实现者→前端实现者（校验）→预览部署者→前端预览确认→(confirmed)→合并校验者 / (needs_revision,max:3)→[交互逻辑设计师, 美学布局设计师]（不含接口翻译师，避免后端级联）。",
+
+    "回退处理": {
+      "回退来源": "needs_revision",
+      "上一轮问题概述": "综合裁决书 needs_revision，三路审阅共发现 1 critical + 2 major + 4 minor。核心问题：(1) CRITICAL — registry.json blocking_mode 被注释文本污染导致人工确认闸门失效；(2) MAJOR1 — needs_revision 回退含接口翻译师引发后端链路级联重跑；(3) MAJOR2 — 三角色 app.yaml inputs 遗漏前端预览确认报告可选输入声明；(4) MINOR1 — 预览部署者 skill.md 硬编码路径；(5) MINOR2 — fail carries 缺少 feedback.json。",
+      "本轮调整": "逐项修复上述 findings，详见改动清单中的「修复-FINDING」标注项。",
+      "本轮未处理的minor说明": "MINOR1-框架层面升级路径缺失（max_executions 耗尽后无 escalate）：框架层面限制，不在本轮改造范围内，记录待后续框架升级。MINOR2-knowledge注入建议（前端预览确认注入前端拖拽交互最佳实践）：增强性建议，前端预览确认作为人工判断节点由用户主观决策，knowledge 注入非必须，记录待后续迭代考虑。"
+    },
+
+    "改动清单": [
+      {
+        "序号": 1,
+        "目标文件": "apps/lxp-eng-planning/app.yaml — roles 段",
+        "改动类型": "新增",
+        "改动内容摘要": "在 roles 段新增「预览部署者」角色定义：type: standard, confirm: auto, inputs: [前端代码: outputs/src/frontend/], outputs: [预览部署报告: outputs/预览部署报告.json, type=process]。位置：插入到「前端实现者」角色定义之后。",
+        "改动原因": "需求要求：在前端实现者产出代码后、合并校验者之前，新增一个将前端代码部署到本地预览环境的角色，输出可访问的预览地址，供用户实际查看网页渲染效果。"
+      },
+      {
+        "序号": 2,
+        "目标文件": "apps/lxp-eng-planning/app.yaml — roles 段",
+        "改动类型": "新增",
+        "改动内容摘要": "在 roles 段新增「前端预览确认」角色定义：type: standard, confirm: manual（注释独立成行，不嵌入字段值）, inputs: [预览部署报告: outputs/预览部署报告.json, type=process], outputs: [前端预览确认报告: outputs/前端预览确认报告.json, type=process]。位置：紧随「预览部署者」角色定义之后。",
+        "改动原因": "需求要求：新增全局第 3 个人工确认节点（confirm: manual），用户通过浏览器打开预览地址，对美学设计、交互体验、页面布局进行人工判断与决策。verdict: confirmed / needs_revision。",
+        "关联finding": "CRITICAL — confirm 字段注释必须独立成行"
+      },
+      {
+        "序号": 3,
+        "目标文件": "apps/lxp-eng-planning/app.yaml — edges 段",
+        "改动类型": "删除",
+        "改动内容摘要": "删除 Phase 7 现有 JOIN 边：`- [前端实现者（校验）, 后端实现者（校验）] → 合并校验者`（当前 app.yaml 第 271 行区域）。该 JOIN 的前端侧来源将由新的「前端预览确认」替代。",
+        "改动原因": "合并校验者的前端侧 JOIN 来源需从「前端实现者（校验）」变更为「前端预览确认」，因为前端代码写完后先经过预览部署→人工确认环节。"
+      },
+      {
+        "序号": 4,
+        "目标文件": "apps/lxp-eng-planning/app.yaml — edges 段",
+        "改动类型": "新增",
+        "改动内容摘要": "新增 confirmed 前进边：`- 前端实现者（校验） → 预览部署者`。前端实现者（校验）confirmed 后流转至预览部署者。",
+        "改动原因": "前端实现者校验通过后，前端代码流转至预览部署者进行本地预览环境部署。"
+      },
+      {
+        "序号": 5,
+        "目标文件": "apps/lxp-eng-planning/app.yaml — edges 段",
+        "改动类型": "新增",
+        "改动内容摘要": "新增前进边：`- 预览部署者 → 前端预览确认`。预览部署者完成部署后，流转至前端预览确认节点（confirm: manual）。",
+        "改动原因": "预览部署完成后，需由用户进行人工确认。"
+      },
+      {
+        "序号": 6,
+        "目标文件": "apps/lxp-eng-planning/app.yaml — edges 段",
+        "改动类型": "新增",
+        "改动内容摘要": "新增 JOIN 边（替代被删除的 Phase 7 JOIN）：`- [前端预览确认, 后端实现者（校验）] → 合并校验者 when: result.verdict == \"confirmed\"`。",
+        "改动原因": "confirmed 路径：前端预览确认 confirmed 与后端实现者校验 confirmed 同步汇入合并校验者。"
+      },
+      {
+        "序号": 7,
+        "目标文件": "apps/lxp-eng-planning/app.yaml — edges 段",
+        "改动类型": "新增",
+        "改动内容摘要": "新增反馈循环回退边（backward）：`- 前端预览确认 → [交互逻辑设计师, 美学布局设计师] when: result.verdict == \"needs_revision\" max_executions: 3`。回退目标仅包含交互逻辑设计师和美学布局设计师，【不含接口翻译师】。",
+        "改动原因": "用户预览不满意时，打回前端设计组中负责美学/交互/布局的两个角色重新设计。max_executions: 3 限制最多 3 轮预览-反馈循环。",
+        "关联finding": "MAJOR1 — 修复后端级联问题",
+        "修改说明": "【MAJOR1修复】上轮方案回退目标为 [交互逻辑设计师, 美学布局设计师, 接口翻译师]，但接口翻译师 confirmed 出边指向 API契约设计师，会级联触发后端设计组JOIN→后端实现者→后端实现者校验完整后端链路重跑。本轮将回退目标缩减为 [交互逻辑设计师, 美学布局设计师]，移除接口翻译师。理由：前端预览反馈通常是美学/交互/布局问题，属于交互逻辑设计师和美学布局设计师的职责范围；接口翻译师的工作是翻译接口逻辑（前端需求↔后端接口映射），美学/交互修改不需要重新翻译接口。接口翻译师的产出在回退后保持不变，Phase 5 JOIN [交互逻辑设计师, 美学布局设计师, 接口翻译师] → 前端实现者 采用累计计数语义，接口翻译师上一轮已完成贡献持续满足，JOIN 仅需等待被回退的 2 角色重新执行完成即可触发。"
+      },
+      {
+        "序号": 8,
+        "目标文件": "apps/lxp-eng-planning/roles/预览部署者/skill.md",
+        "改动类型": "新增",
+        "改动内容摘要": "新增「预览部署者」执行指令 skill.md。角色定位：将前端代码部署到本地预览环境，启动预览服务，输出可访问的预览地址。执行步骤使用纯语义描述引用输入物料（「读取 dispatch 注入的前端代码」），不硬编码任何文件路径。",
+        "改动原因": "新角色需要独立的 skill.md 定义执行逻辑。",
+        "关联finding": "MINOR1 — 移除硬编码路径",
+        "修改说明": "【MINOR1修复】skill.md 中不出现 outputs/src/frontend/ 硬编码路径，统一使用语义描述「读取 dispatch 注入的前端代码目录」，路径来源由 app.yaml inputs 声明决定。"
+      },
+      {
+        "序号": 9,
+        "目标文件": "apps/lxp-eng-planning/roles/前端预览确认/skill.md",
+        "改动类型": "新增",
+        "改动内容摘要": "新增「前端预览确认」执行指令 skill.md。角色定位：人工确认节点（confirm: manual），用户通过浏览器查看实际渲染效果，对美学/交互/布局做人工判断。verdict: confirmed / needs_revision。needs_revision 时回退至 [交互逻辑设计师, 美学布局设计师]。",
+        "改动原因": "新角色需要独立的 skill.md 定义执行逻辑。前端预览确认是全局第 3 个人工确认节点。"
+      },
+      {
+        "序号": 10,
+        "目标文件": "apps/lxp-eng-planning/roles/前端实现者/skill.md",
+        "改动类型": "修改",
+        "改动内容摘要": "修改 verdict 判定规则中的流转描述：confirmed → 预览部署者 → 前端预览确认 → confirmed → 合并校验者。补充 needs_revision 回退路径说明。",
+        "改动原因": "前端实现者的 confirmed 流转目标从「合并校验者」变为「预览部署者」。"
+      },
+      {
+        "序号": 11,
+        "目标文件": "apps/lxp-eng-planning/roles/合并校验者/skill.md",
+        "改动类型": "修改",
+        "改动内容摘要": "修改角色定位中的 JOIN 描述：JOIN 前端预览确认（confirmed）和后端实现者（校验）的产出。",
+        "改动原因": "合并校验者的前端侧 JOIN 来源变更。"
+      },
+      {
+        "序号": 12,
+        "目标文件": "apps/lxp-eng-planning/roles/交互逻辑设计师/skill.md, roles/美学布局设计师/skill.md",
+        "改动类型": "修改",
+        "改动内容摘要": "在交互逻辑设计师和美学布局设计师的 skill.md 中补充说明：新增「前端预览确认 needs_revision 回退」入边——当用户预览不满意时，会携带前端预览确认报告（含用户具体反馈意见）回退至这两个角色重新设计。两个角色需根据前端预览确认报告中的反馈意见调整设计方案。",
+        "改动原因": "这两个角色是 needs_revision 回退的直接目标，skill.md 需补充回退场景处理逻辑。"
+      },
+      {
+        "序号": 13,
+        "目标文件": "apps/lxp-eng-planning/app.yaml — roles 段（交互逻辑设计师 inputs）",
+        "改动类型": "修改",
+        "改动内容摘要": "在交互逻辑设计师的 inputs 中新增可选输入声明：`- 前端预览确认报告: outputs/前端预览确认报告.json, type=process  # [可选输入] 前端预览确认 needs_revision 回退时存在`。与已有的「交叉审核报告[可选输入]」声明模式一致。",
+        "改动原因": "交互逻辑设计师是 needs_revision 回退目标，skill.md 引用前端预览确认报告作为回退输入，app.yaml inputs 需同步声明。",
+        "关联finding": "MAJOR2 — 可选输入遗漏修复"
+      },
+      {
+        "序号": 14,
+        "目标文件": "apps/lxp-eng-planning/app.yaml — roles 段（美学布局设计师 inputs）",
+        "改动类型": "修改",
+        "改动内容摘要": "在美学布局设计师的 inputs 中新增可选输入声明：`- 前端预览确认报告: outputs/前端预览确认报告.json, type=process  # [可选输入] 前端预览确认 needs_revision 回退时存在`。与已有的「交叉审核报告[可选输入]」声明模式一致。",
+        "改动原因": "美学布局设计师是 needs_revision 回退目标，skill.md 引用前端预览确认报告作为回退输入，app.yaml inputs 需同步声明。",
+        "关联finding": "MAJOR2 — 可选输入遗漏修复"
+      },
+      {
+        "序号": 15,
+        "目标文件": "apps/lxp-eng-planning/app.yaml — roles 段（接口翻译师 inputs）",
+        "改动类型": "修改",
+        "改动内容摘要": "在接口翻译师的 inputs 中新增可选输入声明：`- 前端预览确认报告: outputs/前端预览确认报告.json, type=process  # [可选输入] 前端预览确认 needs_revision 回退时存在`。与已有的「交叉审核报告[可选输入]」声明模式一致。",
+        "改动原因": "保持前端设计组三角色 inputs 声明一致性，且接口翻译师 skill.md 引用了前端预览确认报告作为可选输入，app.yaml inputs 需同步声明以保持输入契约完整。虽然本轮 MAJOR1 修复后接口翻译师不再是 needs_revision 直接回退目标，但保留可选输入声明确保 app.yaml 输入契约与 skill.md 引用一致，同时为将来可能的方案调整预留灵活性。",
+        "关联finding": "MAJOR2 — 可选输入遗漏修复"
+      }
+    ],
+
+    "影响范围": {
+      "上下游角色": {
+        "新增角色": [
+          "预览部署者 (standard, auto) — 前端代码→本地预览环境部署",
+          "前端预览确认 (standard, manual) — 人工确认预览效果，全局第3个manual节点"
+        ],
+        "上游追溯": {
+          "预览部署者": {
+            "inputs": ["前端代码 (outputs/src/frontend/)"],
+            "直接来源角色": ["前端实现者（校验）"],
+            "追溯链": "前端实现者（校验）← 前端实现者 ← [交互逻辑设计师, 美学布局设计师, 接口翻译师] ← 交叉审核者"
+          },
+          "前端预览确认": {
+            "inputs": ["预览部署报告 (outputs/预览部署报告.json, type=process)"],
+            "直接来源角色": ["预览部署者"],
+            "追溯链": "预览部署者 ← 前端实现者（校验） ← 前端实现者 ← 前端设计组"
+          }
+        },
+        "下游追踪": {
+          "前端预览确认": {
+            "outputs": ["前端预览确认报告 (outputs/前端预览确认报告.json, type=process)"],
+            "confirmed路径消费者": ["合并校验者 (JOIN) → 部署文档管理者 → 综合裁决者 → 完成"],
+            "needs_revision路径消费者": ["[交互逻辑设计师, 美学布局设计师] (回退·不含接口翻译师) → 前端实现者 → 前端实现者（校验）→ 预览部署者 → 前端预览确认 (循环)"]
+          }
+        },
+        "受影响的现有角色": [
+          "前端实现者（校验） — 出边变更：原→合并校验者(JOIN) 改为 →预览部署者",
+          "合并校验者 — JOIN入边变更：前端侧来源从「前端实现者（校验）」变为「前端预览确认」",
+          "交互逻辑设计师 — 新增needs_revision回退入边（来自前端预览确认）+ 新增前端预览确认报告[可选输入]",
+          "美学布局设计师 — 新增needs_revision回退入边（来自前端预览确认）+ 新增前端预览确认报告[可选输入]",
+          "接口翻译师 — 新增前端预览确认报告[可选输入]声明（不在回退目标中，但保持输入契约一致）"
+        ]
+      },
+
+      "受影响边": {
+        "删除的边": [
+          {
+            "边": "[前端实现者（校验）, 后端实现者（校验）] → 合并校验者",
+            "说明": "原Phase7 JOIN边，前端侧来源需变更"
+          }
+        ],
+        "新增的边": [
+          {
+            "边": "前端实现者（校验） → 预览部署者",
+            "类型": "normal (confirmed前进边)",
+            "说明": "前端校验通过后进入预览部署"
+          },
+          {
+            "边": "预览部署者 → 前端预览确认",
+            "类型": "normal",
+            "说明": "预览部署完成后进入人工确认"
+          },
+          {
+            "边": "[前端预览确认, 后端实现者（校验）] → 合并校验者 when: result.verdict == \"confirmed\"",
+            "类型": "normal (JOIN同步汇入，条件路由)",
+            "说明": "新Phase7 JOIN，前端侧来源变为前端预览确认(confirmed)，后端侧不变"
+          },
+          {
+            "边": "前端预览确认 → [交互逻辑设计师, 美学布局设计师] when: result.verdict == \"needs_revision\" max_executions: 3",
+            "类型": "backward (编译器自动推断)",
+            "说明": "【MAJOR1修复】反馈循环回退边，回退目标缩减为仅交互逻辑设计师和美学布局设计师（不含接口翻译师）。max_executions:3限制最多3轮循环。backward边自动携带：前端预览确认产出 + gate结果 + 用户反馈(manual角色) + 被回退角色上一轮产出。"
+          }
+        ],
+        "不变的边": [
+          "前端实现者 → 前端实现者（校验） (producer展开，不变)",
+          "前端实现者（校验） → 前端实现者 when: result.verdict == \"loop\" (自校验loop，不变)",
+          "后端实现者 → 后端实现者（校验） (producer展开，不变)",
+          "后端实现者（校验） → 后端实现者 when: result.verdict == \"loop\" (不变)",
+          "合并校验者 → 前端实现者 when: result.verdict == \"FRONTEND_BLOCKING\" max_executions: 5 (代码层回退，不变)",
+          "合并校验者 → 后端实现者 when: result.verdict == \"BACKEND_BLOCKING\" max_executions: 3 (不变)",
+          "[交互逻辑设计师, 美学布局设计师, 接口翻译师] → 前端实现者 (Phase5 JOIN，不变。累计计数语义：接口翻译师上一轮已完成贡献持续满足)",
+          "接口翻译师 → API契约设计师 (Phase4b 显式依赖边，不变。MAJOR1修复后接口翻译师不在回退目标中，此边不被额外触发)",
+          "交叉审核者 → [交互逻辑设计师, 美学布局设计师, 接口翻译师, ...] when: result.verdict == \"confirmed\" (Phase4a 扇出，不变)"
+        ]
+      },
+
+      "verdict变化": {
+        "新增verdict": [
+          {
+            "角色": "前端预览确认",
+            "verdict值": "needs_revision",
+            "含义": "用户预览不满意，需打回前端设计组重新设计",
+            "路由目标": "[交互逻辑设计师, 美学布局设计师]",
+            "边类型": "backward",
+            "max_executions": 3,
+            "修改说明": "【MAJOR1修复】路由目标从上轮的3角色缩减为2角色"
+          },
+          {
+            "角色": "前端预览确认",
+            "verdict值": "confirmed",
+            "含义": "用户预览满意，继续后续流程",
+            "路由目标": "合并校验者 (JOIN)",
+            "边类型": "normal"
+          }
+        ],
+        "不变的verdict": [
+          "前端实现者（校验）: confirmed/fail/loop — 不变",
+          "后端实现者（校验）: confirmed/fail/loop — 不变",
+          "合并校验者: confirmed/FRONTEND_BLOCKING/BACKEND_BLOCKING — 不变",
+          "接口翻译师: confirmed — 不变（confirmed出边→API契约设计师不受needs_revision回退影响，因为接口翻译师不在回退目标中）"
+        ],
+        "verdict完备性检查": {
+          "前端预览确认": {
+            "confirmed": "✓ 有路由 → 合并校验者 (JOIN)",
+            "needs_revision": "✓ 有路由 → [交互逻辑设计师, 美学布局设计师] (backward, max:3)",
+            "fail": "✓ confirm=manual角色自动生成fail→self-loop回退（编译器根据confirm=manual自动生成）",
+            "结论": "所有verdict值均有对应路由目标，完备性pass"
+          }
+        }
+      }
+    },
+
+    "向后兼容性评估": {
+      "改造前可达集": {
+        "说明": "BFS从需求接收者出发的所有可达角色（17角色）",
+        "角色列表": [
+          "需求接收者", "需求接收者（校验）", "需求审计者", "需求分流者",
+          "前端文档管理者", "后端文档管理者", "交叉审核者",
+          "交互逻辑设计师", "美学布局设计师", "接口翻译师",
+          "后端架构设计师", "数据模型设计师", "API契约设计师",
+          "前端实现者", "前端实现者（校验）",
+          "后端实现者", "后端实现者（校验）",
+          "合并校验者", "部署文档管理者", "综合裁决者"
+        ],
+        "原有路径完整性": "所有17角色→完成节点的路径完整"
+      },
+      "改造后可达集": {
+        "说明": "BFS从需求接收者出发的所有可达角色（19角色，新增预览部署者+前端预览确认）",
+        "角色列表": [
+          "需求接收者", "需求接收者（校验）", "需求审计者", "需求分流者",
+          "前端文档管理者", "后端文档管理者", "交叉审核者",
+          "交互逻辑设计师", "美学布局设计师", "接口翻译师",
+          "后端架构设计师", "数据模型设计师", "API契约设计师",
+          "前端实现者", "前端实现者（校验）",
+          "后端实现者", "后端实现者（校验）",
+          "预览部署者 [新增]",
+          "前端预览确认 [新增]",
+          "合并校验者", "部署文档管理者", "综合裁决者"
+        ],
+        "前端实现链路": "前端设计组(3角色)→前端实现者→前端实现者（校验）→预览部署者[新]→前端预览确认[新]→(confirmed)→合并校验者 / (needs_revision,max:3)→[交互逻辑设计师,美学布局设计师]",
+        "原有路径影响": "原有17角色→完成节点的路径全部保留可达，前端侧路径延长（经过预览部署+人工确认）但不断裂"
+      },
+      "路径对比": {
+        "改造前前端到完成": "前端实现者（校验）→合并校验者→部署文档管理者→综合裁决者→完成",
+        "改造后前端到完成": "前端实现者（校验）→预览部署者→前端预览确认(confirmed)→合并校验者→部署文档管理者→综合裁决者→完成",
+        "改造前后端到完成": "后端实现者（校验）→合并校验者→部署文档管理者→综合裁决者→完成 (不变)",
+        "needs_revision回退路径": "前端预览确认(needs_revision)→[交互逻辑设计师,美学布局设计师]→前端实现者(JOIN累计计数,接口翻译师已完成)→前端实现者（校验）→预览部署者→前端预览确认 (循环, max:3)",
+        "FRONTEND_BLOCKING回退路径": "合并校验者(FRONTEND_BLOCKING)→前端实现者→前端实现者（校验）→预览部署者→前端预览确认 (不变)"
+      },
+      "兼容性结论": "pass",
+      "兼容性分析": "改造为增量插入，不删除任何现有角色，不改变后端链路。所有原有路径仍可达。MAJOR1修复后，needs_revision回退不再触发接口翻译师重执行，避免了后端链路无谓级联——接口翻译师通过Phase5 JOIN的累计计数语义保持已完成贡献，前端实现者仅等待被回退的2角色重新完成即可触发。合并校验者的JOIN前端侧来源变更属于路径延长而非路径断裂。"
+    },
+
+    "风险评估": {
+      "死循环风险": {
+        "评估": "pass",
+        "分析": "新增 backward 边「前端预览确认 → [交互逻辑设计师, 美学布局设计师] when: result.verdict == \"needs_revision\"」设置了 max_executions: 3。循环路径：[交互逻辑设计师,美学布局设计师]→前端实现者→前端实现者（校验）→预览部署者→前端预览确认→(needs_revision)→[交互逻辑设计师,美学布局设计师]。超过3次后该backward边被router掐断。与FRONTEND_BLOCKING(max:5)循环是独立的backward边，各有独立max_executions计数。"
+      },
+      "孤儿边风险": {
+        "评估": "pass",
+        "分析": "删除的边被新JOIN边完整替代。前端实现者（校验）获得新出边→预览部署者。edges段无残留对已删除结构的引用。MAJOR1修复后回退边目标为2角色，不影响其他边引用完整性。"
+      },
+      "死角色风险": {
+        "评估": "pass",
+        "分析": "新增角色「预览部署者」：入边=前端实现者（校验）→预览部署者 ✓，出边=预览部署者→前端预览确认 ✓。新增角色「前端预览确认」：入边=预览部署者→前端预览确认 ✓，出边=confirmed→合并校验者(JOIN) + needs_revision→[交互逻辑设计师,美学布局设计师] ✓ + fail→self-loop(confirm=manual自动) ✓。两个新角色均有完整的入边和出边。"
+      },
+      "verdict不完备风险": {
+        "评估": "pass",
+        "分析": "新增角色「前端预览确认」verdict值域 confirmed/needs_revision 均有路由目标。MAJOR1修复后 needs_revision 路由目标为 [交互逻辑设计师, 美学布局设计师]，在两角色的入边集合中有对应 backward 边覆盖。编译器从edges的when表达式提取verdict值同步到schema.json enum。"
+      },
+      "后端级联风险评估": {
+        "评估": "pass",
+        "分析": "【MAJOR1修复专项评估】上轮方案中 needs_revision 回退目标含接口翻译师，接口翻译师 confirmed 出边→API契约设计师，会级联触发后端设计组JOIN→后端实现者→后端实现者校验完整后端链路。本轮将回退目标缩减为 [交互逻辑设计师, 美学布局设计师]，移除接口翻译师。修复后：(1) 接口翻译师不在回退目标中，不被重新执行；(2) 接口翻译师→API契约设计师 边不被额外触发；(3) 后端设计组JOIN、后端实现者、后端实现者校验均不受needs_revision影响。后端链路仅在合并校验者 BACKEND_BLOCKING/confirmed 时才被触发，与前端预览反馈完全解耦。"
+      },
+      "Phase5 JOIN累计计数兼容性": {
+        "评估": "pass",
+        "分析": "needs_revision回退仅触发 [交互逻辑设计师, 美学布局设计师] 重新执行，接口翻译师不重新执行。Phase5 JOIN [交互逻辑设计师, 美学布局设计师, 接口翻译师] → 前端实现者 采用累计计数语义（与交叉审核者JOIN一致）：接口翻译师上一轮已完成，其JOIN贡献持续满足，仅需等待被回退的2角色重新执行完成即可触发前端实现者。此机制已在 app.yaml 第323-327行的交叉审核者JOIN中有先例，语义成熟可靠。"
+      }
+    },
+
+    "新增skill.md文件清单": [
+      {
+        "文件路径": "roles/预览部署者/skill.md",
+        "角色类型": "standard, confirm: auto",
+        "核心职责": "将前端代码部署到本地预览环境，启动预览服务，输出可访问的预览地址",
+        "输入物料": ["前端代码 (outputs/src/frontend/)"],
+        "输出物料": ["预览部署报告 (outputs/预览部署报告.json, type=process)"],
+        "执行步骤要点": [
+          "读取 dispatch 注入的前端代码（语义描述，不硬编码路径）",
+          "识别技术栈（React/Next.js/Vite等）",
+          "安装依赖并启动预览服务",
+          "验证预览服务可用（HTTP请求检查）",
+          "生成预览部署报告（含预览地址、部署状态、技术栈信息、启动日志摘要）"
+        ],
+        "verdict": "confirmed（默认前进，无需条件路由）",
+        "知识注入": "无",
+        "路径规范": "【MINOR1修复】skill.md 中不硬编码 outputs/src/frontend/ 路径，统一使用语义描述「读取 dispatch 注入的前端代码」，路径来源由 app.yaml inputs 声明决定"
+      },
+      {
+        "文件路径": "roles/前端预览确认/skill.md",
+        "角色类型": "standard, confirm: manual — 全局第3个人工确认节点",
+        "核心职责": "用户通过浏览器打开预览地址，查看实际渲染效果，对美学设计、交互体验、页面布局进行人工判断与决策",
+        "输入物料": ["预览部署报告 (outputs/预览部署报告.json, type=process)"],
+        "输出物料": ["前端预览确认报告 (outputs/前端预览确认报告.json, type=process)"],
+        "执行步骤要点": [
+          "读取预览部署报告，获取预览地址",
+          "用户在浏览器中打开预览地址，查看实际渲染效果",
+          "用户评估维度：美学设计、交互体验、页面布局",
+          "用户做出人工决策：满意→confirmed / 不满意→needs_revision",
+          "产出前端预览确认报告（含verdict + 具体反馈意见/修改建议）"
+        ],
+        "verdict判定规则": "confirmed=预览效果满意→合并校验者 / needs_revision=预览效果不满意→[交互逻辑设计师,美学布局设计师] max:3",
+        "知识注入": "无"
+      }
+    ],
+
+    "app.yaml confirm字段修复对照": {
+      "关联finding": "CRITICAL — blocking_mode注释污染 + MINOR2 — fail carries缺少feedback.json",
+      "问题描述": "上轮方案 app.yaml 中前端预览确认 confirm 字段写为 `confirm: manual    # 全局第3个manual节点...`，YAML 行内注释文本被编译器嵌入 registry.json 的 blocking_mode 字段值，导致引擎 `== \"manual\"` 精确匹配失败。同时，因 blocking_mode 值被污染，编译器无法正确识别该节点为 manual 确认模式，导致 fail→self-loop 回退路径的 carries 中缺少 feedback.json（MINOR2）。",
+      "修复方案": "confirm 字段值只写纯枚举值 `manual`，注释移到上方独立行。修复后编译器正确解析 blocking_mode='manual'，引擎精确匹配成功，人工确认闸门恢复生效；同时编译器正确识别 manual 模式后自动为 fail carries 补充 feedback.json（MINOR2一并修复）。",
+      "修复前（错误）": [
+        "  前端预览确认:",
+        "    type: standard",
+        "    confirm: manual    # 全局第3个manual节点（需求接收者、综合裁决者、前端预览确认）"
+      ],
+      "修复后（正确）": [
+        "  前端预览确认:",
+        "    type: standard",
+        "    # 全局第3个manual节点（需求接收者、综合裁决者、前端预览确认）",
+        "    confirm: manual"
+      ],
+      "MINOR2连带修复说明": "CRITICAL修复后，编译器正确识别 confirm=manual，自动为前端预览确认的 fail→self-loop 路径生成 carries=[feedback.json]（与需求接收者、综合裁决者 fail carries 一致），MINOR2 一并解决。"
+    },
+
+    "app.yaml roles段改造对照": {
+      "新增角色定义（插入位置：前端实现者之后、合并校验者之前）": [
+        "```yaml",
+        "  # === 前端预览闭环（新增）===",
+        "",
+        "  预览部署者:",
+        "    type: standard",
+        "    confirm: auto",
+        "    inputs:",
+        "      - 前端代码: outputs/src/frontend/",
+        "    outputs:",
+        "      - 预览部署报告: outputs/预览部署报告.json, type=process",
+        "",
+        "  前端预览确认:",
+        "    type: standard",
+        "    # 全局第3个manual节点（需求接收者、综合裁决者、前端预览确认）",
+        "    confirm: manual",
+        "    inputs:",
+        "      - 预览部署报告: outputs/预览部署报告.json, type=process",
+        "    outputs:",
+        "      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process",
+        "```"
+      ],
+      "MAJOR2修复—三角色inputs新增可选输入": {
+        "交互逻辑设计师": [
+          "  交互逻辑设计师:",
+          "    type: standard",
+          "    confirm: auto",
+          "    inputs:",
+          "      - 前端需求规格文档: outputs/前端需求规格文档.md",
+          "      - 前端交互规范: outputs/前端交互规范.md",
+          "      - 交叉审核报告: outputs/交叉审核报告.json, type=process",
+          "      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process      # [可选输入] 前端预览确认 needs_revision 回退时存在"
+        ],
+        "美学布局设计师": [
+          "  美学布局设计师:",
+          "    type: standard",
+          "    confirm: auto",
+          "    inputs:",
+          "      - 前端需求规格文档: outputs/前端需求规格文档.md",
+          "      - 前端交互规范: outputs/前端交互规范.md",
+          "      - 交叉审核报告: outputs/交叉审核报告.json, type=process",
+          "      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process      # [可选输入] 前端预览确认 needs_revision 回退时存在"
+        ],
+        "接口翻译师": [
+          "  接口翻译师:",
+          "    type: standard",
+          "    confirm: auto",
+          "    inputs:",
+          "      - 前端需求规格文档: outputs/前端需求规格文档.md",
+          "      - 后端需求规格文档: outputs/后端需求规格文档.md",
+          "      - 后端业务逻辑文档: outputs/后端业务逻辑文档.md",
+          "      - 交叉审核报告: outputs/交叉审核报告.json, type=process",
+          "      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process      # [可选输入] 前端预览确认 needs_revision 回退时存在（保持输入契约一致性）"
+        ]
+      }
+    },
+
+    "app.yaml edges段改造对照": {
+      "删除": {
+        "原内容": "- [前端实现者（校验）, 后端实现者（校验）] → 合并校验者",
+        "注释": "# Phase 7: 前后端实现 → 合并校验（同步汇入 2 角色）"
+      },
+      "新增": [
+        "# Phase 5.5: 前端校验通过 → 预览部署（新增·前端预览闭环入口）",
+        "- 前端实现者（校验） → 预览部署者",
+        "",
+        "# Phase 5.6: 预览部署 → 人工确认（新增·confirm: manual·全局第3个manual节点）",
+        "- 预览部署者 → 前端预览确认",
+        "",
+        "# Phase 7: 前端预览确认(confirmed) + 后端实现者校验 → 合并校验（同步汇入·JOIN前端侧来源变更）",
+        "- [前端预览确认, 后端实现者（校验）] → 合并校验者 when: result.verdict == \"confirmed\"",
+        "",
+        "# 前端预览反馈循环（backward·needs_revision回退·max:3）",
+        "# 【MAJOR1修复】回退目标仅 [交互逻辑设计师, 美学布局设计师]，不含接口翻译师",
+        "# 避免接口翻译师 confirmed 出边级联触发后端链路（API契约设计师→后端设计组JOIN→后端实现者）",
+        "- 前端预览确认 → [交互逻辑设计师, 美学布局设计师] when: result.verdict == \"needs_revision\" max_executions: 3"
+      ]
+    },
+
+    "改造后前端流程示意": {
+      "主流程": "前端设计组(3角色并行) → JOIN → 前端实现者(producer) → 前端实现者(校验) → 预览部署者 → 前端预览确认(manual)",
+      "confirmed路径": "前端预览确认(confirmed) → 合并校验者(JOIN with 后端实现者校验) → 部署文档管理者 → 综合裁决者 → 完成",
+      "needs_revision路径": "前端预览确认(needs_revision, max:3) → [交互逻辑设计师, 美学布局设计师] → 前端实现者(JOIN累计计数·接口翻译师已完成) → 前端实现者(校验) → 预览部署者 → 前端预览确认 (循环)",
+      "后端流程": "后端设计组(3角色并行) → JOIN → 后端实现者(producer) → 后端实现者(校验) → 合并校验者(JOIN with 前端预览确认) (不变·不受needs_revision影响)"
+    },
+
+    "findings修复追踪表": [
+      {
+        "finding_id": "CRITICAL",
+        "来源": "R6结构审阅者",
+        "问题": "registry.json blocking_mode 注释污染导致人工确认闸门失效",
+        "修复措施": "app.yaml confirm 字段注释移到独立行，值只写 manual",
+        "改动清单序号": "2 (角色定义) + app.yaml confirm字段修复对照",
+        "状态": "已修复"
+      },
+      {
+        "finding_id": "MAJOR1",
+        "来源": "R5改造红队",
+        "问题": "needs_revision回退含接口翻译师引发后端链路级联",
+        "修复措施": "回退目标缩减为 [交互逻辑设计师, 美学布局设计师]，移除接口翻译师",
+        "改动清单序号": "7 (回退边)",
+        "状态": "已修复"
+      },
+      {
+        "finding_id": "MAJOR2",
+        "来源": "R5改造红队",
+        "问题": "三角色app.yaml inputs遗漏前端预览确认报告可选输入",
+        "修复措施": "交互逻辑设计师/美学布局设计师/接口翻译师 inputs 各新增前端预览确认报告[可选输入]",
+        "改动清单序号": "13, 14, 15",
+        "状态": "已修复"
+      },
+      {
+        "finding_id": "MINOR1",
+        "来源": "R7合规审阅者",
+        "问题": "预览部署者skill.md硬编码outputs/src/frontend/路径",
+        "修复措施": "skill.md使用语义描述，不硬编码路径",
+        "改动清单序号": "8",
+        "状态": "已修复"
+      },
+      {
+        "finding_id": "MINOR2",
+        "来源": "R6结构审阅者",
+        "问题": "ROUTER.json fail carries缺少feedback.json",
+        "修复措施": "CRITICAL修复后编译器正确识别manual模式，自动补充fail carries feedback.json",
+        "改动清单序号": "2 (连带修复)",
+        "状态": "已修复（连带）"
+      },
+      {
+        "finding_id": "MINOR-框架升级路径",
+        "来源": "R5改造红队",
+        "问题": "max_executions耗尽后无escalate/reject升级路径",
+        "修复措施": "框架层面限制，不在本轮改造范围",
+        "状态": "记录·后续框架升级"
+      },
+      {
+        "finding_id": "MINOR-knowledge注入",
+        "来源": "R5改造红队",
+        "问题": "前端预览确认未注入knowledge文档",
+        "修复措施": "增强性建议，人工判断节点非必须，后续迭代考虑",
+        "状态": "记录·后续迭代"
+      }
+    ],
+
+    "改造数量统计": {
+      "新增角色": 2,
+      "删除角色": 0,
+      "修改角色inputs": 3,
+      "新增edges": 4,
+      "删除edges": 1,
+      "修改edges": 0,
+      "新增skill.md": 2,
+      "修改skill.md": 4,
+      "新增schema.json": 2,
+      "角色总数变化": "17 → 19",
+      "manual节点变化": "2 → 3",
+      "findings修复数": "5（1 critical + 2 major + 2 minor），另2个minor记录待后续"
+    }
+  }
+}

@@ -189,7 +189,7 @@ def main():
         try:
             if os.path.exists(args.state_path):
                 try:
-                    with open(args.state_path, "r", encoding="utf-8") as f:
+                    with open(args.state_path, "r", encoding="utf-8-sig") as f:
                         state = json.load(f)
                 except (json.JSONDecodeError, ValueError):
                     raise ValidationException("OIC-E203", "STATE.json 格式损坏")

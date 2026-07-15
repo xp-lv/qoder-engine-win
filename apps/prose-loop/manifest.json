@@ -1,0 +1,21 @@
+{
+  "schema_version": "2.0",
+  "app_name": "prose-loop",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "knowledge",
+      "outputs"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/SDK_SPEC.md",
+        "to": "knowledge/SDK_SPEC.md"
+      }
+    ]
+  }
+}

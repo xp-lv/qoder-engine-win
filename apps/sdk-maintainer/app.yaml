@@ -1,0 +1,118 @@
+app_name: sdk-maintainer
+
+# ============================================================
+# sdk-maintainer 架构设计说明（v3：修复 CRIT-1 + CRIT-2）
+# ============================================================
+# 使命1：维护 SDK 权威文档（engine/sdk/SDK_SPEC.md、engine/sdk/编排范式.md）
+#         使其与引擎实际功能一致
+# 使命2：维护所有 app 对这两个 SDK 文档的依赖（依赖同步者负责）
+#
+# 拓扑：线性主干 + 两条条件回退迭代环（均设 max_executions=2 + max 耗尽兜底）
+#   变更分析师 → 代码实施者 → 一致性验证者 → 文档同步者 → 回归测试者 → 依赖同步者 → 完成
+#   回退环1：一致性验证者 → 代码实施者（defects_detected, max=2）+ max 耗尽兜底 → 完成
+#   回退环2：回归测试者 → 代码实施者（failed, max=2）+ max 耗尽兜底 → 依赖同步者
+#
+# CRIT-1 修复：一致性验证者 defects_detected 边加回 max_executions=2（与需求 line 122 一致），
+#   并增加 max 耗尽兜底边 → 完成（如实报告一致性验证最终未通过并终止，不传播有缺陷的文档）
+# CRIT-2 修复：回归测试者增加 max 耗尽兜底边 → 依赖同步者 when failed（强制放行到依赖传播，
+#   在回归测试报告中标记未通过，避免死锁——即使回归测试最终失败，依赖传播仍有价值）
+#
+# 终止性证明：两条回退环均满足有界（max=2）+ 有退出 verdict（max 耗尽兜底边），可证明终止
+# 知识注入：SDK 权威文档只读注入 + 方法论文档支撑角色深度执行
+# ============================================================
+
+knowledge:
+  # --- SDK 权威文档（只读引用，注入到需要参照权威标准的角色）---
+  - SDK规范: engine/sdk/SDK_SPEC.md
+    inject_to: [变更分析师, 代码实施者, 一致性验证者, 文档同步者, 回归测试者]
+  - 编排范式: engine/sdk/编排范式.md
+    inject_to: [变更分析师, 代码实施者, 一致性验证者, 文档同步者, 回归测试者]
+  # --- 方法论文档（支撑角色深度执行）---
+  - 变更影响分析方法论: knowledge/变更影响分析方法论.md
+    inject_to: [变更分析师]
+  - SDK文档编辑规范: knowledge/SDK文档编辑规范.md
+    inject_to: [代码实施者]
+  - 文档验证标准手册: knowledge/文档验证标准手册.md
+    inject_to: [一致性验证者, 回归测试者]
+  - 依赖传播操作指南: knowledge/依赖传播操作指南.md
+    inject_to: [依赖同步者]
+
+roles:
+  # --- 入口角色（唯一 producer + 唯一 manual confirm）---
+  变更分析师:
+    type: producer
+    confirm: manual
+    inputs:
+      - 变更需求: 00-变更需求.md
+    outputs:
+      - 变更分析报告: outputs/变更分析报告.json, type=process
+
+  # --- 使命1：SDK 权威文档维护链 ---
+  代码实施者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 变更分析报告: outputs/变更分析报告.json, type=process
+    outputs:
+      - 变更摘要: outputs/变更摘要.json, type=process
+
+  一致性验证者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 变更摘要: outputs/变更摘要.json, type=process
+    outputs:
+      - 验证报告: outputs/验证报告.json, type=process
+
+  文档同步者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 变更摘要: outputs/变更摘要.json, type=process
+      - 验证报告: outputs/验证报告.json, type=process
+    outputs:
+      - 文档更新报告: outputs/文档更新报告.json, type=process
+
+  回归测试者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 文档更新报告: outputs/文档更新报告.json, type=process
+    outputs:
+      - 回归测试报告: outputs/回归测试报告.json, type=process
+
+  # --- 使命2：依赖传播 ---
+  依赖同步者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 变更摘要: outputs/变更摘要.json, type=process
+      - 回归测试报告: outputs/回归测试报告.json, type=process
+    outputs:
+      - 依赖同步报告: outputs/依赖同步报告.json, type=process
+
+edges:
+  # producer 自动展开：变更分析师 → 变更分析师（校验）
+  - 变更分析师 → 变更分析师（校验）
+  - 变更分析师（校验）→ 代码实施者 when: result.verdict == "confirmed"
+
+  # 代码实施者 → 一致性验证者（无条件 confirmed）
+  - 代码实施者 → 一致性验证者 when: result.verdict == "confirmed"
+
+  # 回退迭代环1：一致性验证关卡（max_executions=2，与需求 line 122 一致）
+  - 一致性验证者 → 文档同步者 when: result.verdict == "validated"
+  - 一致性验证者 → 代码实施者 when: result.verdict == "defects_detected" max_executions: 2
+  - 一致性验证者 → 完成 when: result.verdict == "defects_detected"  # CRIT-1 修复：max 耗尽兜底，一致性验证最终未通过→终止并报告
+
+  # 文档同步者 → 回归测试者
+  - 文档同步者 → 回归测试者 when: result.verdict == "confirmed"
+
+  # 回退迭代环2：回归测试关卡（max_executions=2，max 耗尽后强制放行到依赖同步者）
+  - 回归测试者 → 依赖同步者 when: result.verdict == "passed"
+  - 回归测试者 → 代码实施者 when: result.verdict == "failed" max_executions: 2
+  - 回归测试者 → 依赖同步者 when: result.verdict == "failed"  # CRIT-2 修复：max 耗尽兜底，强制放行到依赖传播，报告中标记回归测试未通过
+
+  # 终态出口：依赖同步者双路径均可达完成
+  - 依赖同步者 → 完成 when: result.verdict == "confirmed"
+  - 依赖同步者 → 完成 when: result.verdict == "partial"
+

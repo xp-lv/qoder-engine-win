@@ -1,0 +1,41 @@
+{
+  "schema_version": "2.0",
+  "app_name": "engine-maintainer",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "knowledge",
+      "outputs"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/SDK_SPEC.md",
+        "to": "knowledge/SDK_SPEC.md"
+      },
+      {
+        "from": "knowledge/编排范式.md",
+        "to": "knowledge/编排范式.md"
+      },
+      {
+        "from": "knowledge/引擎代码分析方法论.md",
+        "to": "knowledge/引擎代码分析方法论.md"
+      },
+      {
+        "from": "knowledge/回归验证标准手册.md",
+        "to": "knowledge/回归验证标准手册.md"
+      },
+      {
+        "from": "knowledge/变更设计方法论.md",
+        "to": "knowledge/变更设计方法论.md"
+      },
+      {
+        "from": "knowledge/维护报告编写指南.md",
+        "to": "knowledge/维护报告编写指南.md"
+      }
+    ]
+  }
+}

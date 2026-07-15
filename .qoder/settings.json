@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .qoder/hooks/stability-hook.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Task|Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .qoder/hooks/post-tool-hook.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """skill-builder 扰动修复脚本。
 将扰动类型映射为 set_state.py 调用。
-Usage: python3 scripts/fix.py --type <rework|reset|jump> [--step <STEP_N>] [--state-path <path>]
+Usage: python scripts/fix.py --type <rework|reset|jump> [--step <STEP_N>] [--state-path <path>]
 """
 import argparse, json, os, sys, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -58,7 +58,7 @@ def main():
         # rework: 从 STATE.json 读所有正在执行的 STEP
         if os.path.exists(args.state_path):
             try:
-                with open(args.state_path, "r", encoding="utf-8") as f:
+                with open(args.state_path, "r", encoding="utf-8-sig") as f:
                     state = json.load(f)
                 step_status = state.get("step_status", {})
                 if step_status:
@@ -120,7 +120,7 @@ def _do_jump(state_path, app_path, workspace_id, target_step):
     # 读取 STATE.json
     if not os.path.exists(state_path):
         output({"status": "failure", "error_code": "OIC-E102", "message": "STATE.json 不存在", "new_state_snapshot": None})
-    with open(state_path, "r", encoding="utf-8") as f:
+    with open(state_path, "r", encoding="utf-8-sig") as f:
         state = json.load(f)
 
     # 读取 ROUTER.json
@@ -128,7 +128,7 @@ def _do_jump(state_path, app_path, workspace_id, target_step):
     registry_path = os.path.join(app_path, "registry.json")
     if not os.path.exists(router_path):
         output({"status": "failure", "error_code": "OIC-E104", "message": f"ROUTER.json 不存在: {router_path}", "new_state_snapshot": None})
-    with open(router_path, "r", encoding="utf-8") as f:
+    with open(router_path, "r", encoding="utf-8-sig") as f:
         router_data = json.load(f)
     router_steps = router_data.get("steps", [])
 

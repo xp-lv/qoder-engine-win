@@ -10,15 +10,15 @@
 旧 5 步协议（直接调用 orchestrator.py）完全保留向后兼容。
 
 Usage:
-  python3 engine/scripts/step.py --next  [--workspace-id WS_ID] [--task-request "..."]
-  python3 engine/scripts/step.py --submit --step STEP1 --dispatch-id ckpt_xxx --outputs '[...]' [--workspace-id WS_ID]
-  python3 engine/scripts/step.py --decide --decisions '[...]' [--workspace-id WS_ID]
+  python engine/scripts/step.py --next  [--workspace-id WS_ID] [--task-request "..."]
+  python engine/scripts/step.py --submit --step STEP1 --dispatch-id ckpt_xxx --outputs '[...]' [--workspace-id WS_ID]
+  python engine/scripts/step.py --decide --decisions '[...]' [--workspace-id WS_ID]
 
 典型流程：
   主 Agent:
-    1. python3 engine/scripts/step.py --next → action=delegate + dispatches
+    1. python engine/scripts/step.py --next → action=delegate + dispatches
     2. Task(role-executor) 执行 dispatch
-    3. (role-executor 内部) python3 engine/scripts/step.py --submit → next=delegate/confirm/complete/rework
+    3. (role-executor 内部) python engine/scripts/step.py --submit → next=delegate/confirm/complete/rework
     4. 若 next=delegate → 回到 1
        若 next=confirm  → 收集决策后 --decide，再回到 1
        若 next=complete → 结束
@@ -288,7 +288,7 @@ def _build_task_prompt(dispatch, workspace_id, state_path, app_path=None):
         principles_full = os.path.join(app_path, principles_path)
         if os.path.exists(principles_full):
             try:
-                with open(principles_full, "r", encoding="utf-8") as f:
+                with open(principles_full, "r", encoding="utf-8-sig") as f:
                     principles_content = f.read().strip()
                 if principles_content:
                     lines.append(f"## 原则指导")
@@ -415,9 +415,9 @@ def cmd_submit(args):
 
     authoritative_outputs = []
     try:
-        with open(router_path, "r", encoding="utf-8") as f:
+        with open(router_path, "r", encoding="utf-8-sig") as f:
             router_data = json.load(f)
-        with open(registry_path, "r", encoding="utf-8") as f:
+        with open(registry_path, "r", encoding="utf-8-sig") as f:
             registry_data = json.load(f)
 
         # 从 ROUTER.json 找到 step → role 映射
@@ -452,7 +452,7 @@ def cmd_submit(args):
         ws_root = ws_base
         wr_file = os.path.join(ws_base, "WORKSPACE_ROOT") if ws_base else None
         if wr_file and os.path.exists(wr_file):
-            with open(wr_file, "r", encoding="utf-8") as f:
+            with open(wr_file, "r", encoding="utf-8-sig") as f:
                 ws_root = f.read().strip()
         for i, o in enumerate(outputs):
             if isinstance(o, str):
@@ -464,7 +464,7 @@ def cmd_submit(args):
 
     # ── 加载 STATE.json ──
     try:
-        with open(state_path, "r", encoding="utf-8") as f:
+        with open(state_path, "r", encoding="utf-8-sig") as f:
             st = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         st = {}
@@ -595,7 +595,7 @@ def cmd_list_workspaces(args):
             if not os.path.exists(state_f):
                 continue
             try:
-                with open(state_f, "r", encoding="utf-8") as f:
+                with open(state_f, "r", encoding="utf-8-sig") as f:
                     st = json.load(f)
                 executing = list(st.get("step_status", {}).keys())
                 completed = list(st.get("completed", {}).keys())

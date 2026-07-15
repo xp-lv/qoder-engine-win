@@ -1,0 +1,233 @@
+{
+  "result": {
+    "verdict": "confirmed",
+    "summary": "对 biz-opportunity-builder 架构执行了 6 维度极端条件压力测试（STRESS-1 至 STRESS-6），未发现 critical 级别系统性风险。架构在回退路径完备性、并行时序竞争、跨层回退级联、数据流极端场景、对抗路径真实性、循环终止性六个维度均通过压力测试。SDK 引擎内置机制（§3.4 自动 fail 边生成、§5.6 verdict_enum 动态过滤、§5.5 edge_counts 计数控制）为架构提供了系统级健壮性保障，app.yaml 的两处 D1/D2 修复（自定义 loop verdict 避免默认 max_executions、对抗迭代显式 max_executions:3）与引擎机制正确配合。发现 2 个 medium 级改进建议和 1 个 low 级观察项，均不构成阻塞。verdict=confirmed。",
+    "test_scope": {
+      "app_name": "biz-opportunity-builder",
+      "roles_tested": 7,
+      "edges_tested": 9,
+      "backward_edges_tested": 2,
+      "sdk_spec_reference": "engine/sdk/SDK_SPEC.md v2.0"
+    },
+    "dimensions": {
+      "STRESS-1_回退路径完备性": {
+        "status": "pass",
+        "test_method": "对每个角色模拟 Gate FAIL，检查是否有恢复路径（auto fail 边或 rework 回路）",
+        "findings": [
+          {
+            "role": "需求接收者 (producer, manual)",
+            "scenario": "Gate FAIL（探索任务书格式校验失败）",
+            "recovery_path": "SDK §3.4 自动生成 backward 边回到角色自身（无 max_executions），角色重新执行修正产出格式",
+            "verdict": "safe",
+            "risk_level": "none"
+          },
+          {
+            "role": "需求接收者（校验）(standard, auto)",
+            "scenario": "Gate FAIL（校验报告 JSON 格式错误）",
+            "recovery_path": "SDK §3.4 自动生成 backward 边回到角色自身，重新生成校验报告",
+            "verdict": "safe",
+            "risk_level": "none"
+          },
+          {
+            "role": "市场情报搜集者 (standard, auto)",
+            "scenario": "Gate FAIL（情报报告为空或格式错误）",
+            "recovery_path": "SDK §3.4 自动 backward 边回自身，重新生成情报报告",
+            "verdict": "safe",
+            "risk_level": "none"
+          },
+          {
+            "role": "机会分析师 (standard, auto)",
+            "scenario": "Gate FAIL（机会清单格式错误）",
+            "recovery_path": "SDK §3.4 自动 backward 边回自身，重新生成机会清单",
+            "verdict": "safe",
+            "risk_level": "none"
+          },
+          {
+            "role": "机会红队 (standard, auto)",
+            "scenario": "Gate FAIL（对抗报告 JSON 格式错误）",
+            "recovery_path": "SDK §3.4 自动 backward 边回自身，重新生成对抗报告",
+            "verdict": "safe",
+            "risk_level": "none"
+          },
+          {
+            "role": "策略建议者 (standard, auto)",
+            "scenario": "Gate FAIL（策略建议格式错误）",
+            "recovery_path": "SDK §3.4 自动 backward 边回自身，重新生成策略建议",
+            "verdict": "safe",
+            "risk_level": "none"
+          },
+          {
+            "role": "综合报告者 (standard, auto)",
+            "scenario": "Gate FAIL（综合报告为空或格式错误）",
+            "recovery_path": "SDK §3.4 自动 backward 边回自身，重新生成综合报告",
+            "verdict": "safe",
+            "risk_level": "none"
+          }
+        ],
+        "entry_and_exit_check": {
+          "entry_role": "需求接收者 (producer, confirm: manual) — Gate FAIL 时回退到自身重新执行，用户通过 manual confirm 参与修正，不存在不可恢复状态",
+          "exit_role": "综合报告者 → 完成 — Gate FAIL 时回退到自身重新执行，修正后沿无条件边到终态出口，不存在死锁"
+        },
+        "dimension_verdict": "所有 7 个角色在 Gate FAIL 场景下均有 SDK 自动生成的 backward 自恢复边（§3.4），无需 app.yaml 显式声明。入口角色和终点角色的 fail 边处理安全。"
+      },
+      "STRESS-2_并行时序竞争": {
+        "status": "na",
+        "test_method": "检查 FORK/JOIN 并行分支间的时序依赖和产出物命名冲突",
+        "findings": [
+          {
+            "check_item": "FORK/JOIN 存在性",
+            "result": "本 APP 拓扑为纯线性串行（L1→L2→L3→L4），无 FORK/JOIN 并行结构",
+            "verdict": "na"
+          },
+          {
+            "check_item": "并行分支产出物命名冲突",
+            "result": "无并行分支，不存在命名冲突风险",
+            "verdict": "na"
+          }
+        ],
+        "dimension_verdict": "架构为线性串行流（符合分析型 APP 业务特性，各阶段存在严格数据依赖），无并行时序竞争风险。"
+      },
+      "STRESS-3_跨层回退级联": {
+        "status": "pass",
+        "test_method": "模拟跨层回退的级联效应，检查中间层产出物一致性",
+        "findings": [
+          {
+            "backward_edge": "需求接收者（校验）→ 需求接收者 (when: loop)",
+            "scope": "L1 层内局部回退",
+            "cascade_risk": "无跨层级联。回退仅影响 L1 层的探索任务书，下游 L2/L3/L4 尚未启动，无中间层产出物不一致风险",
+            "verdict": "safe"
+          },
+          {
+            "backward_edge": "机会红队 → 机会分析师 (when: challenged, max_executions: 3)",
+            "scope": "L3 层内局部回退",
+            "cascade_risk": "回退仅影响 L3 层的机会清单和对抗报告。L4（策略建议者、综合报告者）尚未启动。机会分析师重新执行时，根据 carries 注入的对抗报告（backward 边携带）修正机会清单，下游产出物不存在不一致——因为 L4 尚无任何产出",
+            "verdict": "safe"
+          }
+        ],
+        "dimension_verdict": "两条 backward 边均为层内局部回退，不会触发跨层级联。不存在跨层回退导致的中间层产出物不一致风险。"
+      },
+      "STRESS-4_数据流极端场景": {
+        "status": "pass",
+        "test_method": "模拟可选输入全部缺失时的角色行为，检查 carries 物料注入一致性",
+        "findings": [
+          {
+            "check_item": "机会分析师可选输入「对抗报告」首次执行缺失场景",
+            "scenario": "首次执行路径：市场情报搜集者 → 机会分析师（无 prior 机会红队执行）",
+            "analysis": "机会分析师 inputs 声明 3 项：探索任务书（always）、市场情报报告（always）、对抗报告（可选，仅 challenged 回退时存在）。首次执行时，edge 市场情报搜集者→机会分析师 为 normal unconditional 边，carries 推导（§3.4）仅携带 市场情报搜集者的 gate result + process 产出物，不携带对抗报告（对抗报告的产出者机会红队尚未执行）。dispatch 时仅注入 carries 中的物料，不要求全部 declared inputs 存在。",
+            "engine_behavior": "SDK dispatch 机制基于 edge carries 注入物料，非基于 declared inputs 全量校验。input_groups（§4.2）控制执行资格——机会分析师的 input_groups 为 OR 组（市场情报搜集者 OR 机会红队），首次满足市场情报搜集者 finished 即放行。",
+            "verdict": "safe",
+            "risk_level": "low",
+            "note": "依赖 skill.md 正确处理对抗报告缺失情况（首次执行时忽略该输入，仅在回退迭代时参考）"
+          },
+          {
+            "check_item": "carries 注入在所有路径上的一致性",
+            "analysis": "逐边检查 carries 推导（§3.4）：(1) normal confirmed 边→gate result；(2) normal custom-verdict 边（无此类边）；(3) backward 边→源产出+gate+用户反馈+target自身产出。两条 backward 边的 carries 一致——loop 边携带校验报告+gate result+需求接收者自身产出；challenged 边携带对抗报告+gate result+机会分析师自身产出",
+            "verdict": "consistent"
+          }
+        ],
+        "dimension_verdict": "可选输入「对抗报告」首次缺失场景由 SDK dispatch 的 carries 机制和 input_groups OR 组语义正确处理。carries 注入在所有路径上一致。"
+      },
+      "STRESS-5_对抗路径真实性": {
+        "status": "pass",
+        "test_method": "检查每条对抗回退路径是否真实有效（非虚假环路），检查 max_executions 耗尽后的兜底行为",
+        "findings": [
+          {
+            "backward_edge": "需求接收者（校验）→ 需求接收者 (when: loop)",
+            "realism_check": "真实有效。校验角色输出 loop verdict → router 沿 loop 边回退 → 需求接收者重新执行（confirm: manual）→ 用户根据校验报告修正探索任务书 → 重新校验。回退路径携带校验报告作为反馈物料，形成完整闭环。",
+            "verdict": "real"
+          },
+          {
+            "backward_edge": "机会红队 → 机会分析师 (when: challenged, max_executions: 3)",
+            "realism_check": "真实有效。机会红队输出 challenged verdict → router 沿 challenged 边回退 → 机会分析师接收对抗报告作为输入 → 根据 5 维度质疑修正机会清单 → 重新提交机会红队。回退路径携带对抗报告作为反馈物料，形成完整闭环。",
+            "verdict": "real"
+          },
+          {
+            "check_item": "机会红队 max_executions: 3 耗尽后的兜底行为",
+            "scenario": "第 4 轮：机会红队再次输出 challenged，但 edge_counts['机会红队.challenged'] = 3，达到 max_executions 上限",
+            "engine_behavior": "SDK §5.6 verdict_enum 动态过滤机制：(1) router 检查 edge_counts >= max_executions → 掐断 challenged 边（§5.5）；(2) router 组装 dispatch 时动态过滤 schema.json verdict_enum → 移除 challenged，仅保留 confirmed；(3) 机会红队 schema_constraints.verdict_enum = ['confirmed'] → 角色只能输出 confirmed；(4) confirmed 边正常路由到策略建议者。流程继续，无死锁。",
+            "skill_coordination": "app.yaml §2b 注释声明：机会红队 skill 应在第 3 轮仍未通过时改为输出 confirmed（标注 risk_flag=true）。配合 verdict_enum 动态过滤形成双重保障——即使 skill 未主动切换 confirmed，引擎也会在第 4 轮强制 enum 收窄为仅 confirmed。",
+            "verdict": "safe",
+            "risk_level": "none",
+            "note": "SDK §5.6 提供引擎级硬保障，skill 层 risk_flag 标注为辅助信号。两层保障确保 max_executions 耗尽后无 verdict 死锁。"
+          }
+        ],
+        "dimension_verdict": "两条对抗回退路径均真实有效（携带反馈物料形成完整闭环，非虚假环路）。max_executions 耗尽后的兜底行为由 SDK §5.6 verdict_enum 动态过滤机制保障，不存在 verdict 死锁风险。"
+      },
+      "STRESS-6_循环终止性证明": {
+        "status": "pass",
+        "test_method": "对所有 backward 边数学证明其终止性（有界 + 有退出 verdict），检查潜在无限循环",
+        "findings": [
+          {
+            "backward_edge": "需求接收者（校验）→ 需求接收者 (when: loop)",
+            "bounded": false,
+            "max_executions": "未设置（自定义 verdict 'loop'，非系统 fail，不获得 SDK 默认 max_executions）",
+            "termination_analysis": {
+              "mathematical_bound": "该边无 max_executions，数学上无界。STRESS-6 要求'有界 + 有退出 verdict'，该边仅有退出 verdict（confirmed→市场情报搜集者），无界。",
+              "practical_mitigation": "需求接收者 confirm: manual，每轮回退需用户主动参与（修正探索任务书）。用户可在任意轮次：(1) 修正要素缺失 → 校验输出 confirmed → 退出循环；(2) 放弃操作 → 流程暂停（不自动 hang）。manual confirm 构成事实上的有界终止条件——用户无法被困在自动化无限循环中。",
+              "worst_case": "极端场景：校验标准不可满足（如矛盾需求导致 validator 永远输出 loop）。但本校验标准为'用户画像≥3维度+关注领域+探索边界'，均为可实现的结构化要素，不存在内在矛盾。该极端场景发生概率极低。"
+            },
+            "risk_level": "medium",
+            "improvement_suggestion": "建议为 loop 边添加防御性 max_executions（如 10），作为纵深防御措施。即使 manual confirm 已提供实践终止保障，显式上限可：(1) 在极端不可满足场景下强制突破循环；(2) 将隐式假设显式化，降低维护者认知负担。",
+            "verdict": "pass_with_note"
+          },
+          {
+            "backward_edge": "机会红队 → 机会分析师 (when: challenged, max_executions: 3)",
+            "bounded": true,
+            "max_executions": 3,
+            "termination_analysis": {
+              "mathematical_bound": "该边显式 max_executions: 3，数学上有界。edge_counts 达到 3 时边被掐断（§5.5）。",
+              "exit_verdict": "边掐断后，SDK §5.6 verdict_enum 动态过滤移除 challenged，仅保留 confirmed。机会红队被迫输出 confirmed → confirmed 边路由到策略建议者。有界 + 有退出 verdict，终止性数学证明成立。",
+              "formal_proof": "设 n = edge_counts['机会红队.challenged']。(1) n ∈ {0,1,2} 时，challenged 边可用，机会红队可输出 challenged 回退；(2) n = 3 时，challenged 边掐断，verdict_enum = ['confirmed']，机会红队必输出 confirmed；(3) confirmed 边无 max_executions，正常路由到策略建议者。因此循环在 ≤4 次机会红队执行内终止。QED。"
+            },
+            "risk_level": "none",
+            "verdict": "pass"
+          },
+          {
+            "check_item": "潜在无限循环全局扫描",
+            "analysis": "扫描所有边组合，检查是否存在除上述两条 backward 边以外的循环路径。正向边全部为 DAG 无环结构（L1→L2→L3→L4→完成），不存在前向循环。Gate FAIL 自动 backward 边（§3.4）均为回到角色自身的自环，每轮需重新执行修正，不构成跨角色循环。",
+            "verdict": "no_additional_loops"
+          }
+        ],
+        "dimension_verdict": "对抗迭代回路的终止性有完整数学证明（有界 max_executions:3 + verdict_enum 动态过滤强制退出）。需求校验回路无 max_executions（数学无界），但 manual confirm 提供实践终止保障。未发现除已知两条 backward 边以外的循环路径。"
+      }
+    },
+    "findings_summary": {
+      "critical": 0,
+      "medium": 2,
+      "low": 1,
+      "details": [
+        {
+          "id": "M1",
+          "severity": "medium",
+          "dimension": "STRESS-6",
+          "title": "需求校验回路 loop 边无 max_executions（数学无界）",
+          "description": "需求接收者（校验）→ 需求接收者 (when: loop) 边未设置 max_executions。设计意图为'格式修正不消耗循环配额'（D1 修复注释），但数学上无法证明终止性。",
+          "current_mitigation": "需求接收者 confirm: manual 提供实践终止——每轮回退需用户参与，用户可随时修正或放弃。",
+          "residual_risk": "极端场景（校验标准内在矛盾导致永远 loop）概率极低，但架构层面无硬性兜底。",
+          "recommendation": "建议添加防御性 max_executions: 10 作为纵深防御。不影响正常格式修正流程（极少超过 2-3 轮），仅在极端不可满足场景下提供强制出口。"
+        },
+        {
+          "id": "M2",
+          "severity": "medium",
+          "dimension": "STRESS-4",
+          "title": "机会分析师可选输入「对抗报告」仅注释标记，未形式化声明",
+          "description": "inputs 列表中对抗报告通过注释 '# [可选输入]' 标记可选性，而非使用形式化字段。首次执行（市场情报搜集者→机会分析师）时该文件不存在。",
+          "current_mitigation": "SDK dispatch 基于 edge carries 注入物料而非全量 inputs 校验，input_groups OR 组语义确保首次执行可放行。carries 推导不会在首次路径上携带对抗报告。",
+          "residual_risk": "若未来 SDK 增加严格的 inputs 全量存在性校验，该设计可能阻塞首次执行。",
+          "recommendation": "建议在 skill.md 中显式声明'首次执行时对抗报告可能不存在，角色应检查并优雅处理缺失'。当前 SDK 机制下不阻塞，但形式化标注可提升可维护性。"
+        },
+        {
+          "id": "L1",
+          "severity": "low",
+          "dimension": "STRESS-5",
+          "title": "max_executions 耗尽后 risk_flag 语义依赖 skill 层实现",
+          "description": "app.yaml §2b 注释声明机会红队在第 3 轮仍未通过时输出 confirmed（标注 risk_flag=true）。但 risk_flag 的具体语义（如何影响下游策略建议者的行为）仅在注释和 skill 层定义，未在 app.yaml edges 或 carries 中形式化传递。",
+          "current_mitigation": "SDK §5.6 verdict_enum 动态过滤提供引擎级硬保障——即使 skill 未正确实现 risk_flag，引擎也会强制 confirmed 输出，流程不会死锁。",
+          "residual_risk": "risk_flag 语义可能在 skill 层实现不一致（如策略建议者未检查 risk_flag），导致质量降级的机会清单被按正常质量处理。",
+          "recommendation": "建议在策略建议者 skill.md 中增加'检查对抗报告中的 risk_flag 字段，若为 true 则在策略建议中增加风险提示章节'的显式指令。"
+        }
+      ]
+    },
+    "verdict_rationale": "6 维度压力测试全部通过，未发现 critical 级别系统性风险。(1) STRESS-1：7 个角色均有 SDK 自动 fail 边自恢复，无不可恢复状态；(2) STRESS-2：无并行结构，无时序竞争；(3) STRESS-3：两条 backward 边均为层内局部回退，无跨层级联；(4) STRESS-4：可选输入由 carries + input_groups 机制正确处理；(5) STRESS-5：两条对抗回退路径真实有效，max_executions 耗尽由 verdict_enum 动态过滤保障无死锁；(6) STRESS-6：对抗迭代回路有完整终止性数学证明，需求校验回路虽数学无界但 manual confirm 提供实践终止。2 个 medium 改进建议（loop 边防御性 max_executions、可选输入形式化声明）和 1 个 low 观察项（risk_flag 语义形式化）均不构成阻塞。verdict=confirmed。"
+  }
+}

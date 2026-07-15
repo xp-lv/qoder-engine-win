@@ -1,0 +1,418 @@
+[
+  {
+    "role_name": "变更分析师",
+    "skill_path": "roles/变更分析师/skill.md",
+    "blocking_mode": "manual",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "变更分析报告",
+        "path": "outputs/变更分析报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "变更需求",
+        "path": "00-变更需求.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "SDK规范",
+        "path": "engine/sdk/SDK_SPEC.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "编排范式",
+        "path": "engine/sdk/编排范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "变更影响分析方法论",
+        "path": "knowledge/变更影响分析方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/变更分析师/principles.md",
+    "input_groups": [
+      [
+        "变更分析师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "变更分析师（校验）",
+    "skill_path": "roles/变更分析师_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "变更分析师校验报告",
+        "path": "outputs/变更分析师-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "变更分析报告",
+        "path": "outputs/变更分析报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/变更分析师/principles.md",
+    "input_groups": [
+      [
+        "变更分析师"
+      ],
+      [
+        "变更分析师-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "代码实施者",
+    "skill_path": "roles/代码实施者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "变更摘要",
+        "path": "outputs/变更摘要.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "变更分析报告",
+        "path": "outputs/变更分析报告.json",
+        "type": "process"
+      },
+      {
+        "name": "SDK规范",
+        "path": "engine/sdk/SDK_SPEC.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "编排范式",
+        "path": "engine/sdk/编排范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "SDK文档编辑规范",
+        "path": "knowledge/SDK文档编辑规范.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "变更分析师-validate"
+      ],
+      [
+        "一致性验证者"
+      ],
+      [
+        "回归测试者"
+      ],
+      [
+        "代码实施者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "一致性验证者",
+    "skill_path": "roles/一致性验证者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "验证报告",
+        "path": "outputs/验证报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "变更摘要",
+        "path": "outputs/变更摘要.json",
+        "type": "process"
+      },
+      {
+        "name": "SDK规范",
+        "path": "engine/sdk/SDK_SPEC.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "编排范式",
+        "path": "engine/sdk/编排范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "文档验证标准手册",
+        "path": "knowledge/文档验证标准手册.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "代码实施者"
+      ],
+      [
+        "一致性验证者"
+      ]
+    ],
+    "verdicts": [
+      "defects_detected",
+      "validated"
+    ]
+  },
+  {
+    "role_name": "文档同步者",
+    "skill_path": "roles/文档同步者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "文档更新报告",
+        "path": "outputs/文档更新报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "变更摘要",
+        "path": "outputs/变更摘要.json",
+        "type": "process"
+      },
+      {
+        "name": "验证报告",
+        "path": "outputs/验证报告.json",
+        "type": "process"
+      },
+      {
+        "name": "SDK规范",
+        "path": "engine/sdk/SDK_SPEC.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "编排范式",
+        "path": "engine/sdk/编排范式.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "一致性验证者"
+      ],
+      [
+        "文档同步者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "回归测试者",
+    "skill_path": "roles/回归测试者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "回归测试报告",
+        "path": "outputs/回归测试报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "文档更新报告",
+        "path": "outputs/文档更新报告.json",
+        "type": "process"
+      },
+      {
+        "name": "SDK规范",
+        "path": "engine/sdk/SDK_SPEC.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "编排范式",
+        "path": "engine/sdk/编排范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "文档验证标准手册",
+        "path": "knowledge/文档验证标准手册.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "文档同步者"
+      ],
+      [
+        "回归测试者"
+      ]
+    ],
+    "verdicts": [
+      "failed",
+      "passed"
+    ]
+  },
+  {
+    "role_name": "依赖同步者",
+    "skill_path": "roles/依赖同步者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "依赖同步报告",
+        "path": "outputs/依赖同步报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "变更摘要",
+        "path": "outputs/变更摘要.json",
+        "type": "process"
+      },
+      {
+        "name": "回归测试报告",
+        "path": "outputs/回归测试报告.json",
+        "type": "process"
+      },
+      {
+        "name": "依赖传播操作指南",
+        "path": "knowledge/依赖传播操作指南.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "回归测试者"
+      ],
+      [
+        "回归测试者"
+      ],
+      [
+        "依赖同步者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "partial"
+    ]
+  }
+]

@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "object",
+      "required": [
+        "verdict",
+        "summary"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "confirmed"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array"
+        },
+        "errors": {
+          "type": "array"
+        }
+      }
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "_required_files": [
+    {
+      "name": "部署指南",
+      "path": "outputs/部署指南.md",
+      "type": "deliverable"
+    },
+    {
+      "name": "运维手册",
+      "path": "outputs/运维手册.md",
+      "type": "deliverable"
+    },
+    {
+      "name": "变更日志",
+      "path": "outputs/CHANGELOG.md",
+      "type": "deliverable"
+    }
+  ]
+}

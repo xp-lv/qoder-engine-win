@@ -1,0 +1,37 @@
+{
+  "schema_version": "2.0",
+  "app_name": "biz-opportunity-finder",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "knowledge",
+      "outputs"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/市场情报方法论.md",
+        "to": "knowledge/市场情报方法论.md"
+      },
+      {
+        "from": "knowledge/机会评估方法论.md",
+        "to": "knowledge/机会评估方法论.md"
+      },
+      {
+        "from": "knowledge/红队测试方法论.md",
+        "to": "knowledge/红队测试方法论.md"
+      },
+      {
+        "from": "knowledge/策略制定指南.md",
+        "to": "knowledge/策略制定指南.md"
+      },
+      {
+        "from": "knowledge/报告格式规范.md",
+        "to": "knowledge/报告格式规范.md"
+      }
+    ]
+  }
+}

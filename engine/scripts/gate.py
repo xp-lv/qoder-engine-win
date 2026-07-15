@@ -6,7 +6,7 @@
 
 所有产出物走同一套逻辑：JSON 直接校验，非 JSON 包装为 {"_raw_text": ...} 后校验。
 
-Usage: python3 engine/scripts/gate.py --step <STEP> --output-path <path> --app-path <path> [--workspace-id <id>]
+Usage: python engine/scripts/gate.py --step <STEP> --output-path <path> --app-path <path> [--workspace-id <id>]
 """
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -109,7 +109,7 @@ def main():
         fail(f"产出物文件为空: {args.output_path}")
 
     # ── 2. 统一解析：JSON 直接用，非 JSON 包装 ──
-    raw = open(args.output_path, "r", encoding="utf-8").read()
+    raw = open(args.output_path, "r", encoding="utf-8-sig").read()
     try:
         data = json.loads(raw)
     except (json.JSONDecodeError, ValueError):
@@ -122,9 +122,9 @@ def main():
         # 无配置文件 → 只做物理检查（已有内容即 PASS）
         output({"verdict": "PASS", "errors": []})
 
-    with open(router_path, "r", encoding="utf-8") as f:
+    with open(router_path, "r", encoding="utf-8-sig") as f:
         router = json.load(f)
-    with open(reg_path, "r", encoding="utf-8") as f:
+    with open(reg_path, "r", encoding="utf-8-sig") as f:
         registry = json.load(f)
 
     step_entry = next((s for s in router.get("steps", []) if s["step"] == args.step), None)
@@ -156,7 +156,7 @@ def main():
     elif os.path.exists(schema_file):
         # JSON：做 schema 校验
         try:
-            with open(schema_file, "r", encoding="utf-8") as f:
+            with open(schema_file, "r", encoding="utf-8-sig") as f:
                 schema = json.load(f)
             
             # 上下文感知 verdict enum 替换：
@@ -165,7 +165,7 @@ def main():
             step_verdict_context = step_entry.get("verdict_context")
             if step_verdict_context:
                 try:
-                    with open(state_path, "r", encoding="utf-8") as sf:
+                    with open(state_path, "r", encoding="utf-8-sig") as sf:
                         state_data = json.load(sf)
                     step_ss = state_data.get("step_status", {}).get(args.step, {})
                     dispatch_from = step_ss.get("from_steps", [])

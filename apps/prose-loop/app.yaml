@@ -1,0 +1,33 @@
+app_name: prose-loop
+
+knowledge:
+  - SDK规范: knowledge/SDK_SPEC.md
+    inject_to: [设计者, 设计者（校验）]
+
+roles:
+  设计者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+    outputs:
+      - 应用编排方案: 产出-app.yaml
+
+  审阅者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 应用编排方案: 产出-app.yaml
+    outputs:
+      - 审阅报告: outputs/审阅报告.json, type=process
+
+edges:
+  # 设计者 → 校验 → 审阅者
+  - 设计者 → 设计者（校验）
+  - 设计者（校验）→ 审阅者 when: result.verdict == "confirmed"
+
+  # 审阅者通过 → 终态
+  - 审阅者 → 完成 when: result.verdict == "confirmed"
+
+  # 审阅者不通过 → 回到设计者（最多2次循环）
+  - 审阅者 → 设计者 when: result.verdict == "challenged" max_executions: 2

@@ -1,0 +1,18 @@
+{
+  "verdict": "PASS",
+  "phase1_result": {
+    "result": "consistent",
+    "details": "全部 1 条规则通过"
+  },
+  "phase2_result": {
+    "result": "consistent",
+    "errors": []
+  },
+  "phase3_result": {
+    "result": "no_anomaly",
+    "found_patterns": []
+  },
+  "flaw_description": "",
+  "schema_check_degraded": true,
+  "error_code": null
+}

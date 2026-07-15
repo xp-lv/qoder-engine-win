@@ -1,0 +1,385 @@
+app_name: lxp-eng-planning
+
+# --------------------------------------------------------------------
+# knowledge：公共知识文档（选择性注入到指定角色）
+# 移除「编排范式」注入（原目标架构师已删除）
+# --------------------------------------------------------------------
+knowledge:
+  - 前端拖拽交互最佳实践: knowledge/前端拖拽交互最佳实践.md
+    inject_to: [前端文档管理者, 交互逻辑设计师, 美学布局设计师, 前端实现者]
+
+  - 树形数据结构存储优化: knowledge/树形数据结构存储优化.md
+    inject_to: [后端文档管理者, 后端架构设计师, 数据模型设计师, API契约设计师, 后端实现者]
+
+  - 文档驱动开发方法论: knowledge/文档驱动开发方法论.md
+    inject_to: [前端文档管理者, 后端文档管理者, 部署文档管理者]
+
+  - 精力管理领域知识: knowledge/精力管理领域知识.md
+    inject_to: [需求分流者, 前端文档管理者, 后端文档管理者, 交互逻辑设计师, 前端实现者]
+
+  - 校验标准手册: knowledge/校验标准手册.md
+    inject_to: [交叉审核者, 合并校验者, 综合裁决者]
+
+  - 全栈启动验证最佳实践: knowledge/全栈启动验证最佳实践.md
+    inject_to: [后端启动验证者, 全栈联调验证者, 合并校验者, 后端实现者, 前端实现者]
+
+# --------------------------------------------------------------------
+# roles：角色定义（21 角色前后端分离架构）
+# 需求确认 / 需求分流 / 前后端文档 / 交叉审核 / 设计组 / 前后端实现 /
+# 前端预览闭环 / 运行时验证 / 合并校验 / 部署 / 终审
+# --------------------------------------------------------------------
+roles:
+
+  # === 需求确认阶段 ===
+
+  需求接收者:
+    type: producer
+    confirm: manual
+    outputs:
+      - 需求文档: 00-需求描述.md
+
+  需求审计者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+    outputs:
+      - 需求审计报告: outputs/需求审计报告.json, type=process
+
+  # === 需求分流阶段 ===
+
+  需求分流者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+      - 需求审计报告: outputs/需求审计报告.json, type=process
+    outputs:
+      - 前端需求摘要: outputs/前端需求摘要.md
+      - 后端需求摘要: outputs/后端需求摘要.md
+
+  # === 前后端文档阶段 ===
+
+  前端文档管理者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 前端需求摘要: outputs/前端需求摘要.md
+      - 交叉审核报告: outputs/交叉审核报告.json, type=process      # [可选输入] 交叉审核者 FRONTEND_DOC_DEFECT/BOTH_DOC_DEFECT 回退时存在
+    outputs:
+      - 前端需求规格文档: outputs/前端需求规格文档.md
+      - 前端交互规范: outputs/前端交互规范.md
+
+  后端文档管理者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 后端需求摘要: outputs/后端需求摘要.md
+      - 交叉审核报告: outputs/交叉审核报告.json, type=process      # [可选输入] 交叉审核者 BACKEND_DOC_DEFECT/BOTH_DOC_DEFECT 回退时存在
+    outputs:
+      - 后端需求规格文档: outputs/后端需求规格文档.md
+      - 后端业务逻辑文档: outputs/后端业务逻辑文档.md
+
+  # === 交叉审核阶段（文档层对抗）===
+
+  交叉审核者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 前端需求规格文档: outputs/前端需求规格文档.md
+      - 前端交互规范: outputs/前端交互规范.md
+      - 后端需求规格文档: outputs/后端需求规格文档.md
+      - 后端业务逻辑文档: outputs/后端业务逻辑文档.md
+    outputs:
+      - 交叉审核报告: outputs/交叉审核报告.json, type=process
+
+  # === 前端设计组（3 角色并行）===
+
+  交互逻辑设计师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 前端需求规格文档: outputs/前端需求规格文档.md
+      - 前端交互规范: outputs/前端交互规范.md
+      - 交叉审核报告: outputs/交叉审核报告.json, type=process
+      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process      # [可选输入]
+    outputs:
+      - 交互逻辑设计文档: outputs/交互逻辑设计文档.md
+
+  美学布局设计师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 前端需求规格文档: outputs/前端需求规格文档.md
+      - 前端交互规范: outputs/前端交互规范.md
+      - 交叉审核报告: outputs/交叉审核报告.json, type=process
+      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process      # [可选输入]
+    outputs:
+      - 美学布局设计文档: outputs/美学布局设计文档.md
+
+  接口翻译师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 前端需求规格文档: outputs/前端需求规格文档.md
+      - 后端需求规格文档: outputs/后端需求规格文档.md
+      - 后端业务逻辑文档: outputs/后端业务逻辑文档.md
+      - 交叉审核报告: outputs/交叉审核报告.json, type=process
+    outputs:
+      - 接口翻译文档: outputs/接口翻译文档.md
+
+  # === 后端设计组（3 角色并行）===
+
+  后端架构设计师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 后端需求规格文档: outputs/后端需求规格文档.md
+      - 后端业务逻辑文档: outputs/后端业务逻辑文档.md
+      - 交叉审核报告: outputs/交叉审核报告.json, type=process
+    outputs:
+      - 后端架构设计文档: outputs/后端架构设计文档.md
+
+  数据模型设计师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 后端需求规格文档: outputs/后端需求规格文档.md
+      - 后端业务逻辑文档: outputs/后端业务逻辑文档.md
+      - 交叉审核报告: outputs/交叉审核报告.json, type=process
+    outputs:
+      - 数据库设计文档: outputs/数据库设计文档.md
+
+  API契约设计师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 后端需求规格文档: outputs/后端需求规格文档.md
+      - 后端业务逻辑文档: outputs/后端业务逻辑文档.md
+      - 接口翻译文档: outputs/接口翻译文档.md
+      - 交叉审核报告: outputs/交叉审核报告.json, type=process
+    outputs:
+      - API详细设计文档: outputs/API详细设计文档.md
+
+  # === 前后端实现阶段 ===
+
+  前端实现者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 交互逻辑设计文档: outputs/交互逻辑设计文档.md
+      - 美学布局设计文档: outputs/美学布局设计文档.md
+      - 接口翻译文档: outputs/接口翻译文档.md
+      - 合并校验报告: outputs/合并校验报告.json, type=process      # [可选输入] 合并校验者 FRONTEND_BLOCKING 回退时存在
+    outputs:
+      - 前端代码: outputs/src/frontend/
+
+  后端实现者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 后端架构设计文档: outputs/后端架构设计文档.md
+      - 数据库设计文档: outputs/数据库设计文档.md
+      - API详细设计文档: outputs/API详细设计文档.md
+      - 合并校验报告: outputs/合并校验报告.json, type=process      # [可选输入] 合并校验者 BACKEND_BLOCKING 回退时存在
+    outputs:
+      - 后端代码: outputs/src/backend/
+      - 数据库Schema: outputs/prisma/schema.prisma
+      - 部署配置: outputs/docker-compose.yml
+
+  # === 前端预览闭环（新增）===
+
+  预览部署者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 前端代码: outputs/src/frontend/
+    outputs:
+      - 预览部署报告: outputs/预览部署报告.json, type=process
+
+  前端预览确认:
+    type: standard
+    # 全局第3个manual节点（需求接收者、综合裁决者、前端预览确认）
+    confirm: manual
+    inputs:
+      - 预览部署报告: outputs/预览部署报告.json, type=process
+    outputs:
+      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process
+
+  # === 运行时验证阶段（新增）===
+
+  后端启动验证者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 后端代码: outputs/src/backend/
+      - 数据库Schema: outputs/prisma/schema.prisma
+      - 部署配置: outputs/docker-compose.yml
+    outputs:
+      - 后端启动验证报告: outputs/后端启动验证报告.json, type=process
+
+  全栈联调验证者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 前端代码: outputs/src/frontend/
+      - 后端代码: outputs/src/backend/
+      - 数据库Schema: outputs/prisma/schema.prisma
+      - 部署配置: outputs/docker-compose.yml
+      - 接口翻译文档: outputs/接口翻译文档.md
+    outputs:
+      - 联调验证报告: outputs/联调验证报告.json, type=process
+
+  # === 合并校验阶段（代码层对抗）===
+
+  合并校验者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 前端代码: outputs/src/frontend/
+      - 后端代码: outputs/src/backend/
+      - 数据库Schema: outputs/prisma/schema.prisma
+      - 部署配置: outputs/docker-compose.yml
+      - 前端需求规格文档: outputs/前端需求规格文档.md
+      - 后端需求规格文档: outputs/后端需求规格文档.md
+      - API详细设计文档: outputs/API详细设计文档.md
+      - 接口翻译文档: outputs/接口翻译文档.md
+      - 联调验证报告: outputs/联调验证报告.json, type=process
+    outputs:
+      - 合并校验报告: outputs/合并校验报告.json, type=process
+
+  # === 部署文档阶段 ===
+
+  部署文档管理者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 前端代码: outputs/src/frontend/
+      - 后端代码: outputs/src/backend/
+      - 部署配置: outputs/docker-compose.yml
+      - App架构文件: app.yaml
+    outputs:
+      - 部署指南: outputs/部署指南.md
+      - 运维手册: outputs/运维手册.md
+      - 变更日志: outputs/CHANGELOG.md
+
+  # === 终审阶段（全局对抗）===
+
+  综合裁决者:
+    type: standard
+    confirm: manual
+    inputs:
+      - 前端需求规格文档: outputs/前端需求规格文档.md
+      - 后端需求规格文档: outputs/后端需求规格文档.md
+      - 交叉审核报告: outputs/交叉审核报告.json, type=process
+      - 合并校验报告: outputs/合并校验报告.json, type=process
+      - 部署指南: outputs/部署指南.md
+      - 运维手册: outputs/运维手册.md
+      - 变更日志: outputs/CHANGELOG.md
+    outputs:
+      - 最终裁决书: outputs/最终裁决书.md
+      - 构建报告: outputs/构建报告.md
+
+# --------------------------------------------------------------------
+# edges：路由编排（唯一权威源）
+# 前后端分离 + 并行扇出(3处) + 同步汇入(5处) + 前端预览闭环 + 运行时验证 + 三层对抗 + 定向回退
+# --------------------------------------------------------------------
+edges:
+
+  # ===== producer 自动展开（producer → 校验角色）=====
+  - 需求接收者 → 需求接收者（校验）
+  - 前端实现者 → 前端实现者（校验）
+  - 后端实现者 → 后端实现者（校验）
+
+  # ===== 主链（confirmed 前进路径）=====
+
+  # Phase 1: 需求确认
+  - 需求接收者（校验） → 需求审计者
+  - 需求审计者 → 需求分流者 when: result.verdict == "confirmed"
+
+  # Phase 2: 需求分流 → 前后端文档（并行扇出）
+  - 需求分流者 → [前端文档管理者, 后端文档管理者]
+
+  # Phase 3: 前后端文档 → 交叉审核（同步汇入）
+  - [前端文档管理者, 后端文档管理者] → 交叉审核者
+
+  # Phase 4a: 交叉审核通过 → 前端设计组(3角色) + 后端设计组(2角色) 并行扇出（5 角色）
+  # [MF-1: 6→5，API契约设计师 移至 Phase 4b，通过接口翻译师显式依赖边获取接口翻译文档]
+  - 交叉审核者 → [交互逻辑设计师, 美学布局设计师, 接口翻译师, 后端架构设计师, 数据模型设计师] when: result.verdict == "confirmed"
+
+  # Phase 4b: 接口翻译师 → API契约设计师（显式依赖边）[MF-1 新增]
+  # API契约设计师 的必需输入「接口翻译文档」由接口翻译师产出，通过此显式边编码数据依赖
+  - 接口翻译师 → API契约设计师
+
+  # Phase 5: 前端设计组 → 前端实现（同步汇入 3 角色）
+  - [交互逻辑设计师, 美学布局设计师, 接口翻译师] → 前端实现者
+
+  # Phase 6: 后端设计组 → 后端实现（同步汇入 3 角色）
+  - [后端架构设计师, 数据模型设计师, API契约设计师] → 后端实现者
+
+  # Phase 5.5: 前端校验通过 → 预览部署（新增·前端预览闭环入口）
+  - 前端实现者（校验） → 预览部署者
+
+  # Phase 5.6: 预览部署 → 人工确认（新增·confirm: manual·全局第3个manual节点）
+  - 预览部署者 → 前端预览确认
+
+  # Phase 7a: 后端实现者校验通过 → 后端启动验证（运行时验证入口）
+  - 后端实现者（校验） → 后端启动验证者 when: result.verdict == "confirmed"
+
+  # Phase 7b: 前端预览确认(confirmed) + 后端启动验证者(confirmed) → 全栈联调验证（同步汇入·JOIN）
+  - [前端预览确认, 后端启动验证者] → 全栈联调验证者 when: result.verdict == "confirmed"
+
+  # Phase 7c: 联调验证通过 → 合并校验
+  - 全栈联调验证者 → 合并校验者 when: result.verdict == "confirmed"
+
+  # 前端预览反馈循环（backward·needs_revision回退·max:3）
+  # 用户预览不满意时打回前端设计组，形成 预览→反馈→修改→再预览 的闭环
+  # [MAJOR1修复] 回退目标仅 [交互逻辑设计师, 美学布局设计师]，不含接口翻译师，避免后端级联
+  - 前端预览确认 → [交互逻辑设计师, 美学布局设计师] when: result.verdict == "needs_revision" max_executions: 3
+
+  # Phase 8: 合并校验通过 → 部署文档
+  - 合并校验者 → 部署文档管理者 when: result.verdict == "confirmed"
+
+  # Phase 9: 部署文档 → 终审
+  - 部署文档管理者 → 综合裁决者
+
+  # Phase 10: 终审通过 → 交付
+  - 综合裁决者 → 完成 when: result.verdict == "confirmed"
+
+  # ===== producer 自校验 loop（局部回退 · 不设 max_executions）=====
+
+  - 需求接收者（校验） → 需求接收者 when: result.verdict == "loop"
+  - 前端实现者（校验） → 前端实现者 when: result.verdict == "loop"
+  - 后端实现者（校验） → 后端实现者 when: result.verdict == "loop"
+
+  # ===== 对抗回退边（全局回退 · 设 max_executions）=====
+
+  # 需求层对抗回退
+  - 需求审计者 → 需求接收者 when: result.verdict == "challenged" max_executions: 3
+
+  # 交叉审核回退（前后端文档缺陷定向回退）
+  # [mi-1] JOIN 累计计数语义说明：交叉审核者的 JOIN 入边 [前端文档管理者, 后端文档管理者] → 交叉审核者
+  # 采用累计计数语义（cumulative counting）——一个分支一旦完成（任意轮次），即视为持续满足其 JOIN 贡献。
+  # 单边回退（如 FRONTEND_DOC_DEFECT 仅回退前端文档管理者）后，JOIN 重新等待被回退分支本次执行完成即可，
+  # 不要求所有分支重新执行。例如：前端文档管理者被回退重执行后，JOIN 检测到其再次完成 +
+  # 后端文档管理者已完成（累计满足）→ 交叉审核者再次启动，后端文档管理者无需重新执行。
+  - 交叉审核者 → 前端文档管理者 when: result.verdict == "FRONTEND_DOC_DEFECT" max_executions: 3
+  - 交叉审核者 → 后端文档管理者 when: result.verdict == "BACKEND_DOC_DEFECT" max_executions: 3
+  - 交叉审核者 → [前端文档管理者, 后端文档管理者] when: result.verdict == "BOTH_DOC_DEFECT" max_executions: 3
+
+  # 后端启动验证回退（后端启动失败回退至后端实现者修正代码）
+  - 后端启动验证者 → 后端实现者 when: result.verdict == "BACKEND_BLOCKING" max_executions: 3
+
+  # 全栈联调验证回退（前后端代码缺陷定向回退）
+  - 全栈联调验证者 → 前端实现者 when: result.verdict == "FRONTEND_BLOCKING" max_executions: 3
+  - 全栈联调验证者 → 后端实现者 when: result.verdict == "BACKEND_BLOCKING" max_executions: 3
+
+  # 合并校验回退（前后端代码缺陷定向回退 · 前端 max:5 支持多轮迭代）
+  - 合并校验者 → 前端实现者 when: result.verdict == "FRONTEND_BLOCKING" max_executions: 5
+  - 合并校验者 → 后端实现者 when: result.verdict == "BACKEND_BLOCKING" max_executions: 3
+
+  # 终审定向回退（深层缺陷全局回退）
+  # [mi-3] challenged 仅用于文档/设计层根本缺陷（前后端文档根本性矛盾、设计存在根本性架构错误），
+  # 不用于代码质量或部署文档问题（分别由合并校验者和 deploy_doc_defect 处理）
+  - 综合裁决者 → 交叉审核者 when: result.verdict == "challenged" max_executions: 2
+  - 综合裁决者 → 部署文档管理者 when: result.verdict == "deploy_doc_defect" max_executions: 2

@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "object",
+      "required": [
+        "verdict",
+        "summary"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "overturned",
+            "upheld"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array"
+        },
+        "errors": {
+          "type": "array"
+        }
+      }
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "_required_files": [
+    {
+      "name": "审计裁决书",
+      "path": "outputs/审计裁决书.json",
+      "type": "process"
+    }
+  ]
+}

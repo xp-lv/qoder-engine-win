@@ -1,0 +1,150 @@
+[
+  {
+    "role_name": "设计者",
+    "skill_path": "roles/设计者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "应用编排方案",
+        "path": "产出-app.yaml",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "SDK规范",
+        "path": "knowledge/SDK_SPEC.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/设计者/principles.md",
+    "input_groups": [
+      [
+        "审阅者"
+      ],
+      [
+        "设计者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "设计者（校验）",
+    "skill_path": "roles/设计者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "设计者校验报告",
+        "path": "outputs/设计者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "应用编排方案",
+        "path": "产出-app.yaml",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/设计者/principles.md",
+    "input_groups": [
+      [
+        "设计者"
+      ],
+      [
+        "设计者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "审阅者",
+    "skill_path": "roles/审阅者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "审阅报告",
+        "path": "outputs/审阅报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "应用编排方案",
+        "path": "产出-app.yaml",
+        "type": "deliverable"
+      }
+    ],
+    "input_groups": [
+      [
+        "设计者-validate"
+      ],
+      [
+        "审阅者"
+      ]
+    ],
+    "verdicts": [
+      "challenged",
+      "confirmed"
+    ]
+  }
+]

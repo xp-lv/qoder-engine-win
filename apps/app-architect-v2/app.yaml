@@ -1,0 +1,604 @@
+app_name: app-architect
+
+# ═══════════════════════════════════════════════════════════════
+# 设计约定（架构级注释块，供审阅者审查与运行引擎参照）
+# ═══════════════════════════════════════════════════════════════
+#
+# 第 10 轮迭代 — 落地第 9 轮审阅 4 项 findings：
+#   F1【角色对抗性】裁决审计者管辖不对称盲区 → §12 升级为全链路对抗裁决复核者
+#   F2【编排复杂度】审阅者五维评估串行瓶颈 → §15 审阅层并行拆分（3专审+综合裁决者）
+#   F3【角色扩展性】缺少运行时正确性验证 → §14 新增端到端模拟验证者
+#   F4【反馈闭环深度】缺少架构振荡检测 → §16 版本管理者新增振荡检测
+#
+# §1  回退上下文注入（引擎约定行为）
+#     当 loop 边或跨层回退边回退到 producer 角色时，系统自动将
+#     源角色的产出物注入目标角色的运行上下文。
+#     受此机制影响的产出物：
+#       · 需求校验报告 → 需求接收者（校验）loop 时注入
+#       · 需求红队对抗分析报告 → 经审计者 req_challenge_upheld 后注入（§10、§12）
+#       · 审阅报告 → 经审计者 requirement_defect 后注入（§8、§12）
+#       · 压力测试报告 → 经审计者 arch_rootcause_upheld 后注入（§6、§12）
+#       · 裁决审计报告 → 审计者 overrule/uphold 跨层回退时注入（§12）
+#     每次跨层回退注入时，系统追加 counter_snapshot 字段（见 §2）。
+#     [TRACK-001] 高优先级。
+#
+# §2  迭代超限异常处理 + 跨层回退计数器策略 + 全局熔断器
+#     四条受 loop.max_iterations 保护的回路：
+#       a) 需求校验回路    —— 需求接收者（校验）   loop.max_iterations: 5
+#       b) 需求红队回路    —— 需求红队              loop.max_iterations: 3
+#       c) 红队对抗回路    —— 架构红队              loop.max_iterations: 5
+#       d) 审阅裁决回路    —— 综合裁决者            loop.max_iterations: 10
+#     超过上限后系统自动强制退出并标记异常（ERROR）。
+#
+#     跨层回退计数器精确策略（第 8 轮引入，第 10 轮更新角色名）：
+#     (1) 触发跨层回退的源回路——不重置
+#         · requirement_defect 消耗综合裁决者 max 10 预算（经审计者路由）
+#         · requirement_root_cause 消耗架构红队 max 5 预算（与 breached 共享，
+#           经审计者 arch_rootcause_upheld 路由）
+#     (2) 被跨层回退经过的中间层回路——重置为 0
+#         · requirement_defect 触发时：a/b/c 重置，d 不重置（触发者）
+#         · requirement_root_cause 触发时：a/b 重置，c 不重置（触发者），d 重置
+#     (3) 全局迭代熔断器：global_iteration_counter 上限 30 步，超限强制终止
+#     (4) counter_snapshot 审计机制：跨层回退注入时记录各回路计数 + 全局计数
+#     [TRACK-002] 高优先级。
+#
+# §3  路径声明索引（路径漂移风险管控，第 10 轮更新）
+#     路径                                     │ 声明位置
+#     ────────────────────────────────────────┼──────────────────────────
+#     00-需求描述.md                            │ 需求接收者.outputs
+#                                              │ 需求接收者（校验）/需求红队/架构执行者
+#                                              │ /架构版本管理者/架构红队.inputs
+#                                              │ /结构演化审阅者/对抗闭环审阅者
+#                                              │ /综合裁决者/裁决审计者.inputs
+#     knowledge/SDK_SPEC.md                    │ knowledge（顶层）
+#                                              │ 需求红队/架构红队/端到端模拟验证者
+#                                              │ /结构演化审阅者/对抗闭环审阅者
+#                                              │ /生长空间审阅者/裁决审计者
+#                                              │ /知识管理者.inputs
+#     outputs/需求接收者-validation.json        │ 需求接收者（校验）.outputs
+#     outputs/需求红队-对抗分析报告.json        │ 需求红队.outputs
+#                                              │ 裁决审计者.inputs（可选，§12 F1）
+#     app.yaml                                 │ 架构执行者.outputs
+#                                              │ 架构版本管理者/架构红队/端到端模拟验证者
+#                                              │ /结构演化审阅者/对抗闭环审阅者
+#                                              │ /生长空间审阅者/综合裁决者
+#                                              │ /裁决审计者/知识管理者.inputs
+#     outputs/versions/                        │ 架构版本管理者.outputs
+#     outputs/版本管理者-diff报告.json           │ 架构版本管理者.outputs
+#                                              │ 架构执行者/结构演化审阅者
+#                                              │ /综合裁决者/裁决审计者.inputs（可选）
+#     outputs/振荡诊断报告.json                  │ 架构版本管理者.outputs
+#                                              │ 架构执行者.inputs（可选，§16 F4）
+#     outputs/架构红队-压力测试报告.json         │ 架构红队.outputs
+#                                              │ 架构执行者/对抗闭环审阅者
+#                                              │ /裁决审计者.inputs（可选）
+#     outputs/模拟验证报告.json                  │ 端到端模拟验证者.outputs
+#                                              │ 架构执行者/综合裁决者.inputs（可选）
+#     outputs/结构演化审阅报告.json              │ 结构演化审阅者.outputs
+#                                              │ 综合裁决者.inputs
+#     outputs/对抗闭环审阅报告.json              │ 对抗闭环审阅者.outputs
+#                                              │ 综合裁决者.inputs
+#     outputs/生长空间审阅报告.json              │ 生长空间审阅者.outputs
+#                                              │ 综合裁决者.inputs
+#     outputs/审阅报告.json                      │ 综合裁决者.outputs
+#                                              │ 裁决审计者/架构执行者.inputs（可选）
+#     outputs/裁决审计报告.json                  │ 裁决审计者.outputs
+#                                              │ 架构执行者/综合裁决者.inputs（可选）
+#     outputs/知识演进追踪表.json                │ 知识管理者.outputs
+#                                              │ 生长空间审阅者/知识管理者.inputs（可选）
+#     outputs/需求红队-gate-result.json         │ 系统级 gate 自动产出
+#     outputs/综合裁决者-gate-result.json       │ 系统级 gate 自动产出
+#     outputs/裁决审计者-gate-result.json       │ 系统级 gate 自动产出
+#     [TRACK-003] 低优先级——建议引入引用别名机制。
+#
+# §4  可选输入标注约定
+#     格式：# [可选输入] 仅在 <触发条件> 时存在
+#     [TRACK-004] 中优先级。
+#
+# §5  loop 回退到 producer 的人工介入预期
+#     需求接收者为 type: producer, confirm: manual。
+#     回退来源（均需用户参照注入报告手动修订需求后确认）：
+#       · 需求接收者（校验）loop
+#       · 裁决审计者 req_challenge_upheld（需求红队 challenged 经审计确认）
+#       · 裁决审计者 arch_rootcause_upheld（架构红队 root_cause 经审计确认）
+#       · 裁决审计者 requirement_defect（综合裁决者判定根因在需求层）
+#
+# §6  架构红队角色定位（独立对抗层 + 对称跨层回退 + 并行扇出）
+#     第 6 轮引入，第 7 轮跨层回退，第 8 轮并行扇出，第 10 轮审计者复核（F1）。
+#     职责：关注「架构在最恶劣条件下能否不崩溃」
+#     verdicts: [passed, breached, requirement_root_cause]
+#
+#     第 10 轮 F1 变化——对抗性裁决经审计者复核：
+#       · passed → 直接流入 [JOIN-1]（正向裁决无需审计，保护管线效率）
+#       · breached → 裁决审计者（arch_breach_upheld 回退执行者 /
+#                    arch_breach_overturned 翻转后流入综合裁决者）
+#       · requirement_root_cause → 裁决审计者（arch_rootcause_upheld
+#                    跨层回退 / arch_rootcause_overturned 翻转后流入综合裁决者）
+#     审计者复核机制保护 manual-confirm 节点（需求接收者）免受假阳性浪费
+#     人力成本，同时保护红队 loop.max_iterations: 5 的有限预算。
+#
+#     编排关系（第 10 轮更新）：
+#       端到端模拟验证者 ──┬──→ 架构版本管理者 ──┐
+#                          │                      ├──→ [JOIN-1] → [FORK-2] → 3专审
+#                          └──→ 架构红队 ────────┘
+#     （详见 §9 并行扇出/收敛设计，§14 模拟验证者，§15 审阅层拆分）
+#
+# §7  conditional_pass 快速修复通道 + minor_fix_applied skip 边
+#     conditional_pass 语义：架构基本达标，附带轻微缺陷清单。
+#     · conditional_pass 不消耗 loop.max_iterations 预算
+#     · 执行者仅修复 findings 中 severity=minor 的项
+#     minor_fix_applied skip 边（第 10 轮目标更新为综合裁决者）：
+#       架构执行者 → 综合裁决者 when: minor_fix_applied
+#     执行者修复 minor 项后跳过模拟验证、版本管理者和红队，
+#     直达综合裁决者进行增量验证。综合裁决者仅验证 minor 项。
+#     安全护栏：连续 3 轮未修复时自动升级为 loop（§14 模拟验证者计数）。
+#     severity 分级：critical（必须 loop）/ major（建议 loop）/ minor（conditional_pass）
+#     [TRACK-007] 中优先级。
+#
+# §8  跨层回退机制（requirement_defect）
+#     综合裁决者（替代原架构审阅者）的所有裁决经裁决审计者拦截后路由。
+#     requirement_defect 经审计者确认后注入需求接收者上下文（§1）。
+#     回退消耗综合裁决者 loop.max_iterations: 10 总量预算。
+#
+# §9  并行扇出/收敛设计（两段并行模式）
+#     第 8 轮引入首段并行，第 10 轮 F2 扩展为双段并行。
+#
+#     第一段并行 [FORK-1]（验证层 → 对抗层）：
+#       端到端模拟验证者 ──┬──→ 架构版本管理者  when: validated  # [FORK-1]
+#                          └──→ 架构红队        when: validated  # [FORK-1]
+#       模拟验证者替代原架构执行者作为扇出源（F3）。
+#
+#     [JOIN-1] 收敛 + [FORK-2] 扇出（对抗层 → 审阅层）：
+#       架构版本管理者 → 结构演化审阅者   when: snapshot_saved  # [JOIN-1/FORK-2]
+#       架构版本管理者 → 对抗闭环审阅者   when: snapshot_saved  # [JOIN-1/FORK-2]
+#       架构版本管理者 → 生长空间审阅者   when: snapshot_saved  # [JOIN-1/FORK-2]
+#       架构红队      → 结构演化审阅者   when: passed          # [JOIN-1/FORK-2]
+#       架构红队      → 对抗闭环审阅者   when: passed          # [JOIN-1/FORK-2]
+#       架构红队      → 生长空间审阅者   when: passed          # [JOIN-1/FORK-2]
+#       每个审阅角色需等待版本管理者+红队都完成后才启动（barrier 同步）。
+#
+#     [JOIN-2] 收敛（审阅层 → 裁决层）：
+#       结构演化审阅者 → 综合裁决者  # [JOIN-2]
+#       对抗闭环审阅者 → 综合裁决者  # [JOIN-2]
+#       生长空间审阅者 → 综合裁决者  # [JOIN-2]
+#       综合裁决者合并三方 findings 后产出统一 verdict。
+#
+#     异常路径处理：
+#       · 版本管理者 regression_detected/oscillation_detected → 回退执行者
+#       · 红队 breached/requirement_root_cause → 裁决审计者复核后路由（F1）
+#       · 任一并行分支触发回退时审阅层不启动（join 条件不满足）
+#
+#     [TRACK-006] 高优先级——建议 SDK_SPEC 定义 fork/join 节点。
+#
+# §10 需求红队角色定位（需求层独立对抗能力）
+#     第 7 轮引入，第 10 轮 F1 新增审计者复核。
+#     职责：主动发现需求中的矛盾、歧义、缺失约束
+#     verdicts: [passed, challenged]，gate: cross，loop.max_iterations: 3
+#     第 10 轮 F1 变化：
+#       · passed → 架构执行者（直接，无需审计）
+#       · challenged → 裁决审计者（req_challenge_upheld 回退需求接收者 /
+#                     req_challenge_overturned 翻转后流入架构执行者）
+#     审计者复核保护 manual-confirm 的需求接收者免受假阳性挑战。
+#
+# §11 架构版本管理者角色定位（版本管理 + 回归检测 + 振荡检测）
+#     第 7 轮引入，第 8 轮并行扇出，第 10 轮 F4 新增振荡检测。
+#     核心职责：
+#       (1) 版本快照——outputs/versions/app-v{iteration}.yaml
+#       (2) 回归检测——版本间结构性 diff
+#       (3) 振荡检测——跨版本 findings 演化矩阵（F4，详见 §16）
+#     verdicts: [snapshot_saved, regression_detected, oscillation_detected]
+#
+# §12 裁决审计者角色定位（全链路对抗裁决复核者）
+#     第 8 轮引入（仅校验审阅者），第 10 轮 F1 升级为全链路对抗裁决复核者。
+#
+#     管辖范围扩展（F1 核心变化）：
+#       架构中存在三类「对抗性裁决者」——综合裁决者（演化视角）、
+#       需求红队（需求对抗视角）、架构红队（架构对抗视角）。
+#       第 8 轮审计者仅覆盖综合裁决者，红队的 challenged/breached/
+#       requirement_root_cause 驱动关键路由却从未被独立校验，构成
+#       「谁来监督监督者」的对抗层信任盲区。第 10 轮消除此盲区。
+#
+#     审计维度（通用框架，适用于所有对抗性角色）：
+#       (1) 证据质量审查——findings 的 challenge 是否引用具体设计约定
+#           章节（§N）或 app.yaml 行号，而非笼统主观判断
+#       (2) severity 合理性——breached/challenged 标记的缺陷是否确实
+#           达到 critical 级别，还是应为 major（可改进但不致命）
+#       (3) 假阴性检测——对照需求和架构，检查是否遗漏明显缺陷
+#       (4) 跨轮次一致性审查（原三维审计保留）——severity 漂移检测
+#
+#     verdicts 设计（三路径命名空间，避免路由歧义）：
+#       ── 综合裁决者路径（审阅者审计）──
+#         confirmed            —— 审计确认，架构达标 → 知识管理者
+#         conditional_pass     —— 基本达标 → 架构执行者
+#         loop                 —— 需要修改 → 架构执行者
+#         requirement_defect   —— 根因在需求层 → 需求接收者
+#       ── 需求红队路径（challenged 审计）──
+#         req_challenge_upheld     —— 挑战成立 → 需求接收者
+#         req_challenge_overturned —— 假阳性，翻转 → 架构执行者
+#       ── 架构红队路径（breached 审计）──
+#         arch_breach_upheld       —— 缺陷成立 → 架构执行者
+#         arch_breach_overturned   —— 假阳性，翻转 → 综合裁决者
+#       ── 架构红队路径（requirement_root_cause 审计）──
+#         arch_rootcause_upheld    —— 根因确认 → 需求接收者
+#         arch_rootcause_overturned —— 假阳性，翻转 → 综合裁决者
+#     路径特定 verdict 确保不同来源的相同语义（如「proceed as passed」）
+#     路由到正确的下游节点（需求红队→执行者 vs 架构红队→综合裁决者）。
+#     [TRACK-008] 高优先级——多路径角色 verdict 命名空间机制。
+#
+#     loop 预算共享说明：
+#       审计者无独立 loop.max_iterations。综合裁决者路径共享其 max 10 预算；
+#       红队路径共享各自红队的 max 预算。全局熔断器（30 步）兜底。
+#
+# §13 知识管理者角色定位（TRACK 管理 + SDK_SPEC 演进闭环）
+#     第 8 轮引入。核心职责：TRACK 自动收集 → 去重关联 → 验证状态
+#     评估 → SDK_SPEC 增量更新提案。
+#     verdicts: [tracked, proposal_ready]，两者均到完成节点。
+#     与架构版本管理者形成对称的知识-架构双版本管理体系。
+#     产出物 知识演进追踪表 作为生长空间审阅者的可选 inputs。
+#
+# §14 端到端模拟验证者（F3，第 10 轮引入）
+#     定位：架构执行者 confirmed 后、并行扇出前的运行时正确性验证层。
+#     核心职责（四维 dry-run validation）：
+#       (1) DAG 可达性分析——从 producer 出发 DFS 遍历，验证每个角色
+#           在至少一条 verdict 路径下可达；标记「死角色」
+#       (2) verdict 覆盖完备性——每个角色的 verdicts 列表在 edges 中
+#           存在对应出边（或无条件出边）；标记「孤儿 verdict」
+#       (3) 数据流完整性——追踪每条可能路径上 inputs 引用的产出物
+#           是否有上游角色确实产出；标记「数据流断裂」
+#       (4) loop 收敛性——每条 loop 回退边至少存在一个 verdict
+#           能退出该 loop；同时执行 §7 安全护栏计数（minor_fix 连续
+#           3 轮自动标记 minor_fix_limit_exceeded）
+#     verdicts: [validated, defects_detected]
+#       validated → [FORK-1] 扇出到版本管理者+红队
+#       defects_detected → 回退执行者（携带模拟验证报告）
+#     产出物 模拟验证报告 同时作为综合裁决者的可选 inputs，
+#     使裁决者获得「运行时正确性证据」作为第四证据源。
+#
+# §15 审阅层并行拆分（F2，第 10 轮引入）
+#     原架构审阅者的五维评估由单一角色串行处理（时间瓶颈+注意力
+#     稀释+裁决粒度受限）。第 10 轮拆分为三个并行专审角色 +
+#     一个综合裁决者，复用 §9 已验证的 [FORK]/[JOIN] 经验。
+#
+#     三个专审角色：
+#       (1) 结构演化审阅者（维度一+二：角色扩展性 + 编排复杂度）
+#           inputs: app.yaml + 需求文档 + SDK_SPEC + 版本Diff报告（演化证据）
+#           聚焦角色清单完整性、职责边界、DAG 拓扑并行化、边类型丰富度
+#       (2) 对抗闭环审阅者（维度三+四：角色对抗性 + 反馈闭环深度）
+#           inputs: app.yaml + SDK_SPEC + 压力测试报告（健壮性证据）
+#           聚焦信任链完整性、校验对覆盖度、回退粒度、计数器策略
+#       (3) 生长空间审阅者（维度五：架构生长空间）
+#           inputs: app.yaml + SDK_SPEC + 知识演进追踪表（可选）
+#           聚焦参数化能力、知识层支撑度、TRACK 演进状态、规模扩展性
+#
+#     综合裁决者（merger）：
+#       合并三专审 findings，生成统一 verdict，产出 outputs/审阅报告.json
+#       （路径不变以兼容下游）。合并规则（优先级递增）：
+#         三专审全 confirmed → confirmed
+#         有 conditional_pass 但无 loop → conditional_pass
+#         有 loop 但无 requirement_defect → loop
+#         有 requirement_defect → requirement_defect
+#       gate: cross, loop.max_iterations: 10（继承原架构审阅者预算）
+#       多模式触发：
+#         · 正常模式：3 专审 [JOIN-2] 收敛后合并 findings
+#         · 快速模式：minor_fix_applied 直达，仅验证 minor 项
+#         · 翻转模式：审计者 arch_breach_overturned/arch_rootcause_overturned
+#           直达，基于审计报告+可用证据产出裁决（替代缺失的专审 findings）
+#
+# §16 振荡检测机制（F4，第 10 轮引入）
+#     迭代式架构设计中存在「架构振荡」——修复维度 A 触发维度 B 回退、
+#     修复 B 又触发 A 复现的跨版本模式。版本管理者的 regression_detected
+#     仅检测单版本退化，无法识别跨版本振荡。
+#
+#     振荡检测实现（集成在架构版本管理者中）：
+#       (1) 跨版本 findings 追踪——利用版本快照链 + 审阅报告历史记录，
+#           构建 findings 演化矩阵（行=finding 语义去重摘要，列=迭代轮次）
+#       (2) 振荡模式判据——finding X 在版本 N 出现(severity≥minor)，
+#           N+1 消失，N+2 以高语义相似度(≥0.7)复现 → 单周期振荡
+#           (oscillation_period=2)。周期≥2 且≥1 完整周期 → confirmed_oscillation
+#       (3) 冲突协调回退——oscillation_detected 回退执行者并附带
+#           振荡诊断报告（标注振荡 finding 对 X↔Y、周期、历史修改尝试）。
+#           关键变化：回退上下文不是「修复 X」而是「同时解决 X 和 Y 的冲突」
+#       (4) 误报防护——仅在语义相似度≥阈值且 severity 一致时判定为同一
+#           finding 复现，避免将不相关问题误关联
+#     振荡检测消耗版本管理者的检测预算（无独立 max_iterations，
+#     共享综合裁决者 max 10 + 全局熔断器 30 步兜底）。
+# ═══════════════════════════════════════════════════════════════
+
+knowledge:
+  - SDK规范: knowledge/SDK_SPEC.md
+    inject_to: [需求红队, 架构红队, 端到端模拟验证者, 结构演化审阅者, 对抗闭环审阅者, 生长空间审阅者, 裁决审计者, 知识管理者]
+
+roles:
+  # ═══ 需求捕获层 ═══
+
+  # producer 角色为流程起点，无 inputs（符合 SDK_SPEC 完整性检查清单）
+  # 回退来源：校验 loop / 审计者 req_challenge_upheld /
+  #           审计者 arch_rootcause_upheld / 审计者 requirement_defect
+  需求接收者:
+    type: producer
+    confirm: manual
+    outputs:
+      - 需求文档: 00-需求描述.md, type=process
+
+  # gate:cross 门控角色，结构合规性校验
+  # confirmed → 需求红队；loop → 回退需求接收者
+  需求接收者（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md, type=process
+    outputs:
+      - 需求校验报告: outputs/需求接收者-validation.json, type=process
+
+  # 需求层独立对抗性语义分析（§10）
+  # passed → 架构执行者；challenged → 裁决审计者复核（F1）
+  需求红队:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md, type=process
+    outputs:
+      - 对抗分析报告: outputs/需求红队-对抗分析报告.json, type=process
+
+  # ═══ 架构设计层 ═══
+
+  # 根据需求/反馈设计或修改 app.yaml
+  # confirmed → 端到端模拟验证者（F3）；minor_fix_applied → 综合裁决者（§7）
+  架构执行者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md, type=process
+      # [可选输入] 审计者 loop/conditional_pass 回退时存在
+      - 审阅报告: outputs/审阅报告.json, type=process
+      # [可选输入] 审计者 overrule 回退时存在，含修正原因
+      - 裁决审计报告: outputs/裁决审计报告.json, type=process
+      # [可选输入] 审计者 arch_breach_upheld 回退时存在
+      - 压力测试报告: outputs/架构红队-压力测试报告.json, type=process
+      # [可选输入] 版本管理者 regression_detected 回退时存在
+      - 版本Diff报告: outputs/版本管理者-diff报告.json, type=process
+      # [可选输入] 模拟验证者 defects_detected 回退时存在（F3）
+      - 模拟验证报告: outputs/模拟验证报告.json, type=process
+      # [可选输入] 版本管理者 oscillation_detected 回退时存在（F4）
+      - 振荡诊断报告: outputs/振荡诊断报告.json, type=process
+    outputs:
+      - App架构文件: app.yaml
+
+  # ── 端到端模拟验证者：运行时正确性验证（F3，§14）──
+  # 在架构执行者 confirmed 后、并行扇出前运行 dry-run validation
+  # validated → [FORK-1] 扇出版本管理者+红队
+  # defects_detected → 回退执行者（携带模拟验证报告）
+  端到端模拟验证者:
+    type: standard
+    confirm: auto
+    inputs:
+      - App架构文件: app.yaml
+      - 需求文档: 00-需求描述.md, type=process
+    outputs:
+      - 模拟验证报告: outputs/模拟验证报告.json, type=process
+
+  # ── 架构版本管理者：版本管理 + 回归检测 + 振荡检测（§11、§16）──
+  # snapshot_saved → [JOIN-1/FORK-2] 流入 3 专审
+  # regression_detected → 回退执行者（携带 diff 报告）
+  # oscillation_detected → 回退执行者（携带振荡诊断报告，F4）
+  架构版本管理者:
+    type: standard
+    confirm: auto
+    inputs:
+      - App架构文件: app.yaml
+    outputs:
+      - 版本快照: outputs/versions/app-v{iteration}.yaml, type=process
+      - 版本Diff报告: outputs/版本管理者-diff报告.json, type=process
+      - 振荡诊断报告: outputs/振荡诊断报告.json, type=process
+
+  # ── 架构红队：独立对抗性健壮性校验（§6）──
+  # passed → [JOIN-1/FORK-2] 流入 3 专审（正向裁决直接通过）
+  # breached → 裁决审计者复核（F1：arch_breach_upheld 回退 / overturned 流入综合裁决者）
+  # requirement_root_cause → 裁决审计者复核（F1：arch_rootcause_upheld 跨层 / overturned 流入综合裁决者）
+  架构红队:
+    type: standard
+    confirm: auto
+    inputs:
+      - App架构文件: app.yaml
+      - 需求文档: 00-需求描述.md, type=process
+    outputs:
+      - 压力测试报告: outputs/架构红队-压力测试报告.json, type=process
+
+  # ═══ 审阅层（F2：3 专审并行 + 综合裁决者，§15）═══
+
+  # ── 结构演化审阅者：维度一+二（角色扩展性 + 编排复杂度）──
+  # 聚焦角色清单完整性、职责边界、DAG 拓扑、边类型丰富度
+  结构演化审阅者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md, type=process
+      - App架构文件: app.yaml
+      - 版本Diff报告: outputs/版本管理者-diff报告.json, type=process
+    outputs:
+      - 结构演化审阅报告: outputs/结构演化审阅报告.json, type=process
+
+  # ── 对抗闭环审阅者：维度三+四（角色对抗性 + 反馈闭环深度）──
+  # 聚焦信任链完整性、校验对覆盖度、回退粒度、计数器策略
+  对抗闭环审阅者:
+    type: standard
+    confirm: auto
+    inputs:
+      - App架构文件: app.yaml
+      - 压力测试报告: outputs/架构红队-压力测试报告.json, type=process
+    outputs:
+      - 对抗闭环审阅报告: outputs/对抗闭环审阅报告.json, type=process
+
+  # ── 生长空间审阅者：维度五（架构生长空间）──
+  # 聚焦参数化能力、知识层支撑度、TRACK 演进状态、规模扩展性
+  生长空间审阅者:
+    type: standard
+    confirm: auto
+    inputs:
+      - App架构文件: app.yaml
+      # [可选输入] 知识演进追踪表（架构生长空间评估参考，§13）
+      - 知识演进追踪表: outputs/知识演进追踪表.json
+    outputs:
+      - 生长空间审阅报告: outputs/生长空间审阅报告.json, type=process
+
+  # ── 综合裁决者：合并三专审 findings，产出统一 verdict（§15）──
+  # 替代原架构审阅者。gate:cross + loop.max_iterations: 10（继承）
+  # 合并规则：confirmed < conditional_pass < loop < requirement_defect（取最高优先级）
+  # 多模式触发：正常(3专审JOIN-2) / 快速(minor_fix_applied直达) / 翻转(审计者overturned直达)
+  综合裁决者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 结构演化审阅报告: outputs/结构演化审阅报告.json, type=process
+      - 对抗闭环审阅报告: outputs/对抗闭环审阅报告.json, type=process
+      - 生长空间审阅报告: outputs/生长空间审阅报告.json, type=process
+      - 需求文档: 00-需求描述.md, type=process
+      - App架构文件: app.yaml
+      # [可选输入] 模拟验证报告（运行时正确性证据，第四证据源，§14）
+      - 模拟验证报告: outputs/模拟验证报告.json, type=process
+      # [可选输入] 裁决审计报告（翻转模式下替代缺失的专审 findings）
+      - 裁决审计报告: outputs/裁决审计报告.json, type=process
+    outputs:
+      - 审阅报告: outputs/审阅报告.json, type=process
+
+  # ═══ 裁决审计层（§12，F1 升级为全链路对抗裁决复核者）═══
+
+  # 第 8 轮引入（仅审阅者），第 10 轮 F1 升级为全链路对抗裁决复核者
+  # 管辖范围：综合裁决者 + 需求红队 + 架构红队 的所有对抗性裁决
+  # 三路径 verdict 命名空间避免路由歧义（§12）
+  # 无独立 loop.max_iterations——共享各源回路预算 + 全局熔断器兜底
+  裁决审计者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 审阅报告: outputs/审阅报告.json, type=process
+      - 需求文档: 00-需求描述.md, type=process
+      - App架构文件: app.yaml
+      # [可选输入] 版本 diff 报告（跨轮次一致性审查）
+      - 版本Diff报告: outputs/版本管理者-diff报告.json, type=process
+      # [可选输入] 需求红队对抗分析报告（红队 challenged 复核，F1）
+      - 对抗分析报告: outputs/需求红队-对抗分析报告.json, type=process
+      # [可选输入] 架构红队压力测试报告（红队 breached/root_cause 复核，F1）
+      - 压力测试报告: outputs/架构红队-压力测试报告.json, type=process
+    outputs:
+      - 裁决审计报告: outputs/裁决审计报告.json, type=process
+
+  # ═══ 知识管理层（§13）═══
+
+  # TRACK 管理 + SDK_SPEC 演进闭环
+  # 架构确认后的最终步骤，两者均到完成节点
+  知识管理者:
+    type: standard
+    confirm: auto
+    inputs:
+      - App架构文件: app.yaml
+      # [可选输入] 上一轮追踪表，用于增量更新
+      - 知识演进追踪表: outputs/知识演进追踪表.json
+    outputs:
+      - 知识演进追踪表: outputs/知识演进追踪表.json
+
+edges:
+  # ═══════════════════════════════════════════════════════════════
+  # 需求捕获层
+  # ═══════════════════════════════════════════════════════════════
+
+  - 需求接收者 → 需求接收者（校验）
+  - 需求接收者（校验）→ 需求红队 when: result.verdict == "confirmed"
+  - 需求接收者（校验）→ 需求接收者 when: result.verdict == "loop"
+
+  # ── 需求红队分支（F1：challenged 经审计者复核）──
+  # passed → 架构执行者（正向裁决直接通过，无需审计）
+  - 需求红队 → 架构执行者 when: result.verdict == "confirmed"
+  # challenged → 裁决审计者（对抗性裁决复核，保护 manual-confirm 节点）
+  - 需求红队 → 裁决审计者 when: result.verdict == "challenged"
+
+  # ═══════════════════════════════════════════════════════════════
+  # 架构设计层（F3：模拟验证前置 + §9 双段并行）
+  # ═══════════════════════════════════════════════════════════════
+
+  # 架构执行者 confirmed → 端到端模拟验证者（F3，运行时正确性验证）
+  - 架构执行者 → 端到端模拟验证者 when: result.verdict == "confirmed"
+
+  # ── 端到端模拟验证者分支（F3）──
+  # validated → [FORK-1] 并行扇出到版本管理者和红队
+  - 端到端模拟验证者 → 架构版本管理者 when: result.verdict == "validated"
+  - 端到端模拟验证者 → 架构红队 when: result.verdict == "validated"
+  # defects_detected → 回退执行者（携带模拟验证报告）
+  - 端到端模拟验证者 → 架构执行者 when: result.verdict == "defects_detected"
+
+  # ── 架构版本管理者分支（F4：新增振荡检测）──
+  # snapshot_saved → [JOIN-1/FORK-2] 流入 3 专审角色
+  - 架构版本管理者 → 结构演化审阅者 when: result.verdict == "snapshot_saved"
+  - 架构版本管理者 → 对抗闭环审阅者 when: result.verdict == "snapshot_saved"
+  - 架构版本管理者 → 生长空间审阅者 when: result.verdict == "snapshot_saved"
+  # regression_detected → 回退执行者（携带 diff 报告）
+  - 架构版本管理者 → 架构执行者 when: result.verdict == "regression_detected"
+  # oscillation_detected → 回退执行者（携带振荡诊断报告，冲突协调模式，F4）
+  - 架构版本管理者 → 架构执行者 when: result.verdict == "oscillation_detected"
+
+  # ── 架构红队分支（F1：对抗性裁决经审计者复核）──
+  # passed → [JOIN-1/FORK-2] 流入 3 专审角色（正向裁决直接通过）
+  - 架构红队 → 结构演化审阅者 when: result.verdict == "confirmed"
+  - 架构红队 → 对抗闭环审阅者 when: result.verdict == "confirmed"
+  - 架构红队 → 生长空间审阅者 when: result.verdict == "confirmed"
+  # breached → 裁决审计者复核（F1：假阳性保护）
+  - 架构红队 → 裁决审计者 when: result.verdict == "breached"
+  # requirement_root_cause → 裁决审计者复核（F1：跨层回退保护）
+  - 架构红队 → 裁决审计者 when: result.verdict == "requirement_root_cause"
+
+  # ═══════════════════════════════════════════════════════════════
+  # 审阅层（F2：3 专审 → [JOIN-2] → 综合裁决者 → 审计者）
+  # ═══════════════════════════════════════════════════════════════
+
+  # 3 专审 → 综合裁决者 [JOIN-2]（三路并行收敛，barrier 同步）
+  - 结构演化审阅者 → 综合裁决者
+  - 对抗闭环审阅者 → 综合裁决者
+  - 生长空间审阅者 → 综合裁决者
+
+  # 综合裁决者 → 裁决审计者（所有裁决均经审计，每个 verdict 对应一条条件边）
+  - 综合裁决者 → 裁决审计者 when: result.verdict == "confirmed"
+  - 综合裁决者 → 裁决审计者 when: result.verdict == "conditional_pass"
+  - 综合裁决者 → 裁决审计者 when: result.verdict == "loop"
+  - 综合裁决者 → 裁决审计者 when: result.verdict == "requirement_defect"
+
+  # ═══════════════════════════════════════════════════════════════
+  # 裁决审计层（F1：三路径路由）
+  # ═══════════════════════════════════════════════════════════════
+
+  # ── 综合裁决者路径（审阅者审计）──
+  - 裁决审计者 → 知识管理者 when: result.verdict == "confirmed"
+  - 裁决审计者 → 架构执行者 when: result.verdict == "conditional_pass"
+  - 裁决审计者 → 架构执行者 when: result.verdict == "loop"
+  - 裁决审计者 → 需求接收者 when: result.verdict == "requirement_defect"
+
+  # ── 需求红队路径（challenged 审计，F1）──
+  # 挑战成立 → 回退需求接收者（§1 注入对抗分析报告+审计报告）
+  - 裁决审计者 → 需求接收者 when: result.verdict == "req_challenge_upheld"
+  # 假阳性翻转 → 架构执行者（继续架构设计）
+  - 裁决审计者 → 架构执行者 when: result.verdict == "req_challenge_overturned"
+
+  # ── 架构红队路径（breached 审计，F1）──
+  # 缺陷成立 → 回退执行者（修复架构）
+  - 裁决审计者 → 架构执行者 when: result.verdict == "arch_breach_upheld"
+  # 假阳性翻转 → 综合裁决者（进入审阅层，翻转模式下综合裁决者基于
+  # 审计报告+可用证据产出裁决，替代缺失的 3 专审 findings）
+  - 裁决审计者 → 综合裁决者 when: result.verdict == "arch_breach_overturned"
+
+  # ── 架构红队路径（requirement_root_cause 审计，F1）──
+  # 根因确认 → 跨层回退需求接收者（§1 注入压力测试报告+审计报告）
+  - 裁决审计者 → 需求接收者 when: result.verdict == "arch_rootcause_upheld"
+  # 假阳性翻转 → 综合裁决者（进入审阅层）
+  - 裁决审计者 → 综合裁决者 when: result.verdict == "arch_rootcause_overturned"
+
+  # ═══════════════════════════════════════════════════════════════
+  # 知识管理层（§13）+ 全局迭代循环
+  # ═══════════════════════════════════════════════════════════════
+
+  # tracked：本轮完成，回到需求接收者开始下一轮迭代（上限 3 次）
+  # 当 edge_counts 达到 max_executions 时，router 自动从 verdict_enum 中移除 tracked
+  # 角色只能输出 completed → 走到完成
+  - 知识管理者 → 需求接收者 when: result.verdict == "tracked" max_executions: 3
+  # completed：正常完成
+  - 知识管理者 → 完成 when: result.verdict == "completed"
+  # proposal_ready：直接完成
+  - 知识管理者 → 完成 when: result.verdict == "proposal_ready"

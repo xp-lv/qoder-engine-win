@@ -1,0 +1,6 @@
+{
+  "verdict": "FAIL",
+  "errors": [
+    "缺少必填字段: result"
+  ]
+}

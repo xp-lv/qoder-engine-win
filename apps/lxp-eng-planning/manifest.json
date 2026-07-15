@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "app_name": "lxp-eng-planning",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "knowledge",
+      "outputs",
+      "outputs/prisma",
+      "outputs/src/backend",
+      "outputs/src/frontend"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/前端拖拽交互最佳实践.md",
+        "to": "knowledge/前端拖拽交互最佳实践.md"
+      },
+      {
+        "from": "knowledge/树形数据结构存储优化.md",
+        "to": "knowledge/树形数据结构存储优化.md"
+      },
+      {
+        "from": "knowledge/文档驱动开发方法论.md",
+        "to": "knowledge/文档驱动开发方法论.md"
+      },
+      {
+        "from": "knowledge/精力管理领域知识.md",
+        "to": "knowledge/精力管理领域知识.md"
+      },
+      {
+        "from": "knowledge/校验标准手册.md",
+        "to": "knowledge/校验标准手册.md"
+      },
+      {
+        "from": "knowledge/全栈启动验证最佳实践.md",
+        "to": "knowledge/全栈启动验证最佳实践.md"
+      }
+    ]
+  }
+}

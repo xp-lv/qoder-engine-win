@@ -29,7 +29,7 @@ def load_json(path, error_code, error_msg):
     if not os.path.exists(path):
         output({"status": "failure", "error_code": error_code, "message": f"{error_msg}: {path}", "dispatch_instructions": []})
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
     except (json.JSONDecodeError, ValueError) as e:
         output({"status": "failure", "error_code": error_code, "message": f"{error_msg}: {e}", "dispatch_instructions": []})
@@ -148,7 +148,7 @@ def main():
             if not acquire_lock(lock_file):
                 output({"status": "failure", "error_code": "OIC-E013", "message": "获取锁失败", "dispatch_instructions": []})
             try:
-                st = json.load(open(state_path, "r", encoding="utf-8"))
+                st = json.load(open(state_path, "r", encoding="utf-8-sig"))
                 st["edge_counts"] = edge_counts
                 import tempfile
                 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(state_path))
@@ -212,7 +212,7 @@ def main():
         schema_file_path = os.path.join(app_path, "roles", schema_dir_name, "schema.json")
         if os.path.exists(schema_file_path):
             try:
-                with open(schema_file_path, "r", encoding="utf-8") as f:
+                with open(schema_file_path, "r", encoding="utf-8-sig") as f:
                     role_schema = json.load(f)
                 req_top = role_schema.get("required", [])
                 props = role_schema.get("properties", {})

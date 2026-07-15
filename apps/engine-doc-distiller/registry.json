@@ -1,0 +1,568 @@
+[
+  {
+    "role_name": "需求接收者",
+    "skill_path": "roles/需求接收者/skill.md",
+    "blocking_mode": "manual",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/需求接收者/principles.md",
+    "input_groups": [
+      [
+        "需求接收者-validate"
+      ],
+      [
+        "需求接收者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "需求接收者（校验）",
+    "skill_path": "roles/需求接收者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "需求接收者校验报告",
+        "path": "outputs/需求接收者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/需求接收者/principles.md",
+    "input_groups": [
+      [
+        "需求接收者"
+      ],
+      [
+        "需求接收者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "loop"
+    ]
+  },
+  {
+    "role_name": "引擎分析师",
+    "skill_path": "roles/引擎分析师/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "引擎分析报告",
+        "path": "outputs/引擎分析报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "SDK规范",
+        "path": "knowledge/SDK_SPEC.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "引擎特性提炼指南",
+        "path": "knowledge/引擎特性提炼指南.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "需求接收者-validate"
+      ],
+      [
+        "引擎分析师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "文档架构师",
+    "skill_path": "roles/文档架构师/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "文档族架构设计",
+        "path": "outputs/文档族架构.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "引擎分析报告",
+        "path": "outputs/引擎分析报告.json",
+        "type": "process"
+      },
+      {
+        "name": "审阅报告",
+        "path": "outputs/审阅报告.json",
+        "type": "process"
+      },
+      {
+        "name": "对抗分析报告",
+        "path": "outputs/文档红队-对抗分析报告.json",
+        "type": "process"
+      },
+      {
+        "name": "引擎文档族范式",
+        "path": "knowledge/引擎文档族范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "编排范式",
+        "path": "knowledge/app.yaml编排范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "文档族分层设计方法论",
+        "path": "knowledge/文档族分层设计方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "引擎分析师"
+      ],
+      [
+        "知识管理者"
+      ],
+      [
+        "文档架构师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "文档撰写者",
+    "skill_path": "roles/文档撰写者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "文档族正文",
+        "path": "文档族/",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "引擎分析报告",
+        "path": "outputs/引擎分析报告.json",
+        "type": "process"
+      },
+      {
+        "name": "文档族架构设计",
+        "path": "outputs/文档族架构.json",
+        "type": "process"
+      },
+      {
+        "name": "审阅报告",
+        "path": "outputs/审阅报告.json",
+        "type": "process"
+      },
+      {
+        "name": "对抗分析报告",
+        "path": "outputs/文档红队-对抗分析报告.json",
+        "type": "process"
+      },
+      {
+        "name": "引擎文档族范式",
+        "path": "knowledge/引擎文档族范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "引擎特性提炼指南",
+        "path": "knowledge/引擎特性提炼指南.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "文档架构师"
+      ],
+      [
+        "知识管理者"
+      ],
+      [
+        "文档撰写者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "文档审阅者",
+    "skill_path": "roles/文档审阅者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "审阅报告",
+        "path": "outputs/审阅报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "引擎分析报告",
+        "path": "outputs/引擎分析报告.json",
+        "type": "process"
+      },
+      {
+        "name": "文档族架构设计",
+        "path": "outputs/文档族架构.json",
+        "type": "process"
+      },
+      {
+        "name": "文档族正文",
+        "path": "文档族/",
+        "type": "deliverable"
+      },
+      {
+        "name": "SDK规范",
+        "path": "knowledge/SDK_SPEC.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "文档审阅与对抗标准手册",
+        "path": "knowledge/文档审阅与对抗标准手册.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "文档撰写者"
+      ],
+      [
+        "文档审阅者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "文档红队",
+    "skill_path": "roles/文档红队/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "对抗分析报告",
+        "path": "outputs/文档红队-对抗分析报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "文档族正文",
+        "path": "文档族/",
+        "type": "deliverable"
+      },
+      {
+        "name": "SDK规范",
+        "path": "knowledge/SDK_SPEC.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "文档审阅与对抗标准手册",
+        "path": "knowledge/文档审阅与对抗标准手册.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "文档撰写者"
+      ],
+      [
+        "文档红队"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "优化分析师",
+    "skill_path": "roles/优化分析师/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "优化建议清单",
+        "path": "outputs/优化建议清单.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "引擎分析报告",
+        "path": "outputs/引擎分析报告.json",
+        "type": "process"
+      },
+      {
+        "name": "文档族正文",
+        "path": "文档族/",
+        "type": "deliverable"
+      },
+      {
+        "name": "SDK规范",
+        "path": "knowledge/SDK_SPEC.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "文档撰写者"
+      ],
+      [
+        "优化分析师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "知识管理者",
+    "skill_path": "roles/知识管理者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "构建报告",
+        "path": "构建报告.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "引擎分析报告",
+        "path": "outputs/引擎分析报告.json",
+        "type": "process"
+      },
+      {
+        "name": "文档族架构设计",
+        "path": "outputs/文档族架构.json",
+        "type": "process"
+      },
+      {
+        "name": "文档族正文",
+        "path": "文档族/",
+        "type": "deliverable"
+      },
+      {
+        "name": "审阅报告",
+        "path": "outputs/审阅报告.json",
+        "type": "process"
+      },
+      {
+        "name": "对抗分析报告",
+        "path": "outputs/文档红队-对抗分析报告.json",
+        "type": "process"
+      },
+      {
+        "name": "优化建议清单",
+        "path": "outputs/优化建议清单.json",
+        "type": "process"
+      }
+    ],
+    "input_groups": [
+      [
+        "文档审阅者",
+        "文档红队",
+        "优化分析师"
+      ],
+      [
+        "知识管理者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "loop",
+      "major_rework"
+    ]
+  }
+]

@@ -1,0 +1,637 @@
+[
+  {
+    "role_name": "改造需求接收者",
+    "skill_path": "roles/改造需求接收者/skill.md",
+    "blocking_mode": "manual",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "改造需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/改造需求接收者/principles.md",
+    "input_groups": [
+      [
+        "改造需求接收者-validate"
+      ],
+      [
+        "综合裁决者"
+      ],
+      [
+        "改造需求接收者"
+      ]
+    ]
+  },
+  {
+    "role_name": "改造需求接收者（校验）",
+    "skill_path": "roles/改造需求接收者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "改造需求接收者校验报告",
+        "path": "outputs/改造需求接收者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "改造需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/改造需求接收者/principles.md",
+    "input_groups": [
+      [
+        "改造需求接收者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "loop"
+    ]
+  },
+  {
+    "role_name": "改造分析师",
+    "skill_path": "roles/改造分析师/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "改造方案",
+        "path": "outputs/改造方案.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "改造需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "综合裁决书",
+        "path": "outputs/综合裁决书.json",
+        "type": "process"
+      },
+      {
+        "name": "审计裁决书",
+        "path": "outputs/审计裁决书.json",
+        "type": "process"
+      },
+      {
+        "name": "编排范式",
+        "path": "knowledge/编排范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "改造影响分析方法论",
+        "path": "knowledge/改造影响分析方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "改造需求接收者-validate"
+      ],
+      [
+        "综合裁决者"
+      ],
+      [
+        "裁决审计者"
+      ],
+      [
+        "改造分析师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "改造执行者",
+    "skill_path": "roles/改造执行者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "改造执行报告",
+        "path": "outputs/改造执行报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "改造方案",
+        "path": "outputs/改造方案.json",
+        "type": "process"
+      },
+      {
+        "name": "编排范式",
+        "path": "knowledge/编排范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "改造执行规范",
+        "path": "knowledge/改造执行规范.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "改造分析师"
+      ],
+      [
+        "模拟验证者"
+      ],
+      [
+        "改造执行者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "模拟验证者",
+    "skill_path": "roles/模拟验证者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "验证报告",
+        "path": "outputs/验证报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "改造执行报告",
+        "path": "outputs/改造执行报告.json",
+        "type": "process"
+      },
+      {
+        "name": "七维模拟验证方法论",
+        "path": "knowledge/七维模拟验证方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "改造执行者"
+      ],
+      [
+        "模拟验证者"
+      ]
+    ],
+    "verdicts": [
+      "defects_detected",
+      "validated"
+    ]
+  },
+  {
+    "role_name": "改造红队",
+    "skill_path": "roles/改造红队/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "对抗分析报告",
+        "path": "outputs/对抗分析报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "改造执行报告",
+        "path": "outputs/改造执行报告.json",
+        "type": "process"
+      },
+      {
+        "name": "七维模拟验证方法论",
+        "path": "knowledge/七维模拟验证方法论.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "审阅标准手册",
+        "path": "knowledge/审阅标准手册.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "模拟验证者"
+      ],
+      [
+        "改造红队"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "issues_found"
+    ]
+  },
+  {
+    "role_name": "结构审阅者",
+    "skill_path": "roles/结构审阅者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "结构审阅报告",
+        "path": "outputs/结构审阅报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "改造执行报告",
+        "path": "outputs/改造执行报告.json",
+        "type": "process"
+      },
+      {
+        "name": "编排范式",
+        "path": "knowledge/编排范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "审阅标准手册",
+        "path": "knowledge/审阅标准手册.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "模拟验证者"
+      ],
+      [
+        "结构审阅者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "issues_found"
+    ]
+  },
+  {
+    "role_name": "合规审阅者",
+    "skill_path": "roles/合规审阅者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "合规审阅报告",
+        "path": "outputs/合规审阅报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "改造执行报告",
+        "path": "outputs/改造执行报告.json",
+        "type": "process"
+      },
+      {
+        "name": "编排范式",
+        "path": "knowledge/编排范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "审阅标准手册",
+        "path": "knowledge/审阅标准手册.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "模拟验证者"
+      ],
+      [
+        "合规审阅者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "issues_found"
+    ]
+  },
+  {
+    "role_name": "综合裁决者",
+    "skill_path": "roles/综合裁决者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "综合裁决书",
+        "path": "outputs/综合裁决书.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "对抗分析报告",
+        "path": "outputs/对抗分析报告.json",
+        "type": "process"
+      },
+      {
+        "name": "结构审阅报告",
+        "path": "outputs/结构审阅报告.json",
+        "type": "process"
+      },
+      {
+        "name": "合规审阅报告",
+        "path": "outputs/合规审阅报告.json",
+        "type": "process"
+      },
+      {
+        "name": "裁决与审计标准",
+        "path": "knowledge/裁决与审计标准.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "改造红队",
+        "结构审阅者",
+        "合规审阅者"
+      ],
+      [
+        "改造红队"
+      ],
+      [
+        "结构审阅者"
+      ],
+      [
+        "合规审阅者"
+      ],
+      [
+        "综合裁决者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "needs_revision",
+      "requirements_revision_needed"
+    ]
+  },
+  {
+    "role_name": "裁决审计者",
+    "skill_path": "roles/裁决审计者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "审计裁决书",
+        "path": "outputs/审计裁决书.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "综合裁决书",
+        "path": "outputs/综合裁决书.json",
+        "type": "process"
+      },
+      {
+        "name": "裁决与审计标准",
+        "path": "knowledge/裁决与审计标准.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "综合裁决者"
+      ],
+      [
+        "裁决审计者"
+      ]
+    ],
+    "verdicts": [
+      "overturned",
+      "upheld"
+    ]
+  },
+  {
+    "role_name": "改造报告生成者",
+    "skill_path": "roles/改造报告生成者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "改造报告",
+        "path": "改造报告.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "审计裁决书",
+        "path": "outputs/审计裁决书.json",
+        "type": "process"
+      },
+      {
+        "name": "综合裁决书",
+        "path": "outputs/综合裁决书.json",
+        "type": "process"
+      },
+      {
+        "name": "验证报告",
+        "path": "outputs/验证报告.json",
+        "type": "process"
+      },
+      {
+        "name": "改造执行报告",
+        "path": "outputs/改造执行报告.json",
+        "type": "process"
+      },
+      {
+        "name": "对抗分析报告",
+        "path": "outputs/对抗分析报告.json",
+        "type": "process"
+      },
+      {
+        "name": "结构审阅报告",
+        "path": "outputs/结构审阅报告.json",
+        "type": "process"
+      },
+      {
+        "name": "合规审阅报告",
+        "path": "outputs/合规审阅报告.json",
+        "type": "process"
+      }
+    ],
+    "input_groups": [
+      [
+        "裁决审计者"
+      ],
+      [
+        "改造报告生成者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  }
+]

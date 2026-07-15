@@ -1,0 +1,7 @@
+{
+  "result": {
+    "verdict": "confirmed",
+    "summary": "需求文档校验通过，包含目标、核心能力、验收标准"
+  },
+  "summary": "需求接收者（校验）完成校验，verdict=confirmed，需求文档结构完整"
+}

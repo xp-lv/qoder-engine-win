@@ -1,0 +1,392 @@
+[
+  {
+    "role_name": "需求接收者",
+    "skill_path": "roles/需求接收者/skill.md",
+    "blocking_mode": "manual",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "探索任务书",
+        "path": "01-探索任务书.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/需求接收者/principles.md",
+    "input_groups": [
+      [
+        "需求接收者-validate"
+      ],
+      [
+        "需求接收者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "需求接收者（校验）",
+    "skill_path": "roles/需求接收者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "需求接收者校验报告",
+        "path": "outputs/需求接收者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "探索任务书",
+        "path": "01-探索任务书.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/需求接收者/principles.md",
+    "input_groups": [
+      [
+        "需求接收者"
+      ],
+      [
+        "需求接收者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "loop"
+    ]
+  },
+  {
+    "role_name": "市场情报搜集者",
+    "skill_path": "roles/市场情报搜集者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "市场情报报告",
+        "path": "02-市场情报报告.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "探索任务书",
+        "path": "01-探索任务书.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "市场情报方法论",
+        "path": "knowledge/市场情报方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "需求接收者-validate"
+      ],
+      [
+        "市场情报搜集者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "机会分析师",
+    "skill_path": "roles/机会分析师/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "机会清单",
+        "path": "03-机会清单.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "探索任务书",
+        "path": "01-探索任务书.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "市场情报报告",
+        "path": "02-市场情报报告.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "对抗报告",
+        "path": "outputs/机会红队-对抗报告.json",
+        "type": "process"
+      },
+      {
+        "name": "机会评估方法论",
+        "path": "knowledge/机会评估方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "市场情报搜集者"
+      ],
+      [
+        "机会红队"
+      ],
+      [
+        "机会分析师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "机会红队",
+    "skill_path": "roles/机会红队/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "对抗报告",
+        "path": "outputs/机会红队-对抗报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "机会清单",
+        "path": "03-机会清单.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "探索任务书",
+        "path": "01-探索任务书.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "红队测试方法论",
+        "path": "knowledge/红队测试方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "机会分析师"
+      ],
+      [
+        "机会红队"
+      ]
+    ],
+    "verdicts": [
+      "challenged",
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "策略建议者",
+    "skill_path": "roles/策略建议者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "策略建议",
+        "path": "04-策略建议.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "机会清单",
+        "path": "03-机会清单.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "对抗报告",
+        "path": "outputs/机会红队-对抗报告.json",
+        "type": "process"
+      },
+      {
+        "name": "探索任务书",
+        "path": "01-探索任务书.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "策略制定指南",
+        "path": "knowledge/策略制定指南.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "机会红队"
+      ],
+      [
+        "策略建议者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "综合报告者",
+    "skill_path": "roles/综合报告者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "综合报告",
+        "path": "AI副业探索报告.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "探索任务书",
+        "path": "01-探索任务书.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "市场情报报告",
+        "path": "02-市场情报报告.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "机会清单",
+        "path": "03-机会清单.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "对抗报告",
+        "path": "outputs/机会红队-对抗报告.json",
+        "type": "process"
+      },
+      {
+        "name": "策略建议",
+        "path": "04-策略建议.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "报告格式规范",
+        "path": "knowledge/报告格式规范.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "策略建议者"
+      ],
+      [
+        "综合报告者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  }
+]

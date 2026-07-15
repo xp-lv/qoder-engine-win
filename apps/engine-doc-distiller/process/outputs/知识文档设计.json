@@ -1,0 +1,79 @@
+[
+  {
+    "name": "SDK规范",
+    "path": "knowledge/SDK_SPEC.md",
+    "description": "引擎 SDK 行为权威源，是引擎分析师提炼组件信息、文档审阅者/红队校验文档准确性、优化分析师识别设计局限的核心依据",
+    "inject_to": ["引擎分析师", "文档审阅者", "文档红队", "优化分析师"],
+    "content_guide": [
+      "引擎三层架构（稳定层/组织层/功能层）的权威定义与组件归属规则，包括 orchestrator/router/gate/step/compiler/fix/set_state/init/switch/mode/sdk 等 12 个核心组件域的职责边界",
+      "SDK 接口规范：dispatch/execute/post_execute/post_confirm 四阶段函数签名、输入输出契约、BLOCKING 状态处理逻辑",
+      "状态机完整定义：状态枚举值（PENDING/RUNNING/BLOCKING/CONFIRMED 等）、状态迁移条件、verdict 如何驱动状态变更",
+      "verdict 机制权威说明：confirmed/loop/major_rework/challenged/fail 五种 verdict 的语义定义、路由规则、Gate 校验行为",
+      "carries 推导规则（SDK_SPEC §3.4）：normal 边与 backward 边的物料注入逻辑，backward 时源产出/Gate 结果/用户反馈/target 历史产物的合并规则"
+    ]
+  },
+  {
+    "name": "引擎文档族范式",
+    "path": "knowledge/引擎文档族范式.md",
+    "description": "已有三版引擎文档族（v1/2.0/3）的结构范式总结，供文档架构师设计新文档族分层结构和文档撰写者参考写作规范",
+    "inject_to": ["文档架构师", "文档撰写者"],
+    "content_guide": [
+      "三层架构组织原则：稳定层（orchestrator/router/gate）/ 组织层（step/compiler/registry）/ 功能层（fix/set_state/init/switch/mode）的组件归属与文档分目录规则",
+      "编号体系规范：目录编号前缀约定（如 00-全局/10-功能层/20-组织层/30-稳定层/40-应用接口层）、文档内编号注册规则、版本号管理",
+      "交叉引用约定：→ 引用格式标准、导航地图组织方式（树形/网形/混合）、术语词典的术语收录范围与定义格式",
+      "已有三版文档族结构对比：v1（基础版）/ v2.0（增强版）/ v3（对抗版）的演进脉络，每版改进点与遗留问题，供新版本避免重复弯路"
+    ]
+  },
+  {
+    "name": "编排范式",
+    "path": "knowledge/app.yaml编排范式.md",
+    "description": "app.yaml → ROUTER.json → registry.json 编译链路的完整说明，是文档族的核心主题之一（文档需向读者解释引擎编排机制）",
+    "inject_to": ["文档架构师"],
+    "content_guide": [
+      "app.yaml 文件结构：app_name/knowledge/roles/edges 四段式定义，角色字段（type/confirm/inputs/outputs）的语义与可选值",
+      "四种原子模式：单步前进（A→B）/ 并行扇出（A→[B,C,D]）/ 同步汇入（[A,B,C]→D）/ 终态出口（A→完成）的语法与语义",
+      "verdict 路由机制：when 条件路由语法、max_executions 循环上限、fail 自动 backward 边生成规则、confirmed 无条件边默认行为",
+      "producer 自动展开：type=producer 时编译器自动创建校验角色 + 校验 STEP + 校验边的完整流程",
+      "knowledge 注入与编译产物：inject_to 选择性注入逻辑、编译后 ROUTER.json/registry.json/manifest.json 的结构与用途"
+    ]
+  },
+  {
+    "name": "文档族分层设计方法论",
+    "path": "knowledge/文档族分层设计方法论.md",
+    "description": "从需求推导到 L0~L4 五大文档类型分层设计的逐步方法论，含 DAG 依赖分析、导航地图设计、交叉引用矩阵构建，直接支撑 AC-16/AC-17 验收标准",
+    "inject_to": ["文档架构师"],
+    "content_guide": [
+      "L0~L4 五大文档类型的定义与判定标准：L0 导航类（README/导航地图/编号注册表/术语词典）、L1 总览类（引擎总览端到端叙述）、L2 特性档案类（≥6 项核心特性）、L3 组件文档类（分层组件说明）、L4 管理类（构建报告/优化建议）—— 每类的归入判据与排除规则",
+      "文档间 DAG 依赖分析方法：从需求 §7.2 的依赖规则推导引用方向、拓扑排序验证无环、禁止循环引用的检查算法（若 A→B 则 B 不得→A）",
+      "导航地图设计方法：如何索引全部 L0~L4 文档、多条阅读路径规划（新手入门/架构理解/运维诊断）、导航地图定稿时机（最后定稿因需索引全部文档）",
+      "编号注册表设计规范：唯一性保证机制、分层前缀编号规则、文档新增/删除时的注册表更新流程",
+      "交叉引用矩阵构建步骤：从 DAG 依赖关系推导引用方向矩阵、每篇文档的引用来源/引用目标清单、断链检测的预检方法"
+    ]
+  },
+  {
+    "name": "引擎特性提炼指南",
+    "path": "knowledge/引擎特性提炼指南.md",
+    "description": "引擎核心设计特性的识别方法与特性档案撰写规范，支撑引擎分析师提炼特性和文档撰写者产出 ≥6 篇特性档案（AC-7）",
+    "inject_to": ["引擎分析师", "文档撰写者"],
+    "content_guide": [
+      "六项必含特性的代码锚点定位方法：①指令生命周期（dispatch→execute→post_execute→BLOCKING→post_confirm 在 orchestrator/step 中的代码位置）②多角色协作模型（app.yaml roles + registry.json 的角色定义体系）③状态机与状态迁移（state.schema.json + mode.py）④对抗闭环（challenged/loop/major_rework 在 router/gate 中的路由逻辑）⑤并行调度（FORK/JOIN 在 compiler.py 的 sync_join 展开）⑥回退修复机制（fix.py + fix-io.schema.json）",
+      "特性档案四要素编写规范：定义（一句话概念描述）/ 设计动机（解决什么问题）/ 运作机制含 Mermaid 图示（端到端流程）/ 代码对应关系（具体文件函数引用）—— 每要素的字段要求与质量标准",
+      "Mermaid 图示编写方法：状态图（stateDiagram-v2）适用于状态机特性、流程图（flowchart）适用于指令周期/编译链路、拓扑图（graph）适用于组件依赖关系—— 每类图的选择判据与画法规范",
+      "代码可追溯性标注规范：文件路径引用格式（engine/scripts/xxx.py）、函数/类引用格式、行号区间的标注约定、每篇文档代码对应关系章节的必填结构",
+      "引擎全貌总览文档的端到端串联方法：用户视角（app.yaml→compiler→ROUTER.json）/ 编译视角 / 运行视角（orchestrator→router→gate→step→switch）/ 扩展视角（sdk→custom roles）/ 修复视角（fix.py→gate）—— 五视角叙述框架与章节组织"
+    ]
+  },
+  {
+    "name": "文档审阅与对抗标准手册",
+    "path": "knowledge/文档审阅与对抗标准手册.md",
+    "description": "L0~L4 各层文档的统一审阅/对抗标准、严重级别定义、检查清单模板，支撑文档审阅者结构化校验和文档红队对抗性挑战",
+    "inject_to": ["文档审阅者", "文档红队"],
+    "content_guide": [
+      "L0~L4 每层文档的审阅重点清单：L0（编号唯一性、交叉引用有效性、术语覆盖完整性）/ L1（端到端叙述完整性、四视角无缺失）/ L2（≥6 项特性、每项四要素齐全）/ L3（代码引用有效、每篇含已知局限章节）/ L4（建议按优先级排序、覆盖率可核验）",
+      "对抗性审阅方法论：新读者模拟操作步骤（以不了解引擎的读者身份逐篇阅读并记录困惑点）、断链检测技巧（遍历所有→引用验证目标存在）、歧义检测方法（同一术语在不同文档中的定义一致性比对）、遗漏检测（对照引擎组件清单逐项核验）",
+      "严重级别定义与判定标准：critical（文档缺失核心章节/覆盖率 <80%/特性档案 <4 项）/ major（特性描述错误/交叉引用断裂/术语定义冲突）/ minor（格式不规范/图示缺失/已知局限章节空泛）—— 每级的阈值与示例",
+      "审阅/对抗报告结构化格式：findings 的字段定义（id/title/layer/severity/description/evidence/suggestion）、证据引用规范（引用文档片段+行号）、输出 JSON 的 schema 约定",
+      "覆盖率与完整性量化方法：组件覆盖率公式（已文档化组件数 / 12 个核心组件域 × 100% ≥ 95%）、特性覆盖率检查清单（6 项必含特性逐项勾验）、交叉引用完整性验证步骤（全量遍历+目标存在性校验）"
+    ]
+  }
+]

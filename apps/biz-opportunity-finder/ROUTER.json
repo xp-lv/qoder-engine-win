@@ -1,0 +1,301 @@
+{
+  "schema_version": "2.0",
+  "entry": "需求接收者",
+  "steps": [
+    {
+      "step": "需求接收者",
+      "role": "需求接收者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "需求接收者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "01-探索任务书.md",
+              "type": "feedback",
+              "name": "[反馈] 探索任务书"
+            },
+            {
+              "path": "outputs/需求接收者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者 Gate校验结果"
+            },
+            {
+              "path": "outputs/需求接收者-feedback.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者 用户反馈"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "需求接收者-validate",
+      "role": "需求接收者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "市场情报搜集者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者-validate"
+            }
+          ]
+        },
+        "loop": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "normal",
+          "max_executions": 10,
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "需求接收者-validate"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者校验报告"
+            },
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者-validate Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "市场情报搜集者",
+      "role": "市场情报搜集者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "机会分析师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/市场情报搜集者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 市场情报搜集者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "市场情报搜集者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "02-市场情报报告.md",
+              "type": "feedback",
+              "name": "[反馈] 市场情报报告"
+            },
+            {
+              "path": "outputs/市场情报搜集者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 市场情报搜集者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "机会分析师",
+      "role": "机会分析师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "机会红队"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/机会分析师-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 机会分析师"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "机会分析师"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "03-机会清单.md",
+              "type": "feedback",
+              "name": "[反馈] 机会清单"
+            },
+            {
+              "path": "outputs/机会分析师-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 机会分析师 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "机会红队",
+      "role": "机会红队",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "策略建议者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/机会红队-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 机会红队"
+            }
+          ]
+        },
+        "challenged": {
+          "targets": [
+            "机会分析师"
+          ],
+          "type": "normal",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/机会红队-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 机会红队"
+            },
+            {
+              "path": "outputs/机会红队-对抗报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 对抗报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "机会红队"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/机会红队-对抗报告.json",
+              "type": "feedback",
+              "name": "[反馈] 对抗报告"
+            },
+            {
+              "path": "outputs/机会红队-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 机会红队 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "策略建议者",
+      "role": "策略建议者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "综合报告者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/策略建议者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 策略建议者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "策略建议者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "04-策略建议.md",
+              "type": "feedback",
+              "name": "[反馈] 策略建议"
+            },
+            {
+              "path": "outputs/策略建议者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 策略建议者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "综合报告者",
+      "role": "综合报告者",
+      "transitions": {
+        "confirmed": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/综合报告者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 综合报告者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "综合报告者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "AI副业探索报告.md",
+              "type": "feedback",
+              "name": "[反馈] 综合报告"
+            },
+            {
+              "path": "outputs/综合报告者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 综合报告者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

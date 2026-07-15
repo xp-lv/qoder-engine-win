@@ -1,0 +1,42 @@
+{
+  "schema_version": "2.0",
+  "app_name": "sdk-maintainer",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "engine/sdk",
+      "knowledge",
+      "outputs"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "engine/sdk/SDK_SPEC.md",
+        "to": "engine/sdk/SDK_SPEC.md"
+      },
+      {
+        "from": "engine/sdk/编排范式.md",
+        "to": "engine/sdk/编排范式.md"
+      },
+      {
+        "from": "knowledge/变更影响分析方法论.md",
+        "to": "knowledge/变更影响分析方法论.md"
+      },
+      {
+        "from": "knowledge/SDK文档编辑规范.md",
+        "to": "knowledge/SDK文档编辑规范.md"
+      },
+      {
+        "from": "knowledge/文档验证标准手册.md",
+        "to": "knowledge/文档验证标准手册.md"
+      },
+      {
+        "from": "knowledge/依赖传播操作指南.md",
+        "to": "knowledge/依赖传播操作指南.md"
+      }
+    ]
+  }
+}

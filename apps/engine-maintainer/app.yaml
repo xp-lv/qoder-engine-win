@@ -1,0 +1,317 @@
+app_name: engine-maintainer
+
+# ═══════════════════════════════════════════════════════════════
+# 设计约定（架构级注释块，供审阅者审查与运行引擎参照）
+# ═══════════════════════════════════════════════════════════════
+#
+# 版本: v2 — 引擎维护 APP（需求文档 v1.0，7 角色 + 1 校验 = 8 step）
+#   v2 修复 D4-1（模拟验证 MAJOR 缺陷）：移除需求校验回路 max_executions: 5。
+#   依据：校验角色 loop → producer 为局部回退边（skill.md §max_executions
+#   设置原则），producer 为 manual confirm，用户控制迭代节奏无需硬性上限。
+#
+# 设计目标: 系统地维护和改进引擎代码库（engine/scripts/、
+#           engine/sdk/、engine/schemas/），从接收维护需求出发，
+#           经过诊断→设计→实施→验证→对抗→沉淀的完整闭环，
+#           产出经过验证的代码变更和维护报告。
+#
+# §1  编排总览（五层文档 × 角色映射）
+#     L0 需求层   → 需求接收者(producer) + 需求接收者（校验）
+#     L1 诊断层   → 引擎诊断师
+#     L2 设计层   → 变更设计师
+#     L3 实施层   → 代码实施者 → [FORK] 回归验证者 + 架构红队
+#     L4 报告层   → 知识管理者（JOIN 汇入 + 裁决路由）
+#
+# §2  循环回路与 max_executions
+#     a) 需求校验回路    —— 需求接收者（校验）loop → 需求接收者   无 max
+#         （局部回退边，producer 为 manual confirm，用户控制节奏，不设上限）
+#     b) 质量回路        —— 知识管理者 loop → 代码实施者           max: 5
+#     c) 结构回路        —— 知识管理者 major_rework → 变更设计师   max: 3
+#
+#     回路终止保证：
+#       全局回路（b/c）通过 SDK_SPEC §5.6 verdict_enum 动态过滤保证终止
+#       ——edge_counts 达到 max_executions 后边掐断，对应 verdict 从
+#       enum 移除，强制收敛至 confirmed。
+#       需求校验回路（a）不设 max_executions——producer 为 manual
+#       confirm，用户在确认阶段 reject 即回到需求接收者重新编写，
+#       迭代节奏完全由用户控制，不存在自动死循环风险。
+#       两全局回路独立计数，最大总迭代 = 5(质量) + 3(结构) = 8 次。
+#
+# §3  并行拓扑
+#     [FORK] 代码实施者 confirmed → 回归验证者 + 架构红队
+#     [JOIN] 回归验证者 + 架构红队 → 知识管理者
+#     回归验证者检查变更的技术正确性（编译/DAG/行为/Gate 兼容），
+#     架构红队从对抗视角挑战变更方案（边界/兼容/新缺陷/DAG/状态机/回滚），
+#     两者互补不冗余。
+#
+# §4  对抗性设计（架构红队 + 裁决复核）
+#     架构红队（L3 对抗角色）—— confirmed/challenged 双路径
+#       · confirmed/challenged → 均通过 JOIN 边汇入知识管理者
+#         JOIN 边（无 when 条件）不提取 verdict 值——编译器保留
+#         schema.json 中已有的 enum（含 challenged），无需显式
+#         challenged 出边（避免 input_groups OR 短路，同
+#         engine-doc-distiller F1 修复模式）
+#         知识管理者复核红队挑战报告，若挑战成立（upheld），
+#         知识管理者输出 loop verdict 触发回退代码实施者
+#     知识管理者作为裁决者，整合回归验证报告 + 对抗审阅报告，
+#     决定 confirmed/loop/major_rework 路由。
+#
+# §5  回退上下文注入（carries 机制 — SDK_SPEC §3.4）
+#     backward 边回退时，carries 推导规则注入：
+#       (1) 源角色产出物（知识管理者 → 维护报告.md）
+#       (2) Gate 校验结果（{step}-gate-result.json）
+#       (3) 用户反馈（confirm: manual 时）
+#       (4) target 角色自身历史产出物
+#     【重要】回归验证报告和对抗审阅报告不在 backward carries 中——
+#     它们不是源角色（知识管理者）的产出物。findings 通过维护报告.md
+#     传递：知识管理者在维护报告中整合全链路审阅结果与红队挑战
+#     findings，代码实施者/变更设计师在回退时从维护报告.md 获取
+#     审阅详情以指导修复。
+#     target 角色的 optional inputs（[可选输入] 标注）仅表示
+#     该物料"若存在则读取"，carries 不保证注入。
+#
+# §6  知识管理者三路径 verdict 命名空间
+#     confirmed     → 完成（变更通过全链路验证，产出维护报告）
+#     loop          → 代码实施者（质量问题，修复后重新验证，max: 5）
+#     major_rework  → 变更设计师（结构问题，重设计后重新实施，max: 3）
+#
+# §7  文档层级要素（L0~L4 五大文档类型 — AC-17）
+#     L0 需求层  —— 00-需求描述.md（维护需求文档）
+#     L1 诊断层  —— outputs/引擎诊断报告.json
+#     L2 设计层  —— outputs/变更设计文档.json
+#     L3 实施层  —— outputs/变更摘要.json + 回归验证报告.json +
+#                   架构红队-对抗报告.json
+#     L4 报告层  —— 维护报告.md（人类可读总览）
+#     文档依赖为 DAG（禁循环），L0→L1→L2→L3 串行逐层细化，
+#     L4 依赖 L0~L3 全部。
+#     文档层与执行层界限分明：诊断师只产 L1，设计师只产 L2，
+#     实施者只产 L3 变更摘要，验证者/红队只产 L3 报告，
+#     知识管理者只产 L4。
+#
+# §8  可选输入标注约定
+#     格式：# [可选输入] 仅在 <触发条件> 时存在
+#
+# §9  SDK_SPEC 演进感知
+#     当代码变更涉及引擎行为变化时，知识管理者在维护报告中
+#     标注 SDK_SPEC 演进需求（AC-15），衔接 sdk-maintainer APP。
+#     无行为变化时标注"无需演进"。
+#
+# §10 变更追溯管理
+#     每个代码变更可从维护需求→诊断报告→设计文档→代码实施→
+#     验证报告→对抗报告→维护报告完整追溯（AC-14）。
+#     变更摘要中每个变更项独立标注文件路径和修改内容。
+#
+# §11 知识文档清单（6 份知识文档）
+#     a) SDK规范 → 引擎诊断师/回归验证者/架构红队（引擎行为权威源）
+#     b) 编排范式 → 引擎诊断师/变更设计师（app.yaml 编译链路）
+#     c) 引擎代码分析方法论 → 引擎诊断师（受影响组件定位方法）
+#     d) 回归验证标准手册 → 回归验证者/架构红队（验证检查项）
+#     e) 变更设计方法论 → 变更设计师（变更方案设计方法）
+#     f) 维护报告编写指南 → 知识管理者（报告结构与追溯链）
+#     详见知识文档设计清单 JSON。
+# ═══════════════════════════════════════════════════════════════
+
+knowledge:
+  - SDK规范: knowledge/SDK_SPEC.md
+    inject_to: [引擎诊断师, 回归验证者, 架构红队]
+  - 编排范式: knowledge/编排范式.md
+    inject_to: [引擎诊断师, 变更设计师]
+  - 引擎代码分析方法论: knowledge/引擎代码分析方法论.md
+    inject_to: [引擎诊断师]
+  - 回归验证标准手册: knowledge/回归验证标准手册.md
+    inject_to: [回归验证者, 架构红队]
+  - 变更设计方法论: knowledge/变更设计方法论.md
+    inject_to: [变更设计师]
+  - 维护报告编写指南: knowledge/维护报告编写指南.md
+    inject_to: [知识管理者]
+
+roles:
+  # ═══ L0 需求层 ═══
+
+  # producer 入口角色，confirm: manual（唯一人工确认点）
+  # 接收用户维护需求（bug 修复/功能改进/重构/性能优化），
+  # 整理为结构化需求文档（变更范围、目标行为、约束条件）
+  # 回退来源：校验 loop
+  需求接收者:
+    type: producer
+    confirm: manual
+    outputs:
+      - 需求文档: 00-需求描述.md
+
+  # producer 自动展开的校验角色
+  # confirmed → 引擎诊断师；loop → 回退需求接收者
+  需求接收者（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+    outputs:
+      - 需求校验报告: outputs/需求接收者-validation.json, type=process
+
+  # ═══ L1 诊断层 ═══
+
+  # 读取 engine/ 全部代码（scripts/ + sdk/ + schemas/），
+  # 基于维护需求定位受影响组件，分析当前代码状态
+  # （架构结构、依赖关系、数据流），识别问题根因和影响范围
+  # confirmed → 变更设计师
+  引擎诊断师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+    outputs:
+      - 引擎诊断报告: outputs/引擎诊断报告.json, type=process
+
+  # ═══ L2 设计层 ═══
+
+  # 基于诊断报告设计变更方案：变更类型、变更步骤、影响接口、
+  # 向后兼容性分析、风险评估、回滚方案、SDK_SPEC 演进需求标注
+  # confirmed → 代码实施者
+  # 回退来源：知识管理者 major_rework
+  变更设计师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+      - 引擎诊断报告: outputs/引擎诊断报告.json, type=process
+      # [可选输入] 知识管理者 major_rework 回退时存在（通过维护报告.md carries）
+      - 维护报告: 维护报告.md
+    outputs:
+      - 变更设计文档: outputs/变更设计文档.json, type=process
+
+  # ═══ L3 实施层 ═══
+
+  # 按变更设计实施代码修改（修改 engine/ 下代码文件），
+  # 产出变更差异（diff）和变更摘要。
+  # 每个变更项独立标注文件路径和修改内容，支持追溯
+  # confirmed → [FORK] 并行扇出到回归验证者 + 架构红队
+  # 回退来源：知识管理者 loop
+  代码实施者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 变更设计文档: outputs/变更设计文档.json, type=process
+      # [可选输入] 知识管理者 loop 回退时存在（通过维护报告.md carries）
+      - 维护报告: 维护报告.md
+    outputs:
+      - 变更摘要: outputs/变更摘要.json, type=process
+
+  # 验证代码变更后引擎的正确性：
+  #   编译正确性（compiler.py 编译链路无报错）
+  #   DAG 可达性（变更后所有角色可达、无死角色）
+  #   verdict 出边完备性
+  #   行为兼容性（变更前后行为对比）
+  #   Gate 校验兼容性
+  # → [JOIN] 流入知识管理者
+  回归验证者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 变更设计文档: outputs/变更设计文档.json, type=process
+      - 变更摘要: outputs/变更摘要.json, type=process
+    outputs:
+      - 回归验证报告: outputs/回归验证报告.json, type=process
+
+  # 对抗角色（§4）：从最恶劣条件对抗性挑战变更方案
+  # 维度：边界条件/向后兼容性/新缺陷引入/DAG 完整性/
+  #       状态机一致性/回滚安全性（6 维全覆盖）
+  # confirmed/challenged → 均通过 JOIN 边汇入知识管理者
+  # JOIN 边不提取 verdict，编译器保留 schema.json 已有 enum（含 challenged），
+  # 无需显式 challenged 出边（避免 OR 短路，同 engine-doc-distiller F1 修复）
+  架构红队:
+    type: standard
+    confirm: auto
+    inputs:
+      - 变更设计文档: outputs/变更设计文档.json, type=process
+      - 变更摘要: outputs/变更摘要.json, type=process
+    outputs:
+      - 对抗审阅报告: outputs/架构红队-对抗报告.json, type=process
+
+  # ═══ L4 报告层（JOIN 汇入 + 裁决路由）═══
+
+  # [JOIN] 合并两路 findings（回归验证 + 对抗审阅）
+  # 整合全链路产出，裁决变更是否通过
+  # 产出 L4 维护报告.md（人类可读总览）
+  # 维护报告.md 必须包含完整验证/对抗 findings 摘要，作为 backward
+  # carries 的审阅详情载体（§5 carries 机制说明）
+  # 维护报告包含 7 个章节：变更摘要、影响分析、验证结果、
+  #   已知风险、回滚指南、SDK_SPEC 演进需求、变更追踪表（AC-16）
+  # confirmed → 完成（变更通过验证，产出维护报告）
+  # loop → 代码实施者（质量问题修复，max: 5）
+  # major_rework → 变更设计师（结构需重设计，max: 3）
+  知识管理者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+      - 引擎诊断报告: outputs/引擎诊断报告.json, type=process
+      - 变更设计文档: outputs/变更设计文档.json, type=process
+      - 变更摘要: outputs/变更摘要.json, type=process
+      - 回归验证报告: outputs/回归验证报告.json, type=process
+      - 对抗审阅报告: outputs/架构红队-对抗报告.json, type=process
+    outputs:
+      - 维护报告: 维护报告.md
+
+edges:
+  # ═══════════════════════════════════════════════════════════════
+  # L0 需求层
+  # ═══════════════════════════════════════════════════════════════
+
+  # producer 自动展开：需求接收者 → 需求接收者（校验）
+  - 需求接收者 → 需求接收者（校验）
+
+  # ── 需求校验回路（§2a）──
+  # 局部回退边（校验角色 loop → producer），不设 max_executions：
+  # producer 为 manual confirm，用户控制迭代节奏，
+  # 用户 reject 即回到需求接收者重新编写，无自动死循环风险。
+  - 需求接收者（校验）→ 引擎诊断师 when: result.verdict == "confirmed"
+  - 需求接收者（校验）→ 需求接收者 when: result.verdict == "loop"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L1→L2 诊断 → 设计
+  # ═══════════════════════════════════════════════════════════════
+
+  - 引擎诊断师 → 变更设计师 when: result.verdict == "confirmed"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L2→L3 设计 → 实施
+  # ═══════════════════════════════════════════════════════════════
+
+  - 变更设计师 → 代码实施者 when: result.verdict == "confirmed"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L3→L3 实施完成后 → [FORK] 并行验证层（§3）
+  # ═══════════════════════════════════════════════════════════════
+
+  # confirmed → 并行扇出到 2 验证者
+  - 代码实施者 → 回归验证者 when: result.verdict == "confirmed"
+  - 代码实施者 → 架构红队 when: result.verdict == "confirmed"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L3→L4 [JOIN] 验证层 → 知识管理者
+  # ═══════════════════════════════════════════════════════════════
+
+  # 2 验证者 → 知识管理者 [JOIN]（barrier 同步）
+  # JOIN 边不提取 verdict——verdict 提取仅对 when: 边生效（SDK_SPEC §3）。
+  #   编译器保留 schema.json 已有 enum（含 challenged）。
+  #   架构红队无论输出 confirmed 还是 challenged，均通过此 JOIN 汇入知识管理者。
+  # 无需显式 challenged 出边——显式边会生成独立 OR 组 [架构红队]，
+  #   导致架构红队率先完成 challenged 时 OR 短路，知识管理者被提前 dispatch。
+  # 知识管理者复核红队挑战报告后决定 confirmed/loop/major_rework 路由（§4）。
+  - [回归验证者, 架构红队] → 知识管理者
+
+  # ═══════════════════════════════════════════════════════════════
+  # L4 知识管理者裁决路由（§6 三路径）
+  # ═══════════════════════════════════════════════════════════════
+
+  # confirmed → 完成（变更通过全链路验证，产出维护报告）
+  - 知识管理者 → 完成 when: result.verdict == "confirmed"
+  # loop → 代码实施者（修复质量问题，§2b，max: 5）
+  # carries（§5）: 维护报告.md（源角色知识管理者产出）→ 代码实施者。
+  #   验证/对抗 findings 通过维护报告.md 传递（维护报告须含完整审阅摘要），
+  #   代码实施者从中获取审阅详情指导修复。
+  - 知识管理者 → 代码实施者 when: result.verdict == "loop" max_executions: 5
+  # major_rework → 变更设计师（结构需重设计，§2c，max: 3）
+  # carries（§5）: 维护报告.md（源角色知识管理者产出）→ 变更设计师。
+  #   验证/对抗 findings 通过维护报告.md 传递（维护报告须含完整审阅摘要），
+  #   变更设计师从中获取结构问题详情指导重设计。
+  - 知识管理者 → 变更设计师 when: result.verdict == "major_rework" max_executions: 3

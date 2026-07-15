@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """初始化器。校验功能层配置 → 创建工作目录 → 初始化 STATE.json。
-Usage: python3 engine/scripts/init.py --workspace-path <path> --app-path <path> [--workspace-id <id>] [--force]
+Usage: python engine/scripts/init.py --workspace-path <path> --app-path <path> [--workspace-id <id>] [--force]
 """
 import argparse, json, os, sys, shutil
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -39,7 +39,7 @@ def load_json(path, error_code, missing_msg):
     if not os.path.exists(path):
         output_failure(error_code, f"{missing_msg}: {path}")
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
     except (json.JSONDecodeError, ValueError) as e:
         output_failure(error_code, f"JSON 解析失败: {e}")
@@ -193,7 +193,7 @@ def main():
 
     manifest_path = os.path.join(app_path, "manifest.json")
     if os.path.exists(manifest_path):
-        with open(manifest_path, "r", encoding="utf-8") as f:
+        with open(manifest_path, "r", encoding="utf-8-sig") as f:
             manifest = json.load(f)
         ws_template = manifest.get("workspace_template", {})
         # manifest dirs 是相对路径，join workspace_path
@@ -223,7 +223,7 @@ def main():
     # Step 7: 初始化 STATE.json
     if os.path.exists(state_path) and not args.force:
         try:
-            with open(state_path, "r", encoding="utf-8") as f:
+            with open(state_path, "r", encoding="utf-8-sig") as f:
                 existing = json.load(f)
             if existing.get("terminal_state"):
                 output_success("already_terminal")

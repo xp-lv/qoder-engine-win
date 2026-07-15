@@ -1,0 +1,333 @@
+{
+  "schema_version": "2.0",
+  "entry": "变更分析师",
+  "steps": [
+    {
+      "step": "变更分析师",
+      "role": "变更分析师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "变更分析师-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/变更分析师-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 变更分析师"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "变更分析师"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/变更分析报告.json",
+              "type": "feedback",
+              "name": "[反馈] 变更分析报告"
+            },
+            {
+              "path": "outputs/变更分析师-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 变更分析师 Gate校验结果"
+            },
+            {
+              "path": "outputs/变更分析师-feedback.json",
+              "type": "feedback",
+              "name": "[反馈] 变更分析师 用户反馈"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "变更分析师-validate",
+      "role": "变更分析师（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "代码实施者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/变更分析师-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 变更分析师-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "变更分析师-validate"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/变更分析师-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 变更分析师校验报告"
+            },
+            {
+              "path": "outputs/变更分析师-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 变更分析师-validate Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "代码实施者",
+      "role": "代码实施者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "一致性验证者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/代码实施者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 代码实施者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "代码实施者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/变更摘要.json",
+              "type": "feedback",
+              "name": "[反馈] 变更摘要"
+            },
+            {
+              "path": "outputs/代码实施者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 代码实施者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "一致性验证者",
+      "role": "一致性验证者",
+      "transitions": {
+        "validated": {
+          "targets": [
+            "文档同步者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/一致性验证者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 一致性验证者"
+            },
+            {
+              "path": "outputs/验证报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 验证报告"
+            }
+          ]
+        },
+        "defects_detected": {
+          "targets": [
+            "代码实施者"
+          ],
+          "type": "normal",
+          "max_executions": 2,
+          "carries": [
+            {
+              "path": "outputs/一致性验证者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 一致性验证者"
+            },
+            {
+              "path": "outputs/验证报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 验证报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "一致性验证者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/验证报告.json",
+              "type": "feedback",
+              "name": "[反馈] 验证报告"
+            },
+            {
+              "path": "outputs/一致性验证者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 一致性验证者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "文档同步者",
+      "role": "文档同步者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "回归测试者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/文档同步者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 文档同步者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "文档同步者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/文档更新报告.json",
+              "type": "feedback",
+              "name": "[反馈] 文档更新报告"
+            },
+            {
+              "path": "outputs/文档同步者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 文档同步者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "回归测试者",
+      "role": "回归测试者",
+      "transitions": {
+        "passed": {
+          "targets": [
+            "依赖同步者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/回归测试者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 回归测试者"
+            },
+            {
+              "path": "outputs/回归测试报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 回归测试报告"
+            }
+          ]
+        },
+        "failed": {
+          "targets": [
+            "代码实施者",
+            "依赖同步者"
+          ],
+          "type": "normal",
+          "max_executions": 2,
+          "carries": [
+            {
+              "path": "outputs/回归测试者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 回归测试者"
+            },
+            {
+              "path": "outputs/回归测试报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 回归测试报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "回归测试者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/回归测试报告.json",
+              "type": "feedback",
+              "name": "[反馈] 回归测试报告"
+            },
+            {
+              "path": "outputs/回归测试者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 回归测试者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "依赖同步者",
+      "role": "依赖同步者",
+      "transitions": {
+        "confirmed": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/依赖同步者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 依赖同步者"
+            }
+          ]
+        },
+        "partial": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/依赖同步者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 依赖同步者"
+            },
+            {
+              "path": "outputs/依赖同步报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 依赖同步报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "依赖同步者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/依赖同步报告.json",
+              "type": "feedback",
+              "name": "[反馈] 依赖同步报告"
+            },
+            {
+              "path": "outputs/依赖同步者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 依赖同步者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,334 @@
+app_name: engine-doc-distiller
+
+# ═══════════════════════════════════════════════════════════════
+# 设计约定（架构级注释块，供审阅者审查与运行引擎参照）
+# ═══════════════════════════════════════════════════════════════
+#
+# 版本: v4 — 引擎文档族提炼 APP（v1.2 需求 + 文档层级要素 + 知识文档清单）
+#   基于 v3（F1 修复版 + COND-1/2/3 修复版，四轮迭代全 PASS），
+#   适配需求文档 v1.2 新增的第七要素「文档层级」（L0~L4），
+#   并新增知识文档设计清单产出物。
+#
+# 设计目标: 从引擎源代码系统提炼信息，经过分析→架构→撰写→
+#           并行审阅（审阅+对抗+优化）→裁决的知识闭环，
+#           产出结构化的引擎文档族（含特性档案、引擎总览、
+#           已知局限标注、优化建议清单）。
+#
+# §1  编排总览（六层 × 角色映射）
+#     L1 需求捕获层 → 需求接收者(producer) + 需求接收者（校验）
+#     L2 引擎分析层 → 引擎分析师
+#     L3 文档架构层 → 文档架构师
+#     L4 文档撰写层 → 文档撰写者
+#     L5 并行审阅层 → 文档审阅者 + 文档红队 + 优化分析师（FORK 扇出）
+#     L6 知识沉淀层 → 知识管理者（JOIN 汇入 + 裁决路由）
+#
+# §2  循环回路与 max_executions
+#     a) 需求校验回路    —— 需求接收者（校验）loop → 需求接收者   max: 5
+#     b) 质量回路        —— 知识管理者 loop → 文档撰写者           max: 5
+#     c) 结构回路        —— 知识管理者 major_rework → 文档架构师   max: 3
+#
+# §3  并行拓扑
+#     [FORK] 文档撰写者 confirmed → 文档审阅者 + 文档红队 + 优化分析师
+#     [JOIN] 文档审阅者 + 文档红队 + 优化分析师 → 知识管理者
+#     三路并行审阅提升效率，优化分析师不阻塞主线。
+#
+# §4  对抗性设计（单层对抗 + 裁决复核）
+#     文档红队（文档层对抗）—— confirmed/challenged 双路径
+#       · confirmed/challenged → 均通过 JOIN 边汇入知识管理者
+#         JOIN 边（无 when 条件）不提取 verdict 值——编译器保留
+#         schema.json 中已有的 enum（含 challenged），无需显式
+#         challenged 出边（F1 修复：避免 input_groups OR 短路）
+#         知识管理者复核红队报告，若挑战成立（upheld），
+#         知识管理者输出 loop verdict 触发回退
+#     知识管理者作为裁决者，整合三路 findings + 红队挑战结果，
+#     决定 confirmed/loop/major_rework 路由。
+#
+# §5  回退上下文注入（carries 机制 — 与 SDK_SPEC §3.4 / compiler.py 对齐）
+#     backward 边回退时，carries 推导规则（SDK_SPEC §3.4）注入：
+#       (1) 源角色产出物（知识管理者 → 构建报告.md）
+#       (2) Gate 校验结果（{step}-gate-result.json）
+#       (3) 用户反馈（confirm: manual 时）
+#       (4) target 角色自身历史产出物
+#     【重要】审阅报告（文档审阅者产出）和对抗分析报告（文档红队
+#     产出）不在 backward carries 中——它们不是源角色（知识管理者）
+#     的产出物。审阅/对抗 findings 通过构建报告.md 传递：
+#       · 知识管理者在构建报告中整合三路审阅结果与红队挑战 findings
+#       · 文档撰写者/文档架构师在回退时从构建报告.md 获取审阅详情
+#         以指导修复
+#     target 角色的 optional inputs 声明（[可选输入] 标注）仅表示
+#     该物料"若存在则读取"，carries 不保证注入。
+#
+# §6  知识管理者三路径 verdict 命名空间
+#     confirmed     → 完成（文档族达标，整合优化建议，产出构建报告）
+#     loop          → 文档撰写者（质量问题，修复后重新审阅，max: 5）
+#     major_rework  → 文档架构师（结构问题，重设计后重新撰写，max: 3）
+#
+# §7  优化分析师核心设计
+#     基于引擎分析报告 + 文档族正文，系统性发现引擎可优化点。
+#     优化建议不触发回退，而是整合进最终构建报告。
+#     若发现严重设计缺陷，标记为"高优先级"纳入构建报告"已知局限"章节。
+#     与审阅/对抗并行执行，不阻塞主线。
+#
+# §8  文档层级要素（v1.2 第七要素新增 — AC-16/AC-17）
+#     文档族分为 5 大文档类型（L0~L4），文档间依赖为 DAG（禁循环）：
+#       L0 导航类  —— README/导航地图/编号注册表/术语词典（最后定稿）
+#       L1 总览类  —— 引擎总览.md（端到端串联所有核心组件）
+#       L2 特性档案类 —— ≥6 篇引擎核心特性档案（指令周期/多角色协作/
+#                      状态机/对抗闭环/并行调度/回退修复）
+#       L3 组件文档类 —— 分层组件说明（稳定层/组织层/功能层/应用接口层）
+#       L4 管理类  —— 构建报告/优化建议清单/已知局限汇总
+#     文档层（L0~L3 Markdown）由文档撰写者统一产出；
+#     执行层角色（审阅者/红队/优化分析师）只产出 process 类型报告，
+#     不直接改写文档层——保证文档层风格一致（需求 §7.3 界限原则）。
+#     文档架构师须在架构设计中明确列出 L0~L4 类型定义，
+#     并设计交叉引用矩阵确保 DAG 无环（AC-16/AC-17）。
+#
+# §9  可选输入标注约定
+#     格式：# [可选输入] 仅在 <触发条件> 时存在
+#
+# §10 F1 修复说明（v1 → v2 → v3 → v4 保持）
+#     v1 缺陷：知识管理者同时有 JOIN 边和显式 challenged 条件边，
+#     编译器按 §3.4 生成 input_groups = [[审阅者,红队,优化师], [红队]]，
+#     OR 组 [红队] 短路导致知识管理者可能被提前 dispatch。
+#     修复：移除显式 challenged 出边，仅保留 JOIN 边（无 when 条件）。
+#     JOIN 边不提取 verdict 值——verdict 提取仅对 when: 边生效
+#     （SDK_SPEC §3 编译器功能表）。文档红队的 schema.json enum
+#     保持完整（含 confirmed + challenged），三机制协同确保 challenged
+#     verdict 正确路由至知识管理者：
+#       (1) schema.json 预填充含完整 enum [confirmed, challenged]
+#       (2) 编译器 enum update 为追加式操作（existing.update），不删减
+#       (3) orchestrator route_key 回退：challenged 不在 transitions 中时
+#           自动回退到 confirmed，Router 命中知识管理者 JOIN 边
+#     确保三路全部完成后知识管理者才被 dispatch，input_groups 仅含
+#     一个 AND 组，无 OR 短路。v3 经四轮迭代审阅全 PASS 验证。
+#
+# §11 知识文档清单（v4 新增 — skill.md 更新要求）
+#     知识文档从 v3 的 3 份扩展至 6 份，新增 3 份方法论/规范文档：
+#       a) 文档族分层设计方法论 → 文档架构师（支撑 L0~L4 设计 + DAG 依赖）
+#       b) 引擎特性提炼指南 → 引擎分析师 + 文档撰写者（支撑 ≥6 特性档案）
+#       c) 文档审阅与对抗标准手册 → 文档审阅者 + 文档红队（统一 L0~L4 审阅标准）
+#     详见知识文档设计清单 JSON。
+# ═══════════════════════════════════════════════════════════════
+
+knowledge:
+  - SDK规范: knowledge/SDK_SPEC.md
+    inject_to: [引擎分析师, 文档审阅者, 文档红队, 优化分析师]
+  - 引擎文档族范式: knowledge/引擎文档族范式.md
+    inject_to: [文档架构师, 文档撰写者]
+  - 编排范式: knowledge/app.yaml编排范式.md
+    inject_to: [文档架构师]
+  - 文档族分层设计方法论: knowledge/文档族分层设计方法论.md
+    inject_to: [文档架构师]
+  - 引擎特性提炼指南: knowledge/引擎特性提炼指南.md
+    inject_to: [引擎分析师, 文档撰写者]
+  - 文档审阅与对抗标准手册: knowledge/文档审阅与对抗标准手册.md
+    inject_to: [文档审阅者, 文档红队]
+
+roles:
+  # ═══ L1 需求捕获层 ═══
+
+  # producer 入口角色，confirm: manual
+  # 接收用户文档族范围指令（目标读者、覆盖深度、优先组件），整理为结构化需求
+  # 回退来源：校验 loop
+  需求接收者:
+    type: producer
+    confirm: manual
+    outputs:
+      - 需求文档: 00-需求描述.md
+
+  # producer 自动展开的校验角色
+  # confirmed → 引擎分析师；loop → 回退需求接收者
+  需求接收者（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+    outputs:
+      - 需求校验报告: outputs/需求接收者-validation.json, type=process
+
+  # ═══ L2 引擎分析层 ═══
+
+  # 读取 engine/ 全部代码，提炼组件清单、接口签名、数据流、依赖关系
+  # 提炼引擎核心设计特性（指令周期、多角色协作、状态机、对抗闭环、并行调度、回退修复等）
+  # confirmed → 文档架构师
+  引擎分析师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+    outputs:
+      - 引擎分析报告: outputs/引擎分析报告.json, type=process
+
+  # ═══ L3 文档架构层 ═══
+
+  # 基于分析报告设计文档族分层结构、编号体系、导航地图、交叉引用矩阵
+  # 设计 L0~L4 五大文档类型定义 + DAG 依赖关系（AC-16/AC-17）
+  # 设计"引擎特性展示"专题章节和"引擎全貌"总览文档的编排方案
+  # 规划已知局限标注规范
+  # confirmed → 文档撰写者
+  # 回退来源：知识管理者 major_rework
+  文档架构师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+      - 引擎分析报告: outputs/引擎分析报告.json, type=process
+      # [可选输入] 知识管理者 major_rework 回退时存在（通过构建报告.md carries）
+      - 审阅报告: outputs/审阅报告.json, type=process
+      # [可选输入] 知识管理者 major_rework 回退时存在（通过构建报告.md carries）
+      - 对抗分析报告: outputs/文档红队-对抗分析报告.json, type=process
+    outputs:
+      - 文档族架构设计: outputs/文档族架构.json, type=process
+
+  # ═══ L4 文档撰写层 ═══
+
+  # 按文档架构逐篇撰写 Markdown 文档，每篇标注代码来源引用
+  # 产出 L0 导航类 + L1 总览类 + L2 特性档案类（≥6项）+ L3 组件文档类
+  # 在每篇组件文档中标注已知局限
+  # confirmed → [FORK] 并行扇出到 3 审阅者
+  # 回退来源：知识管理者 loop
+  文档撰写者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+      - 引擎分析报告: outputs/引擎分析报告.json, type=process
+      - 文档族架构设计: outputs/文档族架构.json, type=process
+      # [可选输入] 知识管理者 loop 回退时存在（通过构建报告.md carries）
+      - 审阅报告: outputs/审阅报告.json, type=process
+      # [可选输入] 知识管理者 loop 回退时存在（通过构建报告.md carries）
+      - 对抗分析报告: outputs/文档红队-对抗分析报告.json, type=process
+    outputs:
+      - 文档族正文: 文档族/
+
+  # ═══ L5 并行审阅层（FORK 扇出）═══
+
+  # 维度：准确性（代码可追溯）/完整性（覆盖率）/一致性（术语/格式/交叉引用）
+  #       特性完整性（核心特性是否全部覆盖且描述准确）
+  #       文档层级完整性（L0~L4 类型齐全、DAG 无环、导航索引完整 — AC-16/AC-17）
+  # → [JOIN] 流入知识管理者
+  文档审阅者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+      - 引擎分析报告: outputs/引擎分析报告.json, type=process
+      - 文档族架构设计: outputs/文档族架构.json, type=process
+      - 文档族正文: 文档族/
+    outputs:
+      - 审阅报告: outputs/审阅报告.json, type=process
+
+  # 对抗角色（§4）：从新读者视角对抗性挑战
+  # 维度：可理解性/断链检测/歧义检测/遗漏检测
+  #       全貌认知（读者能否建立引擎完整认知）/特性覆盖完整性
+  # confirmed/challenged → 均通过 JOIN 边汇入知识管理者
+  # JOIN 边不提取 verdict，编译器保留 schema.json 已有 enum（含 challenged），
+  # 无需显式 challenged 出边（§10 F1 修复）
+  文档红队:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+      - 文档族正文: 文档族/
+    outputs:
+      - 对抗分析报告: outputs/文档红队-对抗分析报告.json, type=process
+
+  # 优化分析师（§7）：系统性发现引擎可优化点
+  # 维度：架构耦合/扩展性/状态机复杂度/错误处理/重复逻辑
+  # 产出结构化优化建议清单和已知局限汇总，按优先级排序
+  # → [JOIN] 流入知识管理者（优化建议不触发回退，整合进构建报告）
+  优化分析师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 引擎分析报告: outputs/引擎分析报告.json, type=process
+      - 文档族正文: 文档族/
+    outputs:
+      - 优化建议清单: outputs/优化建议清单.json, type=process
+
+  # ═══ L6 知识沉淀层（JOIN 汇入 + 裁决路由）═══
+
+  # [JOIN] 合并三路 findings（审阅 + 对抗 + 优化）
+  # 整合优化建议到构建报告，裁决文档族是否达标
+  # 产出 L4 管理类文档（构建报告.md）
+  # 构建报告.md 必须包含完整审阅/对抗 findings 摘要，作为 backward
+  # carries 的审阅详情载体（§5 carries 机制说明）
+  # confirmed → 完成（产出构建报告）
+  # loop → 文档撰写者（修复质量问题，max: 5）
+  # major_rework → 文档架构师（结构需重设计，max: 3）
+  知识管理者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+      - 引擎分析报告: outputs/引擎分析报告.json, type=process
+      - 文档族架构设计: outputs/文档族架构.json, type=process
+      - 文档族正文: 文档族/
+      - 审阅报告: outputs/审阅报告.json, type=process
+      - 对抗分析报告: outputs/文档红队-对抗分析报告.json, type=process
+      - 优化建议清单: outputs/优化建议清单.json, type=process
+    outputs:
+      - 构建报告: 构建报告.md
+
+edges:
+  # ═══════════════════════════════════════════════════════════════
+  # L1 需求捕获层
+  # ═══════════════════════════════════════════════════════════════
+
+  # producer 自动展开：需求接收者 → 需求接收者（校验）
+  - 需求接收者 → 需求接收者（校验）
+
+  # ── 需求校验回路（§2a）──
+  - 需求接收者（校验）→ 引擎分析师 when: result.verdict == "confirmed"
+  - 需求接收者（校验）→ 需求接收者 when: result.verdict == "loop" max_executions: 5
+
+  # ═══════════════════════════════════════════════════════════════
+  # L2→L3 引擎分析 → 文档架构
+  # ═══════════════════════════════════════════════════════════════
+
+  - 引擎分析师 → 文档架构师 when: result.verdict == "confirmed"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L3→L4 文档架构 → 文档撰写
+  # ═══════════════════════════════════════════════════════════════
+
+  - 文档架构师 → 文档撰写者 when: result.verdict == "confirmed"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L4→L5 文档撰写 → [FORK] 并行审阅层（§3）
+  # ═══════════════════════════════════════════════════════════════
+
+  # confirmed → 并行扇出到 3 审阅者
+  - 文档撰写者 → 文档审阅者 when: result.verdict == "confirmed"
+  - 文档撰写者 → 文档红队 when: result.verdict == "confirmed"
+  - 文档撰写者 → 优化分析师 when: result.verdict == "confirmed"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L5→L6 [JOIN] 审阅层 → 知识管理者
+  # ═══════════════════════════════════════════════════════════════
+
+  # 3 审阅者 → 知识管理者 [JOIN]（barrier 同步）
+  # JOIN 边不提取 verdict——verdict 提取仅对 when: 边生效（SDK_SPEC §3）。
+  #   编译器保留 schema.json 已有 enum（含 challenged）。
+  #   文档红队无论输出 confirmed 还是 challenged，均通过此 JOIN 汇入知识管理者。
+  # 无需显式 challenged 出边——显式边会生成独立 OR 组 [文档红队]，
+  # 导致文档红队率先完成 challenged 时 OR 短路，知识管理者被提前 dispatch（F1 缺陷已修复，见 §10）。
+  # 知识管理者复核红队挑战报告后决定 confirmed/loop/major_rework 路由（§4）。
+  - [文档审阅者, 文档红队, 优化分析师] → 知识管理者
+
+  # ═══════════════════════════════════════════════════════════════
+  # L6 知识管理者裁决路由（§6 三路径）
+  # ═══════════════════════════════════════════════════════════════
+
+  # confirmed → 完成（文档族达标，产出构建报告）
+  - 知识管理者 → 完成 when: result.verdict == "confirmed"
+  # loop → 文档撰写者（修复质量问题，§2b，max: 5）
+  # carries（§5）: 构建报告.md（源角色知识管理者产出）→ 文档撰写者。
+  #   审阅/对抗 findings 通过构建报告.md 传递（构建报告须含完整审阅摘要），
+  #   文档撰写者从中获取审阅详情指导修复。
+  - 知识管理者 → 文档撰写者 when: result.verdict == "loop" max_executions: 5
+  # major_rework → 文档架构师（结构需重设计，§2c，max: 3）
+  # carries（§5）: 构建报告.md（源角色知识管理者产出）→ 文档架构师。
+  #   审阅/对抗 findings 通过构建报告.md 传递（构建报告须含完整审阅摘要），
+  #   文档架构师从中获取结构问题详情指导重设计。
+  - 知识管理者 → 文档架构师 when: result.verdict == "major_rework" max_executions: 3

@@ -1,0 +1,31 @@
+---
+description: 按 directive 执行
+alwaysApply: true
+---
+
+按注入的 directive 文本执行。不判断、不选择、不查规则。
+
+## 引擎脚本禁止清单
+
+主 Agent 严禁直接调用以下引擎脚本（必须由 Hook② 封闭执行）：
+- `step.py --next`（获取下一步指令）
+- `step.py --submit`（提交执行结果）
+- `step.py --decide`（提交确认决策）
+- `step.py` 的任何子命令
+- `init.py`（初始化工作区）
+- `switch.py`（切换应用）
+- `fix.py`（状态修复）
+- `set_state.py`（状态操作）
+- `gate.py`（产出物校验）
+
+违反此规则会导致 dispatch 缓存丢失、状态不一致、流程断裂。
+
+主 Agent 的唯一合法动作：
+1. 调用 Task(stability-analyzer) 或 Task(role-executor)
+2. 按注入的 directive 文本字面执行（如"发起 Task(role-executor)"、"向用户展示确认请求"）
+---
+description: 按 directive 执行
+alwaysApply: true
+---
+
+按注入的 directive 文本执行。不判断、不选择、不查规则。

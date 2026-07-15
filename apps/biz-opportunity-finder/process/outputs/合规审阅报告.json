@@ -1,0 +1,209 @@
+{
+  "result": {
+    "verdict": "confirmed",
+    "summary": "SDK_SPEC.md 合规审阅完成。对 biz-opportunity-builder 的 app.yaml（四段结构）、7 个角色的 schema.json、7 个角色的 skill.md、5 篇知识文档注入声明进行了 15 项逐项检查（C4-C18）。全部检查项通过：app.yaml 四段结构完整、角色字段合规、edges 原子模式正确、when 条件格式规范、max_executions 仅用于 backward 边、fail 保留词未滥用（已改用 loop/challenged 自定义 verdict）；所有 schema.json 含 result.verdict.enum + result.summary 必填 + _required_files 对齐；所有 skill.md 四部分齐全、无硬编码路径（统一使用 dispatch 注入）、knowledge inject_to 与 skill.md 引用一致、产出物格式描述与 schema.json 无矛盾。verdict 三角一致性（edges when ↔ schema enum ↔ skill verdict 规则）全部通过。",
+    "review_scope": {
+      "app_yaml": "app.yaml（227 行）",
+      "schemas": [
+        "roles/需求接收者/schema.json",
+        "roles/需求接收者（校验）/schema.json",
+        "roles/市场情报搜集者/schema.json",
+        "roles/机会分析师/schema.json",
+        "roles/机会红队/schema.json",
+        "roles/策略建议者/schema.json",
+        "roles/综合报告者/schema.json"
+      ],
+      "skills": [
+        "roles/需求接收者/skill.md",
+        "roles/需求接收者（校验）/skill.md",
+        "roles/市场情报搜集者/skill.md",
+        "roles/机会分析师/skill.md",
+        "roles/机会红队/skill.md",
+        "roles/策略建议者/skill.md",
+        "roles/综合报告者/skill.md"
+      ],
+      "knowledge_count": 5,
+      "sdk_spec_version": "v2.0"
+    },
+    "checks": [
+      {
+        "id": "C4",
+        "category": "app.yaml 语法",
+        "item": "四段结构完整（app_name / knowledge / roles / edges）",
+        "status": "pass",
+        "detail": "app_name: biz-opportunity-builder (L1) ✅；knowledge 段 (L74-84) 5 篇文档 ✅；roles 段 (L86-179) 7 个角色 ✅；edges 段 (L181-226) 9 条边 ✅"
+      },
+      {
+        "id": "C5",
+        "category": "app.yaml 语法",
+        "item": "每个角色定义字段合规（type / confirm / inputs / outputs）",
+        "status": "pass",
+        "detail": "需求接收者: type=producer, confirm=manual, outputs=[探索任务书] ✅；需求接收者（校验）: type=standard, confirm=auto, inputs+outputs ✅；市场情报搜集者/机会分析师/机会红队/策略建议者/综合报告者: 均为 type=standard, confirm=auto, 含 inputs+outputs ✅。producer 入口角色无 inputs 合规（inputs 可选）"
+      },
+      {
+        "id": "C6",
+        "category": "app.yaml 语法",
+        "item": "edges 使用原子模式正确（单步前进 / 并行扇出 / 同步汇入 / 终态出口）",
+        "status": "pass",
+        "detail": "单步前进: 需求接收者→需求接收者（校验）(L187)、市场情报搜集者→机会分析师(L199)、机会分析师→机会红队(L205)、策略建议者→综合报告者(L220) ✅；条件路由: 需求接收者（校验）两条 when 边(L192-193)、机会红队两条 when 边(L209,214) ✅；终态出口: 综合报告者→完成(L226) ✅。无并行扇出/同步汇入（设计为线性+迭代，合理）"
+      },
+      {
+        "id": "C7",
+        "category": "app.yaml 语法",
+        "item": "when 条件格式规范（result.verdict == \"xxx\"）",
+        "status": "pass",
+        "detail": "L192: when: result.verdict == \"confirmed\" ✅；L193: when: result.verdict == \"loop\" ✅；L209: when: result.verdict == \"confirmed\" ✅；L214: when: result.verdict == \"challenged\" ✅。格式均符合 result.verdict == \"xxx\" 规范"
+      },
+      {
+        "id": "C8",
+        "category": "app.yaml 语法",
+        "item": "max_executions 仅用于 backward 边",
+        "status": "pass",
+        "detail": "仅 L214 机会红队→机会分析师（challenged backward 边）使用 max_executions: 3 ✅。需求接收者（校验）→需求接收者（loop backward 边）无 max_executions，为局部回退不设上限设计，合规（max_executions 可选）"
+      },
+      {
+        "id": "C9",
+        "category": "app.yaml 语法",
+        "item": "fail 保留词未被滥用",
+        "status": "pass",
+        "detail": "edges when 条件中无 fail ✅；所有 schema.json enum 中无 fail ✅；自定义 verdict 使用 'loop'（需求校验）和 'challenged'（机会红队）替代系统保留词 ✅。D1 修复已生效"
+      },
+      {
+        "id": "C10",
+        "category": "schema.json 格式",
+        "item": "每个 schema.json 包含 result.verdict.enum",
+        "status": "pass",
+        "detail": "需求接收者: enum=[confirmed] ✅；需求接收者（校验）: enum=[confirmed, loop] ✅；市场情报搜集者: enum=[confirmed] ✅；机会分析师: enum=[confirmed] ✅；机会红队: enum=[confirmed, challenged] ✅；策略建议者: enum=[confirmed] ✅；综合报告者: enum=[confirmed] ✅。全部含 result.verdict.enum"
+      },
+      {
+        "id": "C11",
+        "category": "schema.json 格式",
+        "item": "verdict enum 值与 edges when 条件一致",
+        "status": "pass",
+        "detail": "逐角色三角验证：需求接收者(edges无when=隐含confirmed ↔ enum[confirmed])✅；需求接收者（校验）(edges confirmed+loop ↔ enum[confirmed,loop])✅；市场情报搜集者(隐含confirmed ↔ enum[confirmed])✅；机会分析师(隐含confirmed ↔ enum[confirmed])✅；机会红队(edges confirmed+challenged ↔ enum[confirmed,challenged])✅；策略建议者(隐含confirmed ↔ enum[confirmed])✅；综合报告者(隐含confirmed ↔ enum[confirmed])✅"
+      },
+      {
+        "id": "C12",
+        "category": "schema.json 格式",
+        "item": "_required_files 与 app.yaml outputs 对齐",
+        "status": "pass",
+        "detail": "7 角色逐项比对：需求接收者(探索任务书:01-探索任务书.md,deliverable)✅；需求接收者（校验）(需求校验报告:outputs/需求接收者-validation.json,process)✅；市场情报搜集者(市场情报报告:02-市场情报报告.md,deliverable)✅；机会分析师(机会清单:03-机会清单.md,deliverable)✅；机会红队(对抗报告:outputs/机会红队-对抗报告.json,process)✅；策略建议者(策略建议:04-策略建议.md,deliverable)✅；综合报告者(综合报告:商业机会探索报告.md,deliverable)✅。name/path/type 三字段全部一致"
+      },
+      {
+        "id": "C13",
+        "category": "schema.json 格式",
+        "item": "result.summary 为必填字段",
+        "status": "pass",
+        "detail": "7 个 schema.json 的 result.required 均为 [\"verdict\", \"summary\"]，summary 为必填 ✅。顶层 required 均为 [\"result\"] ✅"
+      },
+      {
+        "id": "C14",
+        "category": "skill.md 完整性",
+        "item": "每个 skill.md 四部分齐全（角色定位 / 执行步骤 / 产出物描述 / verdict 判定规则）",
+        "status": "pass",
+        "detail": "7 个 skill.md 均包含：①「角色定位」节 ✅；②「执行步骤」节 ✅；③产出物描述（需求接收者内嵌于执行步骤，其余6角色有独立结构要求节或内嵌描述）✅；④「verdict 判定规则」节 ✅。部分角色额外含设计约束/自检项，完整性充分"
+      },
+      {
+        "id": "C15",
+        "category": "skill.md 完整性",
+        "item": "skill.md 不含硬编码路径",
+        "status": "pass",
+        "detail": "7 个 skill.md 的输出路径均使用 'dispatch 注入的产出物路径' ✅；输入路径均使用 'dispatch 注入的输入文件' ✅；knowledge 引用均使用 'dispatch 注入的 knowledge 文档' ✅。综合报告者追溯链节含上游文件名引用（02-市场情报报告.md 等），为信息性来源标注而非路径依赖，不影响引擎动态注入，合规"
+      },
+      {
+        "id": "C16",
+        "category": "skill.md 完整性",
+        "item": "knowledge 注入一致性（inject_to 中的角色确实引用了 knowledge 文档）",
+        "status": "pass",
+        "detail": "app.yaml knowledge 段 5 篇文档 inject_to 与 skill.md 引用比对：市场情报方法论→市场情报搜集者(skill L10 引用)✅；机会评估方法论→机会分析师(skill L9 引用)✅；红队测试方法论→机会红队(skill L8 引用)✅；策略制定指南→策略建议者(skill L8 引用)✅；报告格式规范→综合报告者(skill L8/L43 引用)✅。5 篇文档全部对齐"
+      },
+      {
+        "id": "C17",
+        "category": "skill.md 完整性",
+        "item": "skill.md 中的产出物格式描述与 schema.json 不矛盾",
+        "status": "pass",
+        "detail": "逐角色检查：skill.md 描述产出物的功能逻辑（如探索任务书含哪些要素、机会清单含六要素等），schema.json 定义格式约束（result.verdict enum + result.summary + _required_files）。两者职责分离，skill.md 未声明与 schema.json 冲突的格式约束。7 角色均无矛盾 ✅"
+      },
+      {
+        "id": "C18",
+        "category": "skill.md 完整性",
+        "item": "skill.md 中不包含与 schema.json required 字段冲突的格式声明",
+        "status": "pass",
+        "detail": "检查所有 skill.md 的 verdict 判定规则节：均为语义描述（如 'confirmed：探索任务书要素齐全'），未声明 verdict 位于 JSON 顶层。schema.json 统一要求 result.verdict 嵌套结构，skill.md 无冲突声明。7 角色均合规 ✅"
+      }
+    ],
+    "verdict_triangle_consistency": {
+      "description": "edges when 条件 ↔ schema.json verdict enum ↔ skill.md verdict 判定规则，三者一致性验证",
+      "roles": [
+        {
+          "role": "需求接收者",
+          "edges_verdicts": ["confirmed(隐含)"],
+          "schema_enum": ["confirmed"],
+          "skill_verdicts": ["confirmed"],
+          "status": "consistent"
+        },
+        {
+          "role": "需求接收者（校验）",
+          "edges_verdicts": ["confirmed", "loop"],
+          "schema_enum": ["confirmed", "loop"],
+          "skill_verdicts": ["confirmed", "loop"],
+          "status": "consistent"
+        },
+        {
+          "role": "市场情报搜集者",
+          "edges_verdicts": ["confirmed(隐含)"],
+          "schema_enum": ["confirmed"],
+          "skill_verdicts": ["confirmed"],
+          "status": "consistent"
+        },
+        {
+          "role": "机会分析师",
+          "edges_verdicts": ["confirmed(隐含)"],
+          "schema_enum": ["confirmed"],
+          "skill_verdicts": ["confirmed"],
+          "status": "consistent"
+        },
+        {
+          "role": "机会红队",
+          "edges_verdicts": ["confirmed", "challenged"],
+          "schema_enum": ["confirmed", "challenged"],
+          "skill_verdicts": ["confirmed", "challenged"],
+          "status": "consistent"
+        },
+        {
+          "role": "策略建议者",
+          "edges_verdicts": ["confirmed(隐含)"],
+          "schema_enum": ["confirmed"],
+          "skill_verdicts": ["confirmed"],
+          "status": "consistent"
+        },
+        {
+          "role": "综合报告者",
+          "edges_verdicts": ["confirmed(隐含)"],
+          "schema_enum": ["confirmed"],
+          "skill_verdicts": ["confirmed"],
+          "status": "consistent"
+        }
+      ]
+    },
+    "prior_fixes_verification": {
+      "D1_fix": {
+        "description": "需求接收者（校验）backward verdict 从系统保留词 'fail' 改为自定义 'loop'",
+        "app_yaml": "L193 when: result.verdict == \"loop\" ✅",
+        "schema_json": "enum [\"confirmed\", \"loop\"] ✅",
+        "skill_md": "verdict 判定规则使用 loop ✅",
+        "status": "修复已生效，三处一致"
+      },
+      "D2_fix": {
+        "description": "机会红队 challenged backward 边添加显式 max_executions: 3",
+        "app_yaml": "L214 max_executions: 3 ✅",
+        "schema_json": "enum [\"confirmed\", \"challenged\"] ✅",
+        "skill_md": "迭代次数感知机制（第3轮输出 confirmed + risk_flag=true）✅",
+        "status": "修复已生效，与 SDK_SPEC §5.6 verdict_enum 动态过滤机制配合正确"
+      }
+    },
+    "pass_count": 15,
+    "fail_count": 0,
+    "total_checks": 15
+  }
+}

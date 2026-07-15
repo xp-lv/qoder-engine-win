@@ -2,7 +2,7 @@
 """switch.py — 切换 workspace 绑定的应用
 
 用法：
-  python3 engine/scripts/switch.py --workspace-id <id> --app-path <目标应用包>
+  python engine/scripts/switch.py --workspace-id <id> --app-path <目标应用包>
 """
 import argparse, json, os, sys
 
@@ -37,7 +37,7 @@ def main():
     state_snapshot = {}
     if os.path.exists(state_f):
         try:
-            with open(state_f, "r", encoding="utf-8") as f:
+            with open(state_f, "r", encoding="utf-8-sig") as f:
                 s = json.load(f)
             state_snapshot = {
                 "executing": list(s.get("step_status", {}).keys()),

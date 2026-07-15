@@ -1,0 +1,386 @@
+{
+  "schema_version": "2.0",
+  "entry": "需求接收者",
+  "steps": [
+    {
+      "step": "需求接收者",
+      "role": "需求接收者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "需求接收者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "00-需求描述.md",
+              "type": "feedback",
+              "name": "[反馈] 需求文档"
+            },
+            {
+              "path": "outputs/需求接收者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者 Gate校验结果"
+            },
+            {
+              "path": "outputs/需求接收者-feedback.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者 用户反馈"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "需求接收者-validate",
+      "role": "需求接收者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "引擎分析师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者-validate"
+            }
+          ]
+        },
+        "loop": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "normal",
+          "max_executions": 5,
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "需求接收者-validate"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者校验报告"
+            },
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者-validate Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "引擎分析师",
+      "role": "引擎分析师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "文档架构师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/引擎分析师-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 引擎分析师"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "引擎分析师"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/引擎分析报告.json",
+              "type": "feedback",
+              "name": "[反馈] 引擎分析报告"
+            },
+            {
+              "path": "outputs/引擎分析师-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 引擎分析师 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "文档架构师",
+      "role": "文档架构师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "文档撰写者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/文档架构师-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 文档架构师"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "文档架构师"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/文档族架构.json",
+              "type": "feedback",
+              "name": "[反馈] 文档族架构设计"
+            },
+            {
+              "path": "outputs/文档架构师-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 文档架构师 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "文档撰写者",
+      "role": "文档撰写者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "文档审阅者",
+            "文档红队",
+            "优化分析师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/文档撰写者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 文档撰写者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "文档撰写者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "文档族/",
+              "type": "feedback",
+              "name": "[反馈] 文档族正文"
+            },
+            {
+              "path": "outputs/文档撰写者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 文档撰写者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "文档审阅者",
+      "role": "文档审阅者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "知识管理者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/文档审阅者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 文档审阅者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "文档审阅者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/审阅报告.json",
+              "type": "feedback",
+              "name": "[反馈] 审阅报告"
+            },
+            {
+              "path": "outputs/文档审阅者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 文档审阅者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "文档红队",
+      "role": "文档红队",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "知识管理者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/文档红队-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 文档红队"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "文档红队"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/文档红队-对抗分析报告.json",
+              "type": "feedback",
+              "name": "[反馈] 对抗分析报告"
+            },
+            {
+              "path": "outputs/文档红队-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 文档红队 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "优化分析师",
+      "role": "优化分析师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "知识管理者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/优化分析师-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 优化分析师"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "优化分析师"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/优化建议清单.json",
+              "type": "feedback",
+              "name": "[反馈] 优化建议清单"
+            },
+            {
+              "path": "outputs/优化分析师-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 优化分析师 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "知识管理者",
+      "role": "知识管理者",
+      "transitions": {
+        "confirmed": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/知识管理者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 知识管理者"
+            }
+          ]
+        },
+        "loop": {
+          "targets": [
+            "文档撰写者"
+          ],
+          "type": "normal",
+          "max_executions": 5,
+          "carries": [
+            {
+              "path": "outputs/知识管理者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 知识管理者"
+            }
+          ]
+        },
+        "major_rework": {
+          "targets": [
+            "文档架构师"
+          ],
+          "type": "normal",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/知识管理者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 知识管理者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "知识管理者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "构建报告.md",
+              "type": "feedback",
+              "name": "[反馈] 构建报告"
+            },
+            {
+              "path": "outputs/知识管理者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 知识管理者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

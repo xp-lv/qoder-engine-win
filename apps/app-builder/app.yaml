@@ -1,0 +1,364 @@
+app_name: app-builder
+
+# ═══════════════════════════════════════════════════════════════
+# 设计约定（架构级注释块，供审阅者审查与运行引擎参照）
+# ═══════════════════════════════════════════════════════════════
+#
+# 版本: v1 — 对抗性多轮迭代 APP 构建器
+# 设计目标: 从用户需求出发，经过架构设计→技能填充→模拟验证→
+#           多维审阅→对抗裁决→审计的知识闭环，最终产出包含
+#           app.yaml + 完整 roles/ 的可直接运行的多角色 APP 包。
+#
+# §1  编排总览（七层 × 角色映射）
+#     L1 需求捕获层 → 需求接收者(producer) + 需求接收者（校验）+ 需求红队
+#     L2 架构设计层 → 架构师
+#     L3 技能填充层 → 技能填充者（核心创新：自动生成 skill.md + schema.json）
+#     L4 验证层     → 模拟验证者
+#     L5 审阅层     → 结构审阅者 + 合规审阅者 + 架构红队（并行扇出）
+#     L6 裁决层     → 综合裁决者 + 裁决审计者
+#     L7 知识沉淀层 → 知识管理者
+#
+# §2  循环回路与 max_executions
+#     a) 需求校验回路    —— 需求接收者（校验） loop → 需求接收者   max: 不设（局部回退）
+#     b) 架构迭代回路    —— 裁决审计者 loop/conditional_pass → 架构师  max: 10
+#     c) 需求挑战回路    —— 裁决审计者 req_challenge_upheld → 需求接收者  max: 3
+#     d) 全局迭代       —— 知识管理者 tracked → 需求接收者     max: 3
+#     注意：综合裁决者的所有 verdict 先到裁决审计者，审计者决定最终路由目标
+#
+# §3  并行拓扑
+#     [FORK] 模拟验证者 validated → 结构审阅者 + 合规审阅者 + 架构红队
+#     [JOIN] 结构审阅者 + 合规审阅者 + 架构红队 → 综合裁决者
+#
+# §4  对抗性设计（三层对抗 + 审计复核）
+#     第一层：需求红队（需求层对抗）—— challenged → 裁决审计者复核
+#     第二层：架构红队（架构层对抗）—— challenged → 裁决审计者复核
+#     第三层：裁决审计者（全链路复核）—— upheld/overturned 双路径
+#     审计复核保护 manual-confirm 节点免受假阳性挑战。
+#
+# §5  回退上下文注入（引擎约定行为）
+#     backward 边回退时，系统自动将源角色产出物注入目标角色上下文。
+#     受影响的产出物：
+#       · 需求校验报告 → 需求接收者（校验 Gate FAIL 时注入）
+#       · 需求红队对抗分析报告 → 裁决审计者 req_challenge_upheld 后注入
+#       · 审阅报告 → 综合裁决者 loop/conditional_pass 后注入架构师
+#       · 压力测试报告 → 裁决审计者 arch_challenge_upheld 后注入架构师
+#       · 模拟验证报告 → 模拟验证者 defects_detected 后注入架构师
+#       · 裁决审计报告 → 审计者 upheld 后注入架构师/需求接收者
+#
+# §6  裁决审计者三路径 verdict 命名空间（避免路由歧义）
+#     综合裁决者的所有 verdict（confirmed/loop/conditional_pass/requirement_defect）
+#     均先到达裁决审计者，审计者复核后输出最终路由 verdict。
+#     ── 综合裁决者路径（审阅审计）──
+#       confirmed            → 知识管理者（架构达标）
+#       loop                 → 架构师（有 major 问题需修改，max: 10）
+#       conditional_pass     → 架构师（基本达标，修复 minor，max: 10）
+#       requirement_defect   → 需求接收者（根因在需求层）
+#     ── 需求红队路径（challenged 审计）──
+#       req_challenge_upheld     → 需求接收者（挑战成立）
+#       req_challenge_overturned → 架构师（假阳性翻转）
+#     ── 架构红队路径（challenged 审计）──
+#       arch_challenge_upheld    → 架构师（缺陷成立）
+#       arch_challenge_overturned → 知识管理者（假阳性翻转=等效通过）
+#
+# §7  技能填充者核心设计（核心创新点）
+#     读取 app.yaml 中每个角色定义 + 知识文档设计清单，为每个角色生成：
+#       · skill.md（执行步骤、产出物描述、审阅/对抗维度）
+#       · schema.json（verdict 枚举、_required_files）
+#     并根据知识文档设计清单，为目标 APP 生成：
+#       · knowledge/ 目录下的方法论、规范、指南文档
+#     产出物为 技能填充报告（JSON 清单），列出所有生成的文件路径。
+#     下游角色（模拟验证者、合规审阅者）通过报告 + 实际文件做校验。
+#
+# §8  可选输入标注约定
+#     格式：# [可选输入] 仅在 <触发条件> 时存在
+#
+# §9  知识文档设计清单（架构师产出）
+#     架构师在设计 app.yaml 时，同步设计目标 APP 需要的知识文档清单。
+#     清单格式：[{name, path, description, inject_to, content_guide}]
+#     技能填充者据此生成 knowledge/ 目录下的实际文档。
+#     知识文档类型包括：方法论、格式规范、编写指南、验收标准等。
+# ═══════════════════════════════════════════════════════════════
+
+knowledge:
+  - SDK规范: knowledge/SDK_SPEC.md
+    inject_to: [合规审阅者, 模拟验证者, 裁决审计者]
+  - 编排范式: knowledge/编排范式.md
+    inject_to: [需求接收者, 架构师, 技能填充者, 结构审阅者]
+
+roles:
+  # ═══ L1 需求捕获层 ═══
+
+  # producer 入口角色，confirm: manual
+  # 接收用户需求，整理为结构化需求文档
+  # 自动展开校验角色：confirmed → 需求红队；loop → 回退需求接收者
+  # 回退来源：校验 loop / 审计者 req_challenge_upheld / 综合裁决者 requirement_defect
+  需求接收者:
+    type: producer
+    confirm: manual
+    outputs:
+      - 需求文档: 00-需求描述.md
+
+  # 需求层独立对抗性语义分析（§4 第一层对抗）
+  # confirmed → 架构师；challenged → 裁决审计者复核
+  需求红队:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+    outputs:
+      - 对抗分析报告: outputs/需求红队-对抗分析报告.json, type=process
+
+  # ═══ L2 架构设计层 ═══
+
+  # 根据需求/反馈设计目标 app.yaml
+  # confirmed → 技能填充者
+  # 回退来源：综合裁决者 loop/conditional_pass / 审计者各 upheld verdict
+  架构师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+      # [可选输入] 综合裁决者 loop/conditional_pass 回退时存在
+      - 审阅报告: outputs/审阅报告.json, type=process
+      # [可选输入] 审计者 upheld 回退时存在
+      - 裁决审计报告: outputs/裁决审计报告.json, type=process
+      # [可选输入] 审计者 arch_challenge_upheld 回退时存在
+      - 压力测试报告: outputs/架构红队-压力测试报告.json, type=process
+      # [可选输入] 模拟验证者 defects_detected 回退时存在
+      - 模拟验证报告: outputs/模拟验证报告.json, type=process
+    outputs:
+      - App架构文件: app.yaml
+      - 知识文档设计清单: outputs/知识文档设计.json, type=process
+
+  # ═══ L3 技能填充层（核心创新，§7）═══
+
+  # 读取 app.yaml 中每个角色定义，生成 skill.md + schema.json
+  # confirmed → 模拟验证者
+  技能填充者:
+    type: standard
+    confirm: auto
+    inputs:
+      - App架构文件: app.yaml
+      - 需求文档: 00-需求描述.md
+      - 知识文档设计清单: outputs/知识文档设计.json, type=process
+    outputs:
+      - 技能填充报告: outputs/技能填充报告.json, type=process
+      - 角色文件树: roles/
+      - 知识文档: knowledge/
+
+  # ═══ L4 验证层 ═══
+
+  # Dry-run validation：DAG 可达性、verdict 出边完备性、数据流完整性
+  # validated → [FORK] 并行扇出到 3 审阅者
+  # defects_detected → 回退架构师（携带模拟验证报告）
+  模拟验证者:
+    type: standard
+    confirm: auto
+    inputs:
+      - App架构文件: app.yaml
+      - 需求文档: 00-需求描述.md
+      - 技能填充报告: outputs/技能填充报告.json, type=process
+      # 角色文件树通过技能填充报告中的路径列表读取（roles/*/skill.md + schema.json）
+      - 角色文件树: roles/
+    outputs:
+      - 模拟验证报告: outputs/模拟验证报告.json, type=process
+
+  # ═══ L5 审阅层（并行扇出）═══
+
+  # 维度一+二：角色扩展性 + 编排复杂度
+  # 聚焦角色清单完整性、职责边界、DAG 拓扑、边类型丰富度
+  结构审阅者:
+    type: standard
+    confirm: auto
+    inputs:
+      - App架构文件: app.yaml
+      - 需求文档: 00-需求描述.md
+      - 技能填充报告: outputs/技能填充报告.json, type=process
+      - 角色文件树: roles/
+    outputs:
+      - 结构审阅报告: outputs/结构审阅报告.json, type=process
+
+  # 维度三：SDK_SPEC.md 逐项合规检查
+  # app.yaml 语法、schema.json 格式、skill.md 完整性
+  合规审阅者:
+    type: standard
+    confirm: auto
+    inputs:
+      - App架构文件: app.yaml
+      - 技能填充报告: outputs/技能填充报告.json, type=process
+      - 角色文件树: roles/
+    outputs:
+      - 合规审阅报告: outputs/合规审阅报告.json, type=process
+
+  # 维度四：对抗性健壮性校验（§4 第二层对抗）
+  # confirmed → [JOIN] 流入综合裁决者
+  # challenged → 裁决审计者复核
+  架构红队:
+    type: standard
+    confirm: auto
+    inputs:
+      - App架构文件: app.yaml
+      - 需求文档: 00-需求描述.md
+    outputs:
+      - 压力测试报告: outputs/架构红队-压力测试报告.json, type=process
+
+  # ═══ L6 裁决层 ═══
+
+  # [JOIN] 合并三路审阅 findings，产出统一 verdict
+  # 合并规则：confirmed < conditional_pass < loop < requirement_defect（取最高优先级）
+  # confirmed → 裁决审计者；loop → 架构师；requirement_defect → 需求接收者
+  综合裁决者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 结构审阅报告: outputs/结构审阅报告.json, type=process
+      - 合规审阅报告: outputs/合规审阅报告.json, type=process
+      - 需求文档: 00-需求描述.md
+      - App架构文件: app.yaml
+      # [可选输入] 架构红队 confirmed 时通过 JOIN 汇入
+      - 压力测试报告: outputs/架构红队-压力测试报告.json, type=process
+      # [可选输入] 模拟验证报告（运行时正确性证据）
+      - 模拟验证报告: outputs/模拟验证报告.json, type=process
+      # [可选输入] 翻转模式下替代缺失的审阅 findings
+      - 裁决审计报告: outputs/裁决审计报告.json, type=process
+    outputs:
+      - 审阅报告: outputs/审阅报告.json, type=process
+
+  # 全链路对抗裁决复核者（§4 第三层，§6 三路径路由）
+  # 管辖范围：综合裁决者 + 需求红队 + 架构红队
+  # 无独立 max_executions——共享各源回路预算
+  裁决审计者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 审阅报告: outputs/审阅报告.json, type=process
+      - 需求文档: 00-需求描述.md
+      - App架构文件: app.yaml
+      # [可选输入] 需求红队对抗分析报告（challenged 复核）
+      - 对抗分析报告: outputs/需求红队-对抗分析报告.json, type=process
+      # [可选输入] 架构红队压力测试报告（challenged 复核）
+      - 压力测试报告: outputs/架构红队-压力测试报告.json, type=process
+    outputs:
+      - 裁决审计报告: outputs/裁决审计报告.json, type=process
+
+  # ═══ L7 知识沉淀层 ═══
+
+  # TRACK 管理 + 知识演进闭环 + 构建报告（人类可读总览）
+  # tracked → 回到需求接收者开始下一轮迭代（上限 3 次）
+  # completed → 产出最终构建报告 → 完成；proposal_ready → 完成
+  知识管理者:
+    type: standard
+    confirm: auto
+    inputs:
+      - App架构文件: app.yaml
+      - 技能填充报告: outputs/技能填充报告.json, type=process
+      - 需求文档: 00-需求描述.md
+      # [可选输入] 审阅报告（含各审阅者 findings 汇总）
+      - 审阅报告: outputs/审阅报告.json, type=process
+      # [可选输入] 模拟验证报告（运行时正确性证据）
+      - 模拟验证报告: outputs/模拟验证报告.json, type=process
+      # [可选输入] 上一轮追踪表，用于增量更新
+      - 知识演进追踪表: outputs/知识演进追踪表.json
+    outputs:
+      - 知识演进追踪表: outputs/知识演进追踪表.json, type=process
+      - 构建报告: 构建报告.md
+
+edges:
+  # ═══════════════════════════════════════════════════════════════
+  # L1 需求捕获层
+  # ═══════════════════════════════════════════════════════════════
+
+  # producer 自动展开：需求接收者 → 需求接收者（校验）
+  # 以下边从 producer 视角声明，编译器自动重定向到校验角色
+
+  # ── 需求校验回路（§2a）──
+  - 需求接收者 → 需求红队 when: result.verdict == "confirmed"
+  - 需求接收者 → 需求接收者 when: result.verdict == "loop"
+
+  # ── 需求红队分支（§4 第一层对抗）──
+  # confirmed → 架构师（正向通过，无需审计）
+  - 需求红队 → 架构师 when: result.verdict == "confirmed"
+  # challenged → 裁决审计者（对抗裁决复核，保护 manual-confirm 节点）
+  # restrict_verdict: 从需求红队进入时，裁决审计者只能输出 req_challenge_* verdict
+  - 需求红队 → 裁决审计者 when: result.verdict == "challenged"
+    restrict_verdict: [req_challenge_upheld, req_challenge_overturned]
+
+  # ═══════════════════════════════════════════════════════════════
+  # L2→L3 架构设计 → 技能填充
+  # ═══════════════════════════════════════════════════════════════
+
+  - 架构师 → 技能填充者 when: result.verdict == "confirmed"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L3→L4 技能填充 → 模拟验证
+  # ═══════════════════════════════════════════════════════════════
+
+  - 技能填充者 → 模拟验证者 when: result.verdict == "confirmed"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L4→L5 模拟验证 → [FORK] 并行审阅层
+  # ═══════════════════════════════════════════════════════════════
+
+  # validated → 并行扇出到 3 审阅者
+  - 模拟验证者 → 结构审阅者 when: result.verdict == "validated"
+  - 模拟验证者 → 合规审阅者 when: result.verdict == "validated"
+  - 模拟验证者 → 架构红队 when: result.verdict == "validated"
+  # defects_detected → 回退架构师（携带模拟验证报告）
+  - 模拟验证者 → 架构师 when: result.verdict == "defects_detected"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L5→L6 [JOIN] 审阅层 → 综合裁决者
+  # ═══════════════════════════════════════════════════════════════
+
+  # 3 审阅者 → 综合裁决者 [JOIN]（barrier 同步）
+  - [结构审阅者, 合规审阅者, 架构红队] → 综合裁决者
+
+  # 架构红队 challenged → 裁决审计者（对抗裁决复核，§4 第二层对抗）
+  # restrict_verdict: 从架构红队进入时，裁决审计者只能输出 arch_challenge_* verdict
+  - 架构红队 → 裁决审计者 when: result.verdict == "challenged"
+    restrict_verdict: [arch_challenge_upheld, arch_challenge_overturned]
+
+  # ═══════════════════════════════════════════════════════════════
+  # L6 综合裁决层
+  # ═══════════════════════════════════════════════════════════════
+
+  # 综合裁决者 → 裁决审计者（所有裁决均经审计复核，与 app-architect-v2 对齐）
+  # restrict_verdict: 从综合裁决者进入时，裁决审计者只能输出终审 verdict
+  - 综合裁决者 → 裁决审计者 when: result.verdict == "confirmed"
+    restrict_verdict: [confirmed, loop, conditional_pass, requirement_defect]
+  - 综合裁决者 → 裁决审计者 when: result.verdict == "loop"
+    restrict_verdict: [confirmed, loop, conditional_pass, requirement_defect]
+  - 综合裁决者 → 裁决审计者 when: result.verdict == "conditional_pass"
+    restrict_verdict: [confirmed, loop, conditional_pass, requirement_defect]
+  - 综合裁决者 → 裁决审计者 when: result.verdict == "requirement_defect"
+    restrict_verdict: [confirmed, loop, conditional_pass, requirement_defect]
+
+  # ═══════════════════════════════════════════════════════════════
+  # L6 裁决审计层（§6 三路径路由）
+  # ═══════════════════════════════════════════════════════════════
+
+  # ── 综合裁决者路径（审阅审计）──
+  - 裁决审计者 → 知识管理者 when: result.verdict == "confirmed"
+  - 裁决审计者 → 架构师 when: result.verdict == "loop" max_executions: 10
+  - 裁决审计者 → 架构师 when: result.verdict == "conditional_pass" max_executions: 10
+  - 裁决审计者 → 需求接收者 when: result.verdict == "requirement_defect"
+
+  # ── 需求红队路径（challenged 审计）──
+  - 裁决审计者 → 需求接收者 when: result.verdict == "req_challenge_upheld" max_executions: 3
+  - 裁决审计者 → 架构师 when: result.verdict == "req_challenge_overturned"
+
+  # ── 架构红队路径（challenged 审计）──
+  - 裁决审计者 → 架构师 when: result.verdict == "arch_challenge_upheld"
+  # 假阳性翻转=等效通过，直达知识管理者（避免综合裁决者→裁决审计者循环）
+  - 裁决审计者 → 知识管理者 when: result.verdict == "arch_challenge_overturned"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L7 知识沉淀层 → 完成（终态出口）
+  # ═══════════════════════════════════════════════════════════════
+
+  # tracked → 回到需求接收者开始下一轮迭代（上限 3 次）
+  - 知识管理者 → 需求接收者 when: result.verdict == "tracked" max_executions: 3
+  # completed → 完成（正常结束）
+  - 知识管理者 → 完成 when: result.verdict == "completed"
+  # proposal_ready → 完成（有 SDK_SPEC 演进提案，直接完成）
+  - 知识管理者 → 完成 when: result.verdict == "proposal_ready"

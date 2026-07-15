@@ -1,0 +1,570 @@
+{
+  "schema_version": "2.0",
+  "entry": "改造需求接收者-validate",
+  "steps": [
+    {
+      "step": "改造需求接收者-validate",
+      "role": "改造需求接收者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "改造分析师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/改造需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 改造需求接收者-validate"
+            }
+          ]
+        },
+        "loop": {
+          "targets": [
+            "改造需求接收者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/改造需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 改造需求接收者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "改造需求接收者-validate"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/改造需求接收者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 改造需求接收者校验报告"
+            },
+            {
+              "path": "outputs/改造需求接收者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 改造需求接收者-validate Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "改造需求接收者",
+      "role": "改造需求接收者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "改造需求接收者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/改造需求接收者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 改造需求接收者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "改造需求接收者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "00-需求描述.md",
+              "type": "feedback",
+              "name": "[反馈] 改造需求文档"
+            },
+            {
+              "path": "outputs/改造需求接收者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 改造需求接收者 Gate校验结果"
+            },
+            {
+              "path": "outputs/改造需求接收者-feedback.json",
+              "type": "feedback",
+              "name": "[反馈] 改造需求接收者 用户反馈"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "改造分析师",
+      "role": "改造分析师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "改造执行者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/改造分析师-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 改造分析师"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "改造分析师"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/改造方案.json",
+              "type": "feedback",
+              "name": "[反馈] 改造方案"
+            },
+            {
+              "path": "outputs/改造分析师-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 改造分析师 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "改造执行者",
+      "role": "改造执行者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "模拟验证者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/改造执行者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 改造执行者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "改造执行者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/改造执行报告.json",
+              "type": "feedback",
+              "name": "[反馈] 改造执行报告"
+            },
+            {
+              "path": "outputs/改造执行者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 改造执行者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "模拟验证者",
+      "role": "模拟验证者",
+      "transitions": {
+        "validated": {
+          "targets": [
+            "改造红队",
+            "结构审阅者",
+            "合规审阅者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/模拟验证者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 模拟验证者"
+            },
+            {
+              "path": "outputs/验证报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 验证报告"
+            }
+          ]
+        },
+        "defects_detected": {
+          "targets": [
+            "改造执行者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/模拟验证者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 模拟验证者"
+            },
+            {
+              "path": "outputs/验证报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 验证报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "模拟验证者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/验证报告.json",
+              "type": "feedback",
+              "name": "[反馈] 验证报告"
+            },
+            {
+              "path": "outputs/模拟验证者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 模拟验证者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "改造红队",
+      "role": "改造红队",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "综合裁决者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/改造红队-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 改造红队"
+            }
+          ]
+        },
+        "issues_found": {
+          "targets": [
+            "综合裁决者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/改造红队-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 改造红队"
+            },
+            {
+              "path": "outputs/对抗分析报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 对抗分析报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "改造红队"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/对抗分析报告.json",
+              "type": "feedback",
+              "name": "[反馈] 对抗分析报告"
+            },
+            {
+              "path": "outputs/改造红队-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 改造红队 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "结构审阅者",
+      "role": "结构审阅者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "综合裁决者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/结构审阅者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 结构审阅者"
+            }
+          ]
+        },
+        "issues_found": {
+          "targets": [
+            "综合裁决者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/结构审阅者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 结构审阅者"
+            },
+            {
+              "path": "outputs/结构审阅报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 结构审阅报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "结构审阅者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/结构审阅报告.json",
+              "type": "feedback",
+              "name": "[反馈] 结构审阅报告"
+            },
+            {
+              "path": "outputs/结构审阅者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 结构审阅者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "合规审阅者",
+      "role": "合规审阅者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "综合裁决者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/合规审阅者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 合规审阅者"
+            }
+          ]
+        },
+        "issues_found": {
+          "targets": [
+            "综合裁决者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/合规审阅者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 合规审阅者"
+            },
+            {
+              "path": "outputs/合规审阅报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 合规审阅报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "合规审阅者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/合规审阅报告.json",
+              "type": "feedback",
+              "name": "[反馈] 合规审阅报告"
+            },
+            {
+              "path": "outputs/合规审阅者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 合规审阅者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "综合裁决者",
+      "role": "综合裁决者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "裁决审计者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/综合裁决者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 综合裁决者"
+            }
+          ]
+        },
+        "needs_revision": {
+          "targets": [
+            "改造分析师"
+          ],
+          "type": "normal",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/综合裁决者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 综合裁决者"
+            },
+            {
+              "path": "outputs/综合裁决书.json",
+              "type": "deliverable",
+              "name": "[上游分析] 综合裁决书"
+            }
+          ]
+        },
+        "requirements_revision_needed": {
+          "targets": [
+            "改造需求接收者"
+          ],
+          "type": "normal",
+          "max_executions": 2,
+          "carries": [
+            {
+              "path": "outputs/综合裁决者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 综合裁决者"
+            },
+            {
+              "path": "outputs/综合裁决书.json",
+              "type": "deliverable",
+              "name": "[上游分析] 综合裁决书"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "综合裁决者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/综合裁决书.json",
+              "type": "feedback",
+              "name": "[反馈] 综合裁决书"
+            },
+            {
+              "path": "outputs/综合裁决者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 综合裁决者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "裁决审计者",
+      "role": "裁决审计者",
+      "transitions": {
+        "upheld": {
+          "targets": [
+            "改造报告生成者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/裁决审计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 裁决审计者"
+            },
+            {
+              "path": "outputs/审计裁决书.json",
+              "type": "deliverable",
+              "name": "[上游分析] 审计裁决书"
+            }
+          ]
+        },
+        "overturned": {
+          "targets": [
+            "改造分析师"
+          ],
+          "type": "normal",
+          "max_executions": 2,
+          "carries": [
+            {
+              "path": "outputs/裁决审计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 裁决审计者"
+            },
+            {
+              "path": "outputs/审计裁决书.json",
+              "type": "deliverable",
+              "name": "[上游分析] 审计裁决书"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "裁决审计者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/审计裁决书.json",
+              "type": "feedback",
+              "name": "[反馈] 审计裁决书"
+            },
+            {
+              "path": "outputs/裁决审计者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 裁决审计者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "改造报告生成者",
+      "role": "改造报告生成者",
+      "transitions": {
+        "confirmed": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/改造报告生成者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 改造报告生成者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "改造报告生成者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "改造报告.md",
+              "type": "feedback",
+              "name": "[反馈] 改造报告"
+            },
+            {
+              "path": "outputs/改造报告生成者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 改造报告生成者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

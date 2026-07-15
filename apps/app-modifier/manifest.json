@@ -1,0 +1,41 @@
+{
+  "schema_version": "2.0",
+  "app_name": "app-modifier",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "knowledge",
+      "outputs"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/编排范式.md",
+        "to": "knowledge/编排范式.md"
+      },
+      {
+        "from": "knowledge/七维模拟验证方法论.md",
+        "to": "knowledge/七维模拟验证方法论.md"
+      },
+      {
+        "from": "knowledge/改造影响分析方法论.md",
+        "to": "knowledge/改造影响分析方法论.md"
+      },
+      {
+        "from": "knowledge/改造执行规范.md",
+        "to": "knowledge/改造执行规范.md"
+      },
+      {
+        "from": "knowledge/审阅标准手册.md",
+        "to": "knowledge/审阅标准手册.md"
+      },
+      {
+        "from": "knowledge/裁决与审计标准.md",
+        "to": "knowledge/裁决与审计标准.md"
+      }
+    ]
+  }
+}

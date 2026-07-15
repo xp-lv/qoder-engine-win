@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "object",
+      "required": [
+        "verdict",
+        "summary"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "confirmed"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array"
+        },
+        "errors": {
+          "type": "array"
+        }
+      }
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "_required_files": [
+    {
+      "name": "后端需求规格文档",
+      "path": "outputs/后端需求规格文档.md",
+      "type": "deliverable"
+    },
+    {
+      "name": "后端业务逻辑文档",
+      "path": "outputs/后端业务逻辑文档.md",
+      "type": "deliverable"
+    }
+  ]
+}

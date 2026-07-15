@@ -1,0 +1,277 @@
+app_name: app-modifier
+
+# ═══════════════════════════════════════════════════════════════
+# 设计约定（架构级注释块，供审阅者审查与运行引擎参照）
+# ═══════════════════════════════════════════════════════════════
+#
+# 版本: v1 — 多角色 APP 改造器
+# 设计目标: 针对现有 APP 进行增量改造，经过分析→执行→验证→审阅→
+#           裁决→审计的完整质量闭环后，输出改造后的 APP 文件包。
+#           与 app-builder 互补：app-builder 从零构建，app-modifier 增量改造。
+#
+# §1  编排总览（三层正交 × 角色映射）
+#     文档层 → 改造需求接收者(producer,manual) + 改造分析师 + 改造报告生成者
+#     执行层 → 改造执行者 + 模拟验证者
+#     治理层 → 改造红队 + 结构审阅者 + 合规审阅者（并行扇出）
+#              + 综合裁决者（JOIN 汇入）+ 裁决审计者
+#
+# §2  循环回路与 max_executions
+#     a) 验证回退      —— 模拟验证者 defects_detected → 改造执行者（局部回退，默认 max: 3）
+#     b) 改造迭代回路  —— 综合裁决者 needs_revision → 改造分析师  max: 3
+#                        裁决审计者 overturned → 改造分析师        max: 2
+#                        （两条边合计 ≤5，满足验收标准 QUA-1 的总执行次数约束）
+#     c) 全局迭代回路  —— 综合裁决者 requirements_revision_needed → 改造需求接收者  max: 2
+#     注意：局部回退边不设 max_executions（避免消耗全局配额），编译器默认 3 次
+#
+# §3  并行拓扑
+#     [FORK] 模拟验证者 validated → 改造红队 + 结构审阅者 + 合规审阅者
+#     [JOIN] 改造红队 + 结构审阅者 + 合规审阅者 → 综合裁决者
+#     三路审阅 verdict 统一为 confirmed/issues_found，确保 R8 接收一致格式
+#
+# §4  对抗性设计（三层对抗 + 审计复核）
+#     第一层：模拟验证者（执行层验证）—— validated/defects_detected 二元裁决
+#     第二层：三路并行审阅（治理层审阅）—— confirmed/issues_found 统一值域
+#     第三层：裁决审计者（全链路复核）—— upheld/overturned 双路径
+#     R9 仅审计 R8 的 confirmed 裁决（放行决策），不审计回退决策
+#
+# §5  R8 综合裁决者三路径
+#     confirmed → 裁决审计者（建议放行，需审计复核）
+#     needs_revision → 改造分析师（回退修改方案，max: 3）
+#     requirements_revision_needed → 改造需求接收者（全局回退，max: 2）
+#     触发全局回退判据：needs_revision 边执行次数达上限或同类 findings 连续 >=3 轮未消解
+#
+# §6  R9 裁决审计者双路径
+#     upheld → 改造报告生成者（维持 confirmed 放行，生成报告）
+#     overturned → 改造分析师（推翻 confirmed 放行，回退修改，max: 2）
+#     语义一致性：R9 审计的"原判"始终是 R8 的 confirmed（拓扑中唯一到达 R9 的边）
+#     QUA-1 约束：R8 needs_revision→R2 (max:3) + R9 overturned→R2 (max:2) 合计 ≤5
+#
+# §7  R10 改造报告生成者多源输入
+#     执行触发边：R9 upheld → R10
+#     数据输入：改造执行报告 + 验证报告 + 三路审阅报告 + 综合裁决书 + 审计裁决书
+#     通过 edge carries 携带上游产出 + workspace 读取，无需额外 DAG 执行依赖边
+#     兼任迭代超限失败报告产出者（模式: iteration_exhausted）
+#
+# §8  知识文档设计清单（6 份，覆盖 8 个核心角色）
+#     编排范式 / 七维模拟验证方法论 / 改造影响分析方法论 /
+#     改造执行规范 / 审阅标准手册 / 裁决与审计标准
+#     清单路径与 inject_to 与本文件 knowledge 段完全对齐
+# ═══════════════════════════════════════════════════════════════
+
+knowledge:
+  - 编排范式: knowledge/编排范式.md
+    inject_to: [改造分析师, 改造执行者, 结构审阅者, 合规审阅者]
+  - 七维模拟验证方法论: knowledge/七维模拟验证方法论.md
+    inject_to: [模拟验证者, 改造红队]
+  - 改造影响分析方法论: knowledge/改造影响分析方法论.md
+    inject_to: [改造分析师]
+  - 改造执行规范: knowledge/改造执行规范.md
+    inject_to: [改造执行者]
+  - 审阅标准手册: knowledge/审阅标准手册.md
+    inject_to: [改造红队, 结构审阅者, 合规审阅者]
+  - 裁决与审计标准: knowledge/裁决与审计标准.md
+    inject_to: [综合裁决者, 裁决审计者]
+
+roles:
+  # ═══ 文档层 ═══
+
+  # producer 入口角色，confirm: manual（唯一人工确认点）
+  # 接收目标 APP 路径 + 改造要求，校验路径有效性，转化为结构化改造需求文档
+  # 自动展开校验角色：confirmed → 改造分析师；loop → 回退改造需求接收者
+  # 回退来源：综合裁决者 requirements_revision_needed（全局迭代回路）
+  改造需求接收者:
+    type: producer
+    confirm: manual
+    outputs:
+      - 改造需求文档: 00-需求描述.md
+
+  # 读取现有 APP 全部文件（app.yaml / ROUTER.json / registry.json / roles/ / knowledge/）
+  # 分析当前架构，产出结构化改造方案（改动清单 + 影响范围 + 风险评估）
+  # confirmed → 改造执行者
+  # 回退来源：综合裁决者 needs_revision / 裁决审计者 overturned
+  改造分析师:
+    type: standard
+    confirm: auto
+    inputs:
+      - 改造需求文档: 00-需求描述.md
+      # [可选输入] 综合裁决者 needs_revision 回退时存在
+      - 综合裁决书: outputs/综合裁决书.json, type=process
+      # [可选输入] 裁决审计者 overturned 回退时存在
+      - 审计裁决书: outputs/审计裁决书.json, type=process
+    outputs:
+      - 改造方案: outputs/改造方案.json, type=process
+
+  # ═══ 执行层 ═══
+
+  # 按改造方案修改 app.yaml / skill.md / schema.json，重新编译目标 APP
+  # 增量修改原则：只修改方案涉及的文件，不重写未触及的文件
+  # confirmed → 模拟验证者
+  # 回退来源：模拟验证者 defects_detected（验证回退）
+  改造执行者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 改造方案: outputs/改造方案.json, type=process
+    outputs:
+      - 改造执行报告: outputs/改造执行报告.json, type=process
+
+  # 七维 dry-run 校验 + 向后兼容性检查
+  # validated → [FORK] 并行扇出到 3 审阅者
+  # defects_detected → 改造执行者（验证回退，局部回退，默认 max: 3）
+  模拟验证者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 改造执行报告: outputs/改造执行报告.json, type=process
+    outputs:
+      - 验证报告: outputs/验证报告.json, type=process
+
+  # ═══ 治理层·审阅（并行扇出）═══
+
+  # 对抗维度：最恶劣条件下压力测试改造后 APP 的架构健壮性
+  # confirmed/issues_found → [JOIN] 综合裁决者
+  改造红队:
+    type: standard
+    confirm: auto
+    inputs:
+      - 改造执行报告: outputs/改造执行报告.json, type=process
+    outputs:
+      - 对抗分析报告: outputs/对抗分析报告.json, type=process
+
+  # 结构维度：DAG 拓扑完整性、角色定义完备性、边引用一致性
+  # confirmed/issues_found → [JOIN] 综合裁决者
+  结构审阅者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 改造执行报告: outputs/改造执行报告.json, type=process
+    outputs:
+      - 结构审阅报告: outputs/结构审阅报告.json, type=process
+
+  # 合规维度：唯一权威源、编译期确定性、物料分类、skill 无硬编码路径
+  # confirmed/issues_found → [JOIN] 综合裁决者
+  合规审阅者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 改造执行报告: outputs/改造执行报告.json, type=process
+    outputs:
+      - 合规审阅报告: outputs/合规审阅报告.json, type=process
+
+  # ═══ 治理层·裁决 ═══
+
+  # [JOIN] 合并三路审阅 findings（R5/R6/R7），产出三路径裁决
+  # confirmed → 裁决审计者（建议放行，需审计复核）
+  # needs_revision → 改造分析师（改造迭代回路，max: 3）
+  # requirements_revision_needed → 改造需求接收者（全局迭代回路，max: 2）
+  综合裁决者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 对抗分析报告: outputs/对抗分析报告.json, type=process
+      - 结构审阅报告: outputs/结构审阅报告.json, type=process
+      - 合规审阅报告: outputs/合规审阅报告.json, type=process
+    outputs:
+      - 综合裁决书: outputs/综合裁决书.json, type=process
+
+  # 对 R8 的 confirmed 裁决做全链路对抗复核（仅审计放行决策）
+  # upheld → 改造报告生成者（维持 confirmed 放行）
+  # overturned → 改造分析师（推翻 confirmed 放行，回退修改，max: 2）
+  裁决审计者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 综合裁决书: outputs/综合裁决书.json, type=process
+    outputs:
+      - 审计裁决书: outputs/审计裁决书.json, type=process
+
+  # ═══ 文档层·终点 ═══
+
+  # 生成人类可读改造报告（成功模式 / 迭代超限失败模式 iteration_exhausted）
+  # 执行触发边：R9 upheld → R10
+  # 数据输入通过 carries 携带上游产出 + workspace 读取
+  改造报告生成者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 审计裁决书: outputs/审计裁决书.json, type=process
+      # [可选输入] 以下通过 carries 携带或 workspace 读取
+      - 综合裁决书: outputs/综合裁决书.json, type=process
+      - 验证报告: outputs/验证报告.json, type=process
+      - 改造执行报告: outputs/改造执行报告.json, type=process
+      - 对抗分析报告: outputs/对抗分析报告.json, type=process
+      - 结构审阅报告: outputs/结构审阅报告.json, type=process
+      - 合规审阅报告: outputs/合规审阅报告.json, type=process
+    outputs:
+      - 改造报告: 改造报告.md
+
+edges:
+  # ═══════════════════════════════════════════════════════════════
+  # 文档层：R1 → R2（producer 自动展开校验角色）
+  # ═══════════════════════════════════════════════════════════════
+
+  # producer 自动展开：改造需求接收者 → 改造需求接收者（校验）
+  # 以下边从 producer 视角声明，编译器自动重定向到校验角色
+
+  # ── 需求校验回路 ──
+  - 改造需求接收者 → 改造分析师 when: result.verdict == "confirmed"
+  - 改造需求接收者 → 改造需求接收者 when: result.verdict == "loop"
+
+  # ═══════════════════════════════════════════════════════════════
+  # 文档层 → 执行层：R2 → R3 → R4 主链
+  # ═══════════════════════════════════════════════════════════════
+
+  - 改造分析师 → 改造执行者
+  - 改造执行者 → 模拟验证者
+
+  # ═══════════════════════════════════════════════════════════════
+  # 执行层 → 治理层：R4 [FORK] 并行扇出 + 验证回退
+  # ═══════════════════════════════════════════════════════════════
+
+  # validated → 并行扇出到 3 审阅者（对抗 + 结构 + 合规）
+  - 模拟验证者 → 改造红队 when: result.verdict == "validated"
+  - 模拟验证者 → 结构审阅者 when: result.verdict == "validated"
+  - 模拟验证者 → 合规审阅者 when: result.verdict == "validated"
+
+  # defects_detected → 改造执行者（验证回退）
+  - 模拟验证者 → 改造执行者 when: result.verdict == "defects_detected"
+
+  # ═══════════════════════════════════════════════════════════════
+  # 治理层：[JOIN] 三路审阅 → 综合裁决者
+  # ═══════════════════════════════════════════════════════════════
+
+  # 3 审阅者 → 综合裁决者 [JOIN]（barrier 同步，默认 confirmed 路径）
+  - [改造红队, 结构审阅者, 合规审阅者] → 综合裁决者
+
+  # issues_found → 综合裁决者（确保 verdict enum 含 issues_found）
+  - 改造红队 → 综合裁决者 when: result.verdict == "issues_found"
+  - 结构审阅者 → 综合裁决者 when: result.verdict == "issues_found"
+  - 合规审阅者 → 综合裁决者 when: result.verdict == "issues_found"
+
+  # ═══════════════════════════════════════════════════════════════
+  # 治理层·裁决：R8 综合裁决者三路径
+  # ═══════════════════════════════════════════════════════════════
+
+  # confirmed → 裁决审计者（建议放行，需审计复核）
+  - 综合裁决者 → 裁决审计者 when: result.verdict == "confirmed"
+  # needs_revision → 改造分析师（改造迭代回路，max: 3）
+  # 注意：与 R9 overturned→R2 的 max:2 合计 ≤5，满足验收标准 QUA-1
+  - 综合裁决者 → 改造分析师 when: result.verdict == "needs_revision" max_executions: 3
+  # requirements_revision_needed → 改造需求接收者（全局迭代回路，max: 2）
+  - 综合裁决者 → 改造需求接收者 when: result.verdict == "requirements_revision_needed" max_executions: 2
+
+  # ═══════════════════════════════════════════════════════════════
+  # 治理层·审计：R9 裁决审计者双路径
+  # ═══════════════════════════════════════════════════════════════
+
+  # upheld → 改造报告生成者（维持 confirmed 放行）
+  - 裁决审计者 → 改造报告生成者 when: result.verdict == "upheld"
+  # overturned → 改造分析师（推翻 confirmed 放行，回退修改，max: 2）
+  # 注意：与 R8 needs_revision→R2 的 max:3 合计 ≤5，满足验收标准 QUA-1
+  - 裁决审计者 → 改造分析师 when: result.verdict == "overturned" max_executions: 2
+
+  # ═══════════════════════════════════════════════════════════════
+  # 终态出口
+  # ═══════════════════════════════════════════════════════════════
+
+  - 改造报告生成者 → 完成
