@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dispatch Instruction",
+  "type": "object",
+  "required": ["step", "parameters", "inputs", "task_context", "expected_outputs", "checkpoint_id"],
+  "properties": {
+    "step": { "type": "string" },
+    "role": { "type": "string" },
+    "branch_id": { "type": ["string", "null"], "description": "并行分支标识，用于分支上下文传播；顶层为 null" },
+    "parameters": { "type": "object", "required": ["skill"], "properties": { "skill": { "type": "string" } } },
+    "inputs": { "type": "array", "items": { "type": "string" } },
+    "task_context": {
+      "type": "object", "required": ["user_request"],
+      "properties": {
+        "user_request": { "type": "string" },
+        "source": { "type": "string", "enum": ["user_input", "discussion", "system_init"] },
+        "blocking_mode": { "type": "string", "enum": ["manual", "auto"] }
+      }
+    },
+    "expected_outputs": { "type": "array", "items": { "type": "string" } },
+    "checkpoint_id": { "type": "string" }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "return-package",
+  "type": "object",
+  "required": ["status", "error_code", "new_state_snapshot", "action_performed"],
+  "properties": {
+    "status": { "type": "string", "enum": ["success", "failure"] },
+    "error_code": { "type": ["string", "null"] },
+    "new_state_snapshot": { "type": ["object", "null"] },
+    "action_performed": { "type": "string" },
+    "completed_this_round": { "type": "array", "items": { "type": "string" } }
+  }
+}
