@@ -13,7 +13,7 @@ import argparse, json, os, sys, subprocess, uuid
 from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state, resolve_app_path, resolve_workspace_output, get_edge_targets, is_edge_backward
-from state_io import load_state, save_state
+from state_io import load_state, save_state, state_txn
 
 # Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
 try:
@@ -56,23 +56,22 @@ def run_script(cmd):
 
 def cache_dispatches(state_path, dispatches):
     """将 dispatches 缓存到 STATE.json，供 dispatch 阶段读取。
-    
+
     v4.0.1 修复：追加而非覆盖。多个并行分支的 post_execute 可能先后缓存
     dispatches，覆盖写会导致先缓存的独立目标 dispatch 被后缓存的覆盖丢失。
+    v5.2: 使用 state_txn 原子事务。
     """
-    st = load_state(state_path)
-    existing = st.get("pending_dispatches") or []
-    st["pending_dispatches"] = existing + dispatches
-    save_state(state_path, st)
+    with state_txn(state_path) as st:
+        existing = st.get("pending_dispatches") or []
+        st["pending_dispatches"] = existing + dispatches
 
 # ─── 状态转换统一 API ───
 
 def mark_complete(state_path):
     """所有 complete 路径的唯一入口：写 terminal_state。"""
-    st = load_state(state_path)
-    if not st.get("terminal_state"):
-        st["terminal_state"] = "completed"
-        save_state(state_path, st)
+    with state_txn(state_path) as st:
+        if not st.get("terminal_state"):
+            st["terminal_state"] = "completed"
 
 def load_router_and_registry(app_path):
     """加载 ROUTER.json 和 registry.json，返回 (router_steps, registry, reg_map, step_role_map)."""
@@ -101,10 +100,12 @@ def _get_pending_routes(st):
     """获取 pending_routes（瞬态路由信号，路由后清空）。"""
     return st.get("pending_routes", {})
 
-def _clear_pending_routes(state_path, st):
-    """清空 pending_routes（路由完成后调用）。"""
-    st["pending_routes"] = {}
-    save_state(state_path, st)
+def _clear_pending_routes(state_path):
+    """清空 pending_routes（路由完成后调用）。
+    v5.2: 使用 state_txn 读取最新 state 后清除，避免陈旧引用覆写子进程的并发更新。
+    """
+    with state_txn(state_path) as st:
+        st["pending_routes"] = {}
 
 def _process_dispatch_pipeline(dispatches, st, app_path):
     """统一管道：converge → dedup → cross-state filter。
@@ -142,12 +143,13 @@ def phase_dispatch(state_path, app_path, workspace_id, from_steps, on_result, ta
     # 1. 优先读取 pending_dispatches 缓存（零参数调度核心）
     pending = st.get("pending_dispatches")
     if pending:
-        st["pending_dispatches"] = None
-        save_state(state_path, st)
+        # v5.2: 用 state_txn 原子清除 pending_dispatches，避免陈旧 st 覆写子进程更新
+        with state_txn(state_path) as fresh_st:
+            fresh_st["pending_dispatches"] = None
         dispatches = pending
         # 消费 pending_routes（瞬态信号，用完即清空）
-        _clear_pending_routes(state_path, st)
-        _process_dispatches(state_path, app_path, workspace_id, dispatches, from_steps or [], task_request, st)
+        _clear_pending_routes(state_path)
+        _process_dispatches(state_path, app_path, workspace_id, dispatches, from_steps or [], task_request)
         return
 
     # ── 冷路径：从 pending_routes（瞬态路由信号）出发路由 ──
@@ -181,17 +183,20 @@ def phase_dispatch(state_path, app_path, workspace_id, from_steps, on_result, ta
 
         if not all_dispatches:
             # 清空 pending_routes（已路由完毕，无 dispatch 产出）
-            _clear_pending_routes(state_path, st)
+            _clear_pending_routes(state_path)
             if all_complete:
                 mark_complete(state_path)
                 output({"status": "success", "next": "complete", "reason": "all_complete"})
             else:
-                output({"status": "success", "next": "wait", "reason": "no_dispatchable_steps"})
+                diag_st = load_state(state_path)
+                reason, is_error = _diagnose_wait_reason(diag_st, app_path)
+                next_val = "error" if is_error else "wait"
+                if is_error:
+                    _mark_engine_error(state_path, reason)
+                output({"status": "success", "next": next_val, "reason": reason})
+        _clear_pending_routes(state_path)
 
-        # 清空 pending_routes（瞬态信号已消费完毕）
-        _clear_pending_routes(state_path, st)
-
-        _process_dispatches(state_path, app_path, workspace_id, all_dispatches, [], task_request, st)
+        _process_dispatches(state_path, app_path, workspace_id, all_dispatches, [], task_request)
         return
 
     # ── 热路径：有 from_steps 或初始调度（无 pending_routes）──
@@ -210,6 +215,8 @@ def phase_dispatch(state_path, app_path, workspace_id, from_steps, on_result, ta
     message = router_result.get("message", "")
 
     # ── 全局汇集 + 去重（统一管道）──
+    # v5.2: router.py 子进程可能已更新 edge_counts，重新读取最新 state
+    st = load_state(state_path)
     if dispatches and from_steps:
         dispatches = _process_dispatch_pipeline(dispatches, st, app_path)
 
@@ -218,9 +225,14 @@ def phase_dispatch(state_path, app_path, workspace_id, from_steps, on_result, ta
             mark_complete(state_path)
             output({"status": "success", "next": "complete", "reason": "all_complete"})
         else:
-            output({"status": "success", "next": "wait", "reason": message or "no_dispatchable_steps"})
+            diag_st = load_state(state_path)
+            reason, is_error = _diagnose_wait_reason(diag_st, app_path)
+            next_val = "error" if is_error else "wait"
+            if is_error:
+                _mark_engine_error(state_path, reason)
+            output({"status": "success", "next": next_val, "reason": reason})
 
-    _process_dispatches(state_path, app_path, workspace_id, dispatches, from_steps or [], task_request, st)
+    _process_dispatches(state_path, app_path, workspace_id, dispatches, from_steps or [], task_request)
 
 def _global_converge(dispatches, st, app_path):
     """v4.1 全局汇集：读 registry 的 input_groups 判断每个候选是否满足执行条件。
@@ -252,31 +264,138 @@ def _global_converge(dispatches, st, app_path):
     
     return filtered
 
-def _process_dispatches(state_path, app_path, workspace_id, dispatches, from_steps, task_request, st=None):
+
+def _find_last_good_step(st):
+    """v7.1: 从 completed 中找到最后一个 confirmed verdict 的步骤名。
+
+    用于在引擎报错时给用户建议 jump 目标。
+    """
+    completed = st.get("completed", {})
+    if not completed:
+        return None
+    confirmed_steps = [
+        (step, info.get("created_at", ""))
+        for step, info in completed.items()
+        if info.get("verdict") == "confirmed"
+    ]
+    if not confirmed_steps:
+        all_steps = [(step, info.get("created_at", "")) for step, info in completed.items()]
+        if not all_steps:
+            return None
+        return sorted(all_steps, key=lambda x: x[1])[-1][0]
+    return sorted(confirmed_steps, key=lambda x: x[1])[-1][0]
+
+
+def _mark_engine_error(state_path, reason):
+    """v7.1: 引擎出错时在 STATE.json 中写入 error 标志位。
+
+    用于：
+    1. 排查问题：记录引擎最后一次出错的详细原因
+    2. 快照联动：下次 advance 生成快照时会自动携带此标志，
+       使快照同时具备 jump 还原和问题排查两个功能。
+    """
+    try:
+        with state_txn(state_path) as st:
+            st["engine_error"] = {
+                "reason": reason,
+                "timestamp": now_iso(),
+                "last_good_step": _find_last_good_step(st),
+            }
+    except Exception:
+        pass
+
+
+def _diagnose_wait_reason(st, app_path):
+    """v7.1: 当引擎无 dispatch 产出时，诊断具体原因。
+
+    引擎是 STATE 合法性的唯一裁判。此函数将模糊的 no_dispatchable_steps
+    转化为用户可理解的明确原因，替代外部 health_check 预测层。
+
+    返回 (reason_str, is_error)。
+    is_error=False 表示正常等待（JOIN 未满足），is_error=True 表示 STATE 可能不一致。
+    """
+    completed = set(st.get("completed", {}).keys())
+    pending_routes = st.get("pending_routes", {})
+    pending_dispatches = st.get("pending_dispatches")
+    step_status = st.get("step_status", {})
+
+    # 加载 ROUTER + registry
+    router_path = os.path.join(app_path, "ROUTER.json")
+    reg_path = os.path.join(app_path, "registry.json")
+    router_steps = []
+    registry = []
+    if os.path.exists(router_path):
+        with open(router_path, "r", encoding="utf-8-sig") as f:
+            router_steps = json.load(f).get("steps", [])
+    if os.path.exists(reg_path):
+        with open(reg_path, "r", encoding="utf-8-sig") as f:
+            registry = json.load(f)
+
+    role_input_groups = {r["role_name"]: r.get("input_groups", []) for r in (registry or [])}
+
+    # Case 1: pending_dispatches 存在 → 下一轮 --next 会消费
+    if pending_dispatches:
+        steps = [d.get("step", "?") for d in pending_dispatches]
+        return (f"pending_dispatches 待消费: {steps}", False)
+
+    # Case 2: step_status 非空 → 有分支正在执行
+    if step_status:
+        steps = list(step_status.keys())
+        return (f"分支执行中: {steps}", False)
+
+    # Case 3: 扫描 JOIN 等待 — 存在步骤其部分前驱已完成但未全部满足
+    join_waiters = []
+    for step_data in router_steps:
+        step_name = step_data.get("step", "")
+        if step_name in completed:
+            continue
+        role = step_data.get("role", "")
+        groups = role_input_groups.get(role, [])
+        for group in groups:
+            missing = [s for s in group if s not in completed]
+            done = [s for s in group if s in completed]
+            if missing and done:
+                join_waiters.append(f"{step_name} 等待前驱完成: 缺 {missing} (已有 {done})")
+
+    if join_waiters:
+        return ("JOIN 等待: " + "; ".join(join_waiters), False)
+
+    # Case 4: pending_routes 存在但路由无产出 → verdict 无匹配 transition
+    if pending_routes:
+        route_steps = list(pending_routes.keys())
+        # 找到最后一个成功的步骤作为建议 jump 目标
+        last_good = _find_last_good_step(st)
+        suggest = f"建议 jump 到 '{last_good}'" if last_good else ""
+        return (f"路由信号存在 ({route_steps}) 但无 dispatch 产出。{suggest}", True)
+
+    # Case 5: 无任何信号且未终态 → STATE 可能不一致
+    last_good = _find_last_good_step(st)
+    suggest = f"建议 jump 到 '{last_good}'" if last_good else ""
+    return (f"无路由信号（pending_routes 为空），但工作流未完成。已完成 {len(completed)} 步。{suggest}。", True)
+
+def _process_dispatches(state_path, app_path, workspace_id, dispatches, from_steps, task_request):
     """v4.0: 统一处理 dispatch 列表。
     多 dispatch = 并行（主 Agent 同时发起多个 Task），单 dispatch = 单步。
-    
-    """
-    if st is None:
-        st = load_state(state_path)
 
-    # 所有 dispatch 统一 set_status executing
-    for d in dispatches:
-        set_cmd = [
-            sys.executable, "engine/scripts/set_state.py",
-            "--action", "set_status",
-            "--step", d["step"],
-            "--status", "executing",
-            "--role", d["role"],
-            "--dispatch-id", d["checkpoint_id"],
-            "--state-path", state_path,
-        ]
-        # 传递 from_steps 用于 verdict_context 运行时过滤
-        if from_steps:
-            set_cmd += ["--from-steps", json.dumps(from_steps)]
-        ok_ss, ss_result = run_script(set_cmd)
-        if not ok_ss:
-            output_error("OIC-E012", f"set_state.py set_status 失败 (STEP {d['step']}): {ss_result}")
+    v6.0: 在同一 state_txn 内原子写入 step_status 和 active_dispatches，
+    消除 set_status（子进程）与 active_dispatches 缓存之间的崩溃间隙。
+    """
+    # v6.0: 原子写入 step_status + active_dispatches（消除间隙）
+    with state_txn(state_path) as st:
+        ss = st.setdefault("step_status", {})
+        active = st.get("active_dispatches") or {}
+        for d in dispatches:
+            entry = {
+                "role": d["role"],
+                "status": "executing",
+                "dispatch_id": d["checkpoint_id"],
+                "started_at": now_iso(),
+            }
+            if from_steps:
+                entry["from_steps"] = from_steps
+            ss[d["step"]] = entry
+            active[d["step"]] = d
+        st["active_dispatches"] = active
 
     output({
         "status": "success",
@@ -284,6 +403,51 @@ def _process_dispatches(state_path, app_path, workspace_id, dispatches, from_ste
         "dispatches": dispatches,
         "parallel": len(dispatches) > 1,
     })
+
+def _check_required_files(app_path, role_name, workspace_id, state_path=None):
+    """检查 schema.json 中声明的 _required_files 是否全部存在于磁盘。
+
+    返回缺失文件列表 [{name, path}]。模板路径（含 {）跳过。
+    """
+    import re
+    missing = []
+    schema_dir = re.sub(r'[^\w\u4e00-\u9fff]', '_', role_name)
+    schema_file = os.path.join(app_path, "roles", schema_dir, "schema.json")
+    if not os.path.exists(schema_file):
+        return missing
+    try:
+        with open(schema_file, "r", encoding="utf-8-sig") as f:
+            schema = json.load(f)
+    except (json.JSONDecodeError, ValueError):
+        return missing
+
+    required_files = schema.get("_required_files", [])
+    if not required_files:
+        return missing
+
+    # workspace_id 为 None 时从 state_path 推导
+    ws_id = workspace_id
+    if not ws_id and state_path:
+        ws_id = os.path.basename(os.path.dirname(state_path))
+
+    from session_path import resolve_workspace_output
+    for rf in required_files:
+        rf_path = rf.get("path", "")
+        if not rf_path:
+            continue
+        # 跳过模板路径（如 app-v{iteration}.yaml）
+        if "{" in rf_path:
+            continue
+        rf_type = rf.get("type", "deliverable")
+        try:
+            resolved = resolve_workspace_output(ws_id, rf_path, app_path, rf_type)
+        except (FileNotFoundError, TypeError):
+            continue
+        if not os.path.exists(resolved):
+            missing.append({"name": rf.get("name", ""), "path": rf_path})
+
+    return missing
+
 
 # ─── Phase 2: post_execute（Gate 校验 + 路由决策）───
 
@@ -311,23 +475,24 @@ def phase_post_execute(state_path, app_path, workspace_id, results_json):
         step = r.get("step", "")
         status = r.get("status", "")
         output_paths = [o.get("path", "") for o in r.get("outputs", [])]
-        # verdict 从 role-executor 返回值读取，不从产出物文件读
         role_verdict = r.get("verdict", "")
 
-        
         if status != "confirmed":
             failed.append({"step": step, "reason": f"role-executor status={status}", "error": r.get("error")})
             continue
 
+        _role = step_role_map.get(step, "")
+
+        # ── Phase A: 对该 step 的所有产出物逐一 Gate 校验，汇总结果 ──
+        step_gate_entries = []
+        step_all_pass = True
         for out_path in output_paths:
             if not out_path:
                 continue
-            # role-executor 返回的 path 已由 router 按 type 解析过，直接用
-            resolved_out = out_path
             gate_cmd = [
                 sys.executable, "engine/scripts/gate.py",
                 "--step", step,
-                "--output-path", resolved_out,
+                "--output-path", out_path,
                 "--state-path", state_path,
                 "--app-path", app_path,
             ]
@@ -341,77 +506,97 @@ def phase_post_execute(state_path, app_path, workspace_id, results_json):
             }
             if gate_result.get("errors"):
                 gate_entry["errors"] = gate_result["errors"]
+            step_gate_entries.append(gate_entry)
             gate_results.append(gate_entry)
 
-            if verdict == "PASS":
-                # verdict 从 role-executor 返回值读取（与产出物格式分离）
-                semantic_verdict = role_verdict
+            if verdict != "PASS":
+                step_all_pass = False
 
-                step_def = next((s for s in router_steps if s["step"] == step), None)
-                transitions = step_def.get("transitions", {}) if step_def else {}
+        if not step_gate_entries:
+            continue
 
-                # fail 是系统保留词（Gate 专属），角色输出无效
-                if semantic_verdict and semantic_verdict == "fail":
-                    semantic_verdict = None
-                effective_verdict = semantic_verdict or "confirmed"
-                route_key = effective_verdict if effective_verdict in transitions else ("confirmed" if "confirmed" in transitions else None)
-                if route_key is None:
-                    failed.append({"step": step, "reason": f"verdict={effective_verdict} 在 transitions 中无匹配边"})
-                    continue
+        # ── Phase B: _required_files 完整性校验（消费 schema.json 的 _required_files）──
+        missing_files = _check_required_files(app_path, _role, workspace_id, state_path)
+        for mf in missing_files:
+            gate_entry = {
+                "step": step,
+                "output_path": mf["path"],
+                "verdict": "FAIL",
+                "errors": [f"缺少必需产物: {mf['name']} ({mf['path']})"],
+            }
+            step_gate_entries.append(gate_entry)
+            gate_results.append(gate_entry)
+            step_all_pass = False
 
-                # 统一推进：gate PASS → advance（写入 finished + verdict）
-                _role = step_role_map.get(step, "")
-                blocking_mode = reg_map.get(_role, {}).get("blocking_mode", "manual")
-                if blocking_mode == "auto":
-                    advance_cmd = [
-                        sys.executable, "engine/scripts/set_state.py",
-                        "--action", "advance", "--step", step,
-                        "--role", _role, "--verdict", effective_verdict,
-                        "--state-path", state_path,
-                    ]
-                    run_script(advance_cmd)
-                    auto_confirmed.append({
-                        "step": step, "output_path": out_path,
-                        "verdict": verdict, "route_key": route_key,
-                        "errors": gate_result.get("errors", []),
-                    })
-                else:
-                    set_cmd = [
-                        sys.executable, "engine/scripts/set_state.py",
-                        "--action", "set_status", "--step", step,
-                        "--status", "awaiting_confirmation",
-                        "--state-path", state_path,
-                    ]
-                    run_script(set_cmd)
-                    pending.append({
-                        "step": step, "output_path": out_path,
-                        "verdict": verdict,
-                        "errors": gate_result.get("errors", []),
-                    })
-            elif verdict == "FAIL":
-                # Gate FAIL → advance（写入 finished），让 router 沿 fail 边找到回退目标
-                _role = step_role_map.get(step, "")
+        # ── Phase C: 单次 advance/set_status 决策（不再逐文件调用）──
+        if step_all_pass:
+            semantic_verdict = role_verdict
+            step_def = next((s for s in router_steps if s["step"] == step), None)
+            transitions = step_def.get("transitions", {}) if step_def else {}
+
+            # fail 是系统保留词（Gate 专属），角色输出无效
+            if semantic_verdict and semantic_verdict == "fail":
+                semantic_verdict = None
+            effective_verdict = semantic_verdict or "confirmed"
+            route_key = effective_verdict if effective_verdict in transitions else ("confirmed" if "confirmed" in transitions else None)
+            if route_key is None:
+                failed.append({"step": step, "reason": f"verdict={effective_verdict} 在 transitions 中无匹配边"})
+                continue
+
+            blocking_mode = reg_map.get(_role, {}).get("blocking_mode", "manual")
+            if blocking_mode == "auto":
                 advance_cmd = [
                     sys.executable, "engine/scripts/set_state.py",
                     "--action", "advance", "--step", step,
-                    "--role", _role, "--verdict", "fail",
+                    "--role", _role, "--verdict", effective_verdict,
                     "--state-path", state_path,
                 ]
                 run_script(advance_cmd)
                 auto_confirmed.append({
-                    "step": step, "output_path": out_path,
-                    "verdict": "FAIL", "route_key": "fail",
-                    "errors": gate_result.get("errors", []),
+                    "step": step, "output_path": step_gate_entries[0]["output_path"],
+                    "verdict": "PASS", "route_key": route_key,
+                    "errors": [],
                 })
+            else:
+                set_cmd = [
+                    sys.executable, "engine/scripts/set_state.py",
+                    "--action", "set_status", "--step", step,
+                    "--status", "awaiting_confirmation",
+                    "--state-path", state_path,
+                ]
+                run_script(set_cmd)
+                pending.append({
+                    "step": step, "output_path": step_gate_entries[0]["output_path"],
+                    "verdict": "PASS",
+                    "errors": [],
+                })
+        else:
+            # 任一产出物 Gate FAIL → advance with "fail"（单次调用）
+            advance_cmd = [
+                sys.executable, "engine/scripts/set_state.py",
+                "--action", "advance", "--step", step,
+                "--role", _role, "--verdict", "fail",
+                "--state-path", state_path,
+            ]
+            run_script(advance_cmd)
+            all_errors = []
+            for ge in step_gate_entries:
+                all_errors.extend(ge.get("errors", []))
+            auto_confirmed.append({
+                "step": step, "output_path": step_gate_entries[0]["output_path"],
+                "verdict": "FAIL", "route_key": "fail",
+                "errors": all_errors,
+            })
 
     # v4.2: 清理 failed 步骤的 step_status（inline 精准清理，禁止用 rollback 核弹 pending_dispatches）
     # 僵尸 executing 的深度清理由 state_health_check.py Z1 统一接管
+    # v5.2: 使用 state_txn 原子事务
     for f in failed:
-        _st = load_state(state_path)
-        _ss = _st.get("step_status", {})
-        if f["step"] in _ss:
-            del _ss[f["step"]]
-            save_state(state_path, _st)
+        _fstep = f["step"]
+        with state_txn(state_path) as st:
+            ss = st.get("step_status", {})
+            if _fstep in ss:
+                del ss[_fstep]
 
     # error 最高优先级：只要有 failed 就报 error
     if failed:
@@ -461,8 +646,11 @@ def phase_post_execute(state_path, app_path, workspace_id, results_json):
                 output({"status": "success", "next": "complete",
                         "reason": f"terminal_state={st['terminal_state']}",
                         "auto_confirmed": auto_confirmed, "gate_results": gate_results, "failed": failed})
-            output({"status": "success", "next": "wait",
-                    "reason": "no_dispatchable_steps",
+            reason, is_error = _diagnose_wait_reason(st, app_path)
+            next_val = "error" if is_error else "wait"
+            if is_error:
+                _mark_engine_error(state_path, reason)
+            output({"status": "success", "next": next_val, "reason": reason,
                     "auto_confirmed": auto_confirmed, "gate_results": gate_results, "failed": failed})
 
     # 有 pending → BLOCKING
@@ -541,7 +729,12 @@ def phase_post_confirm(state_path, app_path, workspace_id, decisions_json):
         mark_complete(state_path)
         output({"status": "success", "next": "complete"})
     else:
-        output({"status": "success", "next": "wait", "reason": "no_dispatchable_steps"})
+        diag_st = load_state(state_path)
+        reason, is_error = _diagnose_wait_reason(diag_st, app_path)
+        next_val = "error" if is_error else "wait"
+        if is_error:
+            _mark_engine_error(state_path, reason)
+        output({"status": "success", "next": next_val, "reason": reason})
 
 # ─── main ───
 

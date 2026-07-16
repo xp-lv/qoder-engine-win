@@ -3,7 +3,7 @@
 所有修改通过 state_io.save_state() 统一写入。
 Usage: python scripts/set_state.py --action <action> --step <STEP_N> [options]
 """
-import argparse, json, os, sys
+import argparse, json, os, sys, copy, shutil
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state
 from state_io import load_state, save_state
@@ -45,6 +45,9 @@ def create_initial_state():
         "pending_routes": {},
         "edge_counts": {},
         "pending_dispatches": None,
+        "active_dispatches": {},
+        "cached_branch_results": [],
+        "engine_error": None,
         "history": [],
         "metadata": {"started_at": now_iso(), "last_advance_at": None, "user_request": ""}
     }
@@ -62,9 +65,41 @@ def do_reset(state):
     state["edge_counts"] = {}
     state["terminal_state"] = None
     state["pending_dispatches"] = None
+    state["active_dispatches"] = {}
+    state["cached_branch_results"] = []
+    state["engine_error"] = None
     state["history"] = []
 
+
+def _save_snapshot(state_path, step, state):
+    """v7.0: 在 advance 后保存快照，用于 jump 快速还原。
+
+    快照保留路由字段（completed / pending_routes / edge_counts / terminal_state / history / metadata），
+    清除运行时字段（step_status / pending_dispatches / cached_branch_results / active_dispatches）。
+    """
+    snapshot_dir = os.path.join(os.path.dirname(state_path), "snapshots")
+    os.makedirs(snapshot_dir, exist_ok=True)
+    snapshot_path = os.path.join(snapshot_dir, f"{step}.json")
+
+    snapshot = copy.deepcopy(state)
+    snapshot["step_status"] = {}
+    snapshot["pending_dispatches"] = None
+    snapshot["cached_branch_results"] = []
+    snapshot["active_dispatches"] = {}
+
+    with open(snapshot_path, "w", encoding="utf-8") as f:
+        json.dump(snapshot, f, ensure_ascii=False, indent=2)
+
+
+def _clear_snapshots(state_path):
+    """v7.0: reset 时清理快照目录。"""
+    snapshot_dir = os.path.join(os.path.dirname(state_path), "snapshots")
+    if os.path.exists(snapshot_dir):
+        shutil.rmtree(snapshot_dir)
+
 def do_advance(state, step, role, dispatch_id, verdict=None):
+    # v7.1: advance 成功 → 清除 engine_error 标志位
+    state["engine_error"] = None
     ss = state.get("step_status", {})
     existing = ss.get(step, {})
     if not dispatch_id:
@@ -83,6 +118,10 @@ def do_advance(state, step, role, dispatch_id, verdict=None):
     state.setdefault("completed", {})[step] = result
     state.setdefault("pending_routes", {})[step] = result
     state["metadata"]["last_advance_at"] = now_iso()
+    # v6.0: 清理 active_dispatches 中已完成 step 的 dispatch 缓存
+    active = state.get("active_dispatches")
+    if active and step in active:
+        del active[step]
 
 def do_resume(state, step):
     completed = state.get("completed", {})
@@ -146,8 +185,10 @@ def main():
 
         if args.action == "reset":
             do_reset(state)
+            _clear_snapshots(args.state_path)
         elif args.action == "advance":
             do_advance(state, args.step, args.role, args.dispatch_id, args.verdict)
+            _save_snapshot(args.state_path, args.step, state)
         elif args.action == "resume":
             do_resume(state, args.step)
         elif args.action == "terminal":

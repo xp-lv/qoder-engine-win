@@ -497,6 +497,8 @@ def cmd_submit(args):
 
     if failed and next_val == "error":
         action = {"status": "error", "next": "error", "failed": failed}
+    elif next_val == "error":
+        action = {"status": "error", "next": "error", "reason": result.get("reason", "")}
     elif next_val in ("dispatch",):
         action = {
             "status": "success",
