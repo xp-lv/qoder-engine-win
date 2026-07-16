@@ -59,7 +59,7 @@
 修改完成后，必须调用 compiler.py 重新编译目标 APP：
 
 ```
-python engine/scripts/compiler.py --app-path {目标APP路径}
+python3 engine/scripts/compiler.py --app-path {目标APP路径}
 ```
 
 #### 编译通过判据

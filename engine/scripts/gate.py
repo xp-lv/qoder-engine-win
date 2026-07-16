@@ -13,6 +13,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state, resolve_app_path
 
 
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+
 def output(data):
     print(json.dumps(data, ensure_ascii=False))
     sys.exit(0)
@@ -205,7 +212,7 @@ def main():
         ws_root = ws_base
         wr_file = os.path.join(ws_base, "WORKSPACE_ROOT")
         if os.path.exists(wr_file):
-            with open(wr_file, "r") as f:
+            with open(wr_file, "r", encoding="utf-8-sig") as f:
                 ws_root = f.read().strip()
         result_file = os.path.join(ws_root, "outputs", f"{args.step}-gate-result.json")
         os.makedirs(os.path.dirname(result_file), exist_ok=True)

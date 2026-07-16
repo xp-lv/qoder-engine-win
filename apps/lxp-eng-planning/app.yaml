@@ -102,7 +102,7 @@ roles:
       - 前端需求规格文档: outputs/前端需求规格文档.md
       - 前端交互规范: outputs/前端交互规范.md
       - 交叉审核报告: outputs/交叉审核报告.json, type=process
-      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process      # [可选输入]
+      - 前端美学评审报告: outputs/前端美学评审报告.json, type=process      # [可选输入]
     outputs:
       - 交互逻辑设计文档: outputs/交互逻辑设计文档.md
 
@@ -113,7 +113,7 @@ roles:
       - 前端需求规格文档: outputs/前端需求规格文档.md
       - 前端交互规范: outputs/前端交互规范.md
       - 交叉审核报告: outputs/交叉审核报告.json, type=process
-      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process      # [可选输入]
+      - 前端美学评审报告: outputs/前端美学评审报告.json, type=process      # [可选输入]
     outputs:
       - 美学布局设计文档: outputs/美学布局设计文档.md
 
@@ -191,20 +191,22 @@ roles:
 
   预览部署者:
     type: standard
-    confirm: auto
+    confirm: manual
     inputs:
       - 前端代码: outputs/src/frontend/
     outputs:
       - 预览部署报告: outputs/预览部署报告.json, type=process
+      - 预览截图: outputs/preview-screenshot.png, type=process
 
-  前端预览确认:
+  前端美学师:
     type: standard
-    # 全局第3个manual节点（需求接收者、综合裁决者、前端预览确认）
+    # 全局第3个manual节点（需求接收者、综合裁决者、前端美学师）
     confirm: manual
     inputs:
       - 预览部署报告: outputs/预览部署报告.json, type=process
+      - 预览截图: outputs/preview-screenshot.png, type=process
     outputs:
-      - 前端预览确认报告: outputs/前端预览确认报告.json, type=process
+      - 前端美学评审报告: outputs/前端美学评审报告.json, type=process
 
   # === 运行时验证阶段（新增）===
 
@@ -320,22 +322,26 @@ edges:
   # Phase 5.5: 前端校验通过 → 预览部署（新增·前端预览闭环入口）
   - 前端实现者（校验） → 预览部署者
 
-  # Phase 5.6: 预览部署 → 人工确认（新增·confirm: manual·全局第3个manual节点）
-  - 预览部署者 → 前端预览确认
+  # Phase 5.6: 预览部署 → 前端美学师（confirm: manual·全局第3个manual节点）
+  - 预览部署者 → 前端美学师
 
   # Phase 7a: 后端实现者校验通过 → 后端启动验证（运行时验证入口）
   - 后端实现者（校验） → 后端启动验证者 when: result.verdict == "confirmed"
 
-  # Phase 7b: 前端预览确认(confirmed) + 后端启动验证者(confirmed) → 全栈联调验证（同步汇入·JOIN）
-  - [前端预览确认, 后端启动验证者] → 全栈联调验证者 when: result.verdict == "confirmed"
+  # Phase 7b: 前端美学师(confirmed) + 后端启动验证者(confirmed) → 全栈联调验证（同步汇入·JOIN）
+  - [前端美学师, 后端启动验证者] → 全栈联调验证者 when: result.verdict == "confirmed"
 
   # Phase 7c: 联调验证通过 → 合并校验
   - 全栈联调验证者 → 合并校验者 when: result.verdict == "confirmed"
 
-  # 前端预览反馈循环（backward·needs_revision回退·max:3）
+  # 前端美学反馈循环（backward·needs_revision回退·max:3）
   # 用户预览不满意时打回前端设计组，形成 预览→反馈→修改→再预览 的闭环
   # [MAJOR1修复] 回退目标仅 [交互逻辑设计师, 美学布局设计师]，不含接口翻译师，避免后端级联
-  - 前端预览确认 → [交互逻辑设计师, 美学布局设计师] when: result.verdict == "needs_revision" max_executions: 3
+  - 前端美学师 → [交互逻辑设计师, 美学布局设计师] when: result.verdict == "needs_revision" max_executions: 3
+
+  # 前端美学 service_down 回退（backward·前端进不去/服务挂了·max:3）
+  # 前端美学师发现 dev server 不可达时回退至预览部署者重新部署
+  - 前端美学师 → 预览部署者 when: result.verdict == "service_down" max_executions: 3
 
   # Phase 8: 合并校验通过 → 部署文档
   - 合并校验者 → 部署文档管理者 when: result.verdict == "confirmed"

@@ -12,6 +12,13 @@
 import argparse, json, os, sys, re
 from collections import deque
 
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+
 def load_json(path):
     with open(path, "r", encoding="utf-8-sig") as f:
         return json.load(f)

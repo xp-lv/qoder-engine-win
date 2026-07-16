@@ -12,7 +12,9 @@
         "verdict": {
           "type": "string",
           "enum": [
-            "confirmed"
+            "confirmed",
+            "needs_revision",
+            "service_down"
           ]
         },
         "summary": {
@@ -32,13 +34,8 @@
   ],
   "_required_files": [
     {
-      "name": "预览部署报告",
-      "path": "outputs/预览部署报告.json",
-      "type": "process"
-    },
-    {
-      "name": "预览截图",
-      "path": "outputs/preview-screenshot.png",
+      "name": "前端美学评审报告",
+      "path": "outputs/前端美学评审报告.json",
       "type": "process"
     }
   ]

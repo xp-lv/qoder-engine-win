@@ -11,6 +11,13 @@ from session_path import (
 from state_io import save_state
 from datetime import datetime, timezone
 
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+
 def now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -164,12 +171,12 @@ def main():
 
     # 写入 APP_REF
     app_ref_f = os.path.join(ws_base, "APP_REF")
-    with open(app_ref_f, "w") as f:
+    with open(app_ref_f, "w", encoding="utf-8") as f:
         f.write(app_path)
 
     # 写入 WORKSPACE_ROOT（必须在 process 目录创建之前写入，因为 resolve_ws_process 读它）
     ws_root_f = os.path.join(ws_base, "WORKSPACE_ROOT")
-    with open(ws_root_f, "w") as f:
+    with open(ws_root_f, "w", encoding="utf-8") as f:
         f.write(os.path.abspath(args.workspace_path))
 
     # 创建 process 目录（现在 resolve_ws_process 能正确读到 WORKSPACE_ROOT）

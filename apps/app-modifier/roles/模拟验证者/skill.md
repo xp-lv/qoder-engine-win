@@ -18,7 +18,7 @@
 
 调用 compiler.py 对目标 APP 执行静态分析：
 ```
-python engine/scripts/compiler.py --app-path {目标APP路径} --check
+python3 engine/scripts/compiler.py --app-path {目标APP路径} --check
 ```
 
 编译器自动检查以下项目（无需 LLM 重复）：

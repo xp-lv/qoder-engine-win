@@ -639,7 +639,7 @@
       "transitions": {
         "confirmed": {
           "targets": [
-            "前端预览确认"
+            "前端美学师"
           ],
           "type": "normal",
           "carries": [
@@ -662,17 +662,27 @@
               "name": "[反馈] 预览部署报告"
             },
             {
+              "path": "outputs/preview-screenshot.png",
+              "type": "feedback",
+              "name": "[反馈] 预览截图"
+            },
+            {
               "path": "outputs/预览部署者-gate-result.json",
               "type": "feedback",
               "name": "[反馈] 预览部署者 Gate校验结果"
+            },
+            {
+              "path": "outputs/预览部署者-feedback.json",
+              "type": "feedback",
+              "name": "[反馈] 预览部署者 用户反馈"
             }
           ]
         }
       }
     },
     {
-      "step": "前端预览确认",
-      "role": "前端预览确认",
+      "step": "前端美学师",
+      "role": "前端美学师",
       "transitions": {
         "confirmed": {
           "targets": [
@@ -681,9 +691,9 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/前端预览确认-gate-result.json",
+              "path": "outputs/前端美学师-gate-result.json",
               "type": "deliverable",
-              "name": "[上游Gate结果] 前端预览确认"
+              "name": "[上游Gate结果] 前端美学师"
             }
           ]
         },
@@ -696,37 +706,56 @@
           "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/前端预览确认-gate-result.json",
+              "path": "outputs/前端美学师-gate-result.json",
               "type": "deliverable",
-              "name": "[上游Gate结果] 前端预览确认"
+              "name": "[上游Gate结果] 前端美学师"
             },
             {
-              "path": "outputs/前端预览确认报告.json",
+              "path": "outputs/前端美学评审报告.json",
               "type": "deliverable",
-              "name": "[上游分析] 前端预览确认报告"
+              "name": "[上游分析] 前端美学评审报告"
+            }
+          ]
+        },
+        "service_down": {
+          "targets": [
+            "预览部署者"
+          ],
+          "type": "normal",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/前端美学师-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 前端美学师"
+            },
+            {
+              "path": "outputs/前端美学评审报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 前端美学评审报告"
             }
           ]
         },
         "fail": {
           "targets": [
-            "前端预览确认"
+            "前端美学师"
           ],
           "type": "backward",
           "carries": [
             {
-              "path": "outputs/前端预览确认报告.json",
+              "path": "outputs/前端美学评审报告.json",
               "type": "feedback",
-              "name": "[反馈] 前端预览确认报告"
+              "name": "[反馈] 前端美学评审报告"
             },
             {
-              "path": "outputs/前端预览确认-gate-result.json",
+              "path": "outputs/前端美学师-gate-result.json",
               "type": "feedback",
-              "name": "[反馈] 前端预览确认 Gate校验结果"
+              "name": "[反馈] 前端美学师 Gate校验结果"
             },
             {
-              "path": "outputs/前端预览确认-feedback.json",
+              "path": "outputs/前端美学师-feedback.json",
               "type": "feedback",
-              "name": "[反馈] 前端预览确认 用户反馈"
+              "name": "[反馈] 前端美学师 用户反馈"
             }
           ]
         }

@@ -466,8 +466,8 @@
         "type": "process"
       },
       {
-        "name": "前端预览确认报告",
-        "path": "outputs/前端预览确认报告.json",
+        "name": "前端美学评审报告",
+        "path": "outputs/前端美学评审报告.json",
         "type": "process"
       },
       {
@@ -486,7 +486,7 @@
         "交叉审核者"
       ],
       [
-        "前端预览确认"
+        "前端美学师"
       ],
       [
         "交互逻辑设计师"
@@ -539,8 +539,8 @@
         "type": "process"
       },
       {
-        "name": "前端预览确认报告",
-        "path": "outputs/前端预览确认报告.json",
+        "name": "前端美学评审报告",
+        "path": "outputs/前端美学评审报告.json",
         "type": "process"
       },
       {
@@ -554,7 +554,7 @@
         "交叉审核者"
       ],
       [
-        "前端预览确认"
+        "前端美学师"
       ],
       [
         "美学布局设计师"
@@ -1108,12 +1108,17 @@
   {
     "role_name": "预览部署者",
     "skill_path": "roles/预览部署者/skill.md",
-    "blocking_mode": "auto",
+    "blocking_mode": "manual",
     "role_type": "standard",
     "outputs": [
       {
         "name": "预览部署报告",
         "path": "outputs/预览部署报告.json",
+        "type": "process"
+      },
+      {
+        "name": "预览截图",
+        "path": "outputs/preview-screenshot.png",
         "type": "process"
       }
     ],
@@ -1143,6 +1148,9 @@
         "前端实现者-validate"
       ],
       [
+        "前端美学师"
+      ],
+      [
         "预览部署者"
       ]
     ],
@@ -1151,14 +1159,14 @@
     ]
   },
   {
-    "role_name": "前端预览确认",
-    "skill_path": "roles/前端预览确认/skill.md",
+    "role_name": "前端美学师",
+    "skill_path": "roles/前端美学师/skill.md",
     "blocking_mode": "manual",
     "role_type": "standard",
     "outputs": [
       {
-        "name": "前端预览确认报告",
-        "path": "outputs/前端预览确认报告.json",
+        "name": "前端美学评审报告",
+        "path": "outputs/前端美学评审报告.json",
         "type": "process"
       }
     ],
@@ -1181,6 +1189,11 @@
         "name": "预览部署报告",
         "path": "outputs/预览部署报告.json",
         "type": "process"
+      },
+      {
+        "name": "预览截图",
+        "path": "outputs/preview-screenshot.png",
+        "type": "process"
       }
     ],
     "input_groups": [
@@ -1188,12 +1201,13 @@
         "预览部署者"
       ],
       [
-        "前端预览确认"
+        "前端美学师"
       ]
     ],
     "verdicts": [
       "confirmed",
-      "needs_revision"
+      "needs_revision",
+      "service_down"
     ]
   },
   {
@@ -1317,7 +1331,7 @@
     ],
     "input_groups": [
       [
-        "前端预览确认",
+        "前端美学师",
         "后端启动验证者"
       ],
       [

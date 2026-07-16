@@ -41,15 +41,15 @@ _SCRIPT_TIMEOUT = int(os.environ.get("STATE_OP_TIMEOUT", "30"))
 _ORCHESTRATOR = "engine/scripts/orchestrator.py"
 
 
-def _build_subprocess_env():
-    """构建子进程环境变量，确保 UTF-8 编码（Windows 兼容）。"""
-    env = os.environ.copy()
-    env["PYTHONIOENCODING"] = "utf-8"
-    return env
-
-
 # ─── 工具函数 ───
 # v4.2: _save_state_locked 已删除，所有写入通过 state_io.save_state()
+
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 
 def run_engine(args_list):
     """调用引擎脚本并返回 (success, result_dict)。
@@ -65,10 +65,7 @@ def run_engine(args_list):
             cmd,
             capture_output=True,
             text=True,
-            timeout=_SCRIPT_TIMEOUT,
-            encoding="utf-8",
-            errors="replace",
-            env=_build_subprocess_env(),
+            timeout=_SCRIPT_TIMEOUT, encoding="utf-8", errors="replace", env={**os.environ, "PYTHONIOENCODING": "utf-8"}
         )
         if result.returncode == 0:
             try:
@@ -137,9 +134,9 @@ def _gen_directive(data):
             decide_items.append(f'{{"step":"{step}","decision":"<confirmed 或 fail>"}}')
         decisions_json = "[" + ",".join(decide_items) + "]"
         steps_desc = ", ".join(p.get("step", "?") for p in pending)
-        return (f"向用户展示以下步骤的确认请求：{steps_desc}."
+        return (f"向用户展示以下步骤的确认请求：{steps_desc}。"
                 f"收到用户回复后执行：\n"
-                f"{sys.executable} engine/scripts/step.py --decide --decisions '{decisions_json}'{s}")
+                f"python engine/scripts/step.py --decide --decisions '{decisions_json}'{s}")
 
     if action == "complete":
         return "任务完成，结束"
@@ -169,8 +166,8 @@ def _gen_directive(data):
             decide_items.append(f'{{"step":"{step}","decision":"<confirmed 或 fail>"}}')
         decisions_json = "[" + ",".join(decide_items) + "]"
         steps_desc = ", ".join(p.get("step", "?") for p in pending)
-        return (f"向用户展示确认请求：{steps_desc}.收到回复后执行：\n"
-                f"{sys.executable} engine/scripts/step.py --decide --decisions '{decisions_json}'{s}")
+        return (f"向用户展示确认请求：{steps_desc}。收到回复后执行：\n"
+                f"python engine/scripts/step.py --decide --decisions '{decisions_json}'{s}")
     if next_val == "complete":
         return "任务完成，结束"
     if next_val == "rework":
@@ -589,13 +586,13 @@ def cmd_list_workspaces(args):
                 app_ref_f = os.path.join(ws_base, "APP_REF")
                 app_ref = ""
                 if os.path.exists(app_ref_f):
-                    with open(app_ref_f) as f:
+                    with open(app_ref_f, "r", encoding="utf-8-sig") as f:
                         app_ref = f.read().strip()
                 # 读 WORKSPACE_ROOT
                 ws_root_f = os.path.join(ws_base, "WORKSPACE_ROOT")
                 ws_root = ""
                 if os.path.exists(ws_root_f):
-                    with open(ws_root_f) as f:
+                    with open(ws_root_f, "r", encoding="utf-8-sig") as f:
                         ws_root = f.read().strip()
                 result.append({
                     "workspace_id": ws_id,

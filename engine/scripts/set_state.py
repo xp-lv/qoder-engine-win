@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""skill-builder STATE.json 唯一写者。
-所有 STATE.json 修改都通过此脚本完成（跨平台文件锁保护）。
-Usage: python3 scripts/set_state.py --action <action> --step <STEP_N> [options]
+"""set_state.py — STATE.json 状态操作 CLI。
+所有修改通过 state_io.save_state() 统一写入。
+Usage: python scripts/set_state.py --action <action> --step <STEP_N> [options]
 """
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -10,8 +10,14 @@ from state_io import load_state, save_state
 from datetime import datetime, timezone
 
 
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+
 class ValidationException(Exception):
-    """验证失败异常，由 main() 捕获后统一释放锁并输出错误（v3.2：修复锁泄漏）。"""
     def __init__(self, error_code, message):
         self.error_code = error_code
         self.message = message
@@ -35,8 +41,8 @@ def create_initial_state():
         "project_id": os.path.basename(os.getcwd()),
         "step_status": {},
         "terminal_state": None,
-        "completed": {},       # 持久：完成记录，_global_converge JOIN 判断的权威源
-        "pending_routes": {},  # 瞬态：待路由信号，advance 写入，路由后清空
+        "completed": {},
+        "pending_routes": {},
         "edge_counts": {},
         "pending_dispatches": None,
         "history": [],
@@ -44,26 +50,10 @@ def create_initial_state():
     }
 
 def validate_action(state, action, step):
-    # reset 豁免终态检查（reset 的设计意图就是清除终态）
     if state.get("terminal_state") is not None and action not in ("terminal", "reset"):
         raise ValidationException("OIC-E206", f"终态不可变：terminal_state={state['terminal_state']}")
 
-def do_rollback(state, step):
-    """v4.1: 回退清除 step_status + completed + pending_routes + pending_dispatches。
-    pbc 不再需要手动清零——它从 step_status 派生，step_status 清空后 pbc 自然为 0。
-    """
-    ss = state.get("step_status", {})
-    if step in ss:
-        del ss[step]
-    # 同步清理 completed 中的完成记录（消除缺陷3：拓扑不一致）
-    completed = state.get("completed", {})
-    if step in completed:
-        del completed[step]
-    # 清理瞬态路由信号
-    pending_routes = state.get("pending_routes", {})
-    if step in pending_routes:
-        del pending_routes[step]
-    state["pending_dispatches"] = None
+# v4.2: do_rollback 已删除。僵尸 executing 清理由 state_health_check.py Z1 统一接管。
 
 def do_reset(state):
     state["step_status"] = {}
@@ -75,10 +65,6 @@ def do_reset(state):
     state["history"] = []
 
 def do_advance(state, step, role, dispatch_id, verdict=None):
-    """v4.1: 写入 completed（持久）+ pending_routes（瞬态路由信号）。
-    completed: _global_converge 的 JOIN 判断权威源，整个执行期间保留。
-    pending_routes: phase_dispatch 冷路径的路由信号，路由完成后清空。
-    """
     ss = state.get("step_status", {})
     existing = ss.get(step, {})
     if not dispatch_id:
@@ -94,7 +80,6 @@ def do_advance(state, step, role, dispatch_id, verdict=None):
     }
     if verdict:
         result["verdict"] = verdict
-    # 写入两个独立结构（消除多源冲突）
     state.setdefault("completed", {})[step] = result
     state.setdefault("pending_routes", {})[step] = result
     state["metadata"]["last_advance_at"] = now_iso()
@@ -110,8 +95,6 @@ def do_resume(state, step):
         "dispatch_id": r.get("id", "")
     }
 
-# do_loop 和 do_uncomplete 已删除
-
 def do_set_status(state, step, status, role, dispatch_id, from_steps=None):
     ss = state.get("step_status", {})
     if status == "idle":
@@ -119,7 +102,6 @@ def do_set_status(state, step, status, role, dispatch_id, from_steps=None):
             del ss[step]
     else:
         entry = {"role": role or ss.get(step, {}).get("role", ""), "status": status, "dispatch_id": dispatch_id or ss.get(step, {}).get("dispatch_id", "")}
-        # v-longrun-R2: executing 状态记录 started_at 时间戳，用于陈旧执行检测
         if status == "executing":
             entry["started_at"] = now_iso()
             if from_steps:
@@ -127,38 +109,34 @@ def do_set_status(state, step, status, role, dispatch_id, from_steps=None):
         ss[step] = entry
     state["step_status"] = ss
 
-
-MAX_HISTORY_SIZE = 500  # v-longrun: FIFO 窗口上限，防止长程任务中 history 无限增长
+MAX_HISTORY_SIZE = 500
 
 def append_history(state, action, step, result):
     state.setdefault("history", []).append({
         "timestamp": now_iso(), "action": action, "step": step,
         "actor": "set_state.py", "result": result
     })
-    # v-longrun: FIFO 窗口修剪，防止 STATE.json 膨胀
     if len(state["history"]) > MAX_HISTORY_SIZE:
         state["history"] = state["history"][-MAX_HISTORY_SIZE:]
 
 def main():
-    parser = argparse.ArgumentParser(description="STATE.json 唯一写者")
-    parser.add_argument("--action", required=True, choices=["rollback", "reset", "advance", "resume", "terminal", "set_status"])
+    parser = argparse.ArgumentParser(description="STATE.json 状态操作 CLI")
+    parser.add_argument("--action", required=True, choices=["reset", "advance", "resume", "terminal", "set_status"])
     parser.add_argument("--step", required=True, help="目标 STEP 编号（terminal 可用 ALL）")
     parser.add_argument("--state-path", default=None)
-    parser.add_argument("--workspace-id", default=None, help="Session ID（默认从 QODER_SESSION_ID 环境变量读取）")
+    parser.add_argument("--workspace-id", default=None)
     parser.add_argument("--terminal-state", help="终态枚举")
     parser.add_argument("--terminal-reason", help="终态原因")
     parser.add_argument("--status", help="执行状态（set_status 专用）")
     parser.add_argument("--role", help="角色名（set_status+executing 专用）")
-    parser.add_argument("--dispatch-id", help="dispatch checkpoint_id（set_status+executing 专用）")
-    parser.add_argument("--verdict", default=None, help="角色裁决值（advance 时记录到 checkpoint）")
-    parser.add_argument("--from-steps", default="", help="JSON array: dispatch 来源 step 列表（set_status+executing 专用）")
+    parser.add_argument("--dispatch-id", help="dispatch checkpoint_id")
+    parser.add_argument("--verdict", default=None, help="角色裁决值")
+    parser.add_argument("--from-steps", default="", help="JSON array: dispatch 来源 step 列表")
     args = parser.parse_args()
 
-    # workspace-centric：state_path 从 ws_id 推导
     if not args.state_path:
         args.state_path = resolve_ws_state(args.workspace_id)
 
-    # v4.2: 通过 state_io 统一读写（文件锁 + 原子写入由 state_io 内部管理）
     state = load_state(args.state_path)
     if state is None:
         state = create_initial_state()
@@ -166,9 +144,7 @@ def main():
     try:
         validate_action(state, args.action, args.step)
 
-        if args.action == "rollback":
-            do_rollback(state, args.step)
-        elif args.action == "reset":
+        if args.action == "reset":
             do_reset(state)
         elif args.action == "advance":
             do_advance(state, args.step, args.role, args.dispatch_id, args.verdict)

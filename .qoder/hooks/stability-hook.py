@@ -52,6 +52,13 @@ def is_execution_related(prompt):
 
 def main():
     try:
+        # Windows: 重配置 stdin/stdout 为 UTF-8（防止 GBK 编码崩溃）
+        try:
+            import io
+            sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8", errors="replace")
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+        except Exception:
+            pass
         raw = sys.stdin.read()
         data = json.loads(raw)
     except Exception:

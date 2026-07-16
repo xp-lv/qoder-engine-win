@@ -12,15 +12,22 @@ v5.0 变化：
 
 Usage:
   # 初始调度（无 --from = 返回入口 STEP）
-  python3 engine/scripts/router.py [--workspace-id <id>] [--app-path <path>] [--task-request <text>]
+  python engine/scripts/router.py [--workspace-id <id>] [--app-path <path>] [--task-request <text>]
 
   # 结果驱动调度（从已完成的 STEP + 结果出发）
-  python3 engine/scripts/router.py --from '["STEP0"]' --on confirmed [--workspace-id <id>] [--app-path <path>]
+  python engine/scripts/router.py --from '["STEP0"]' --on confirmed [--workspace-id <id>] [--app-path <path>]
 """
 import argparse, json, os, re, sys, uuid
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state, resolve_app_path, resolve_workspace_output, get_edge_targets, is_edge_backward
 from state_io import load_state as _io_load, save_state
+
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 
 def output(data):
     print(json.dumps(data, ensure_ascii=False))

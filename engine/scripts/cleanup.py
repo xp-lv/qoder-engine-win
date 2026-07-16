@@ -46,7 +46,7 @@ def main():
         # 读 WORKSPACE_ROOT
         ws_root = ""
         if os.path.exists(ws_root_f):
-            with open(ws_root_f) as f:
+            with open(ws_root_f, "r", encoding="utf-8-sig") as f:
                 ws_root = f.read().strip()
 
         # 读 STATE.json

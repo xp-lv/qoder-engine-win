@@ -85,7 +85,7 @@ def main():
         with open(mode_file, "w", encoding="utf-8") as f:
             f.write("production\n")
 
-    with open(mode_file, "r", encoding="utf-8") as f:
+    with open(mode_file, "r", encoding="utf-8-sig") as f:
         current = f.read().strip()
 
     target = args.mode.strip()

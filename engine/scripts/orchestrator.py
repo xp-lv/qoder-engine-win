@@ -15,6 +15,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state, resolve_app_path, resolve_workspace_output, get_edge_targets, is_edge_backward
 from state_io import load_state, save_state
 
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+
 def now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -29,17 +36,10 @@ def output_error(error_code, message):
 # v-longrun: 可配置超时，防止长程任务中大 STATE.json 导致误判
 _SCRIPT_TIMEOUT = int(os.environ.get("STATE_OP_TIMEOUT", "30"))
 
-
-def _build_subprocess_env():
-    """构建子进程环境变量，确保 UTF-8 编码（Windows 兼容）。"""
-    env = os.environ.copy()
-    env["PYTHONIOENCODING"] = "utf-8"
-    return env
-
 def run_script(cmd):
     """运行子脚本，返回 (success, parsed_json_or_stderr)."""
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=_SCRIPT_TIMEOUT, encoding="utf-8", errors="replace", env=_build_subprocess_env())
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=_SCRIPT_TIMEOUT, encoding="utf-8", errors="replace", env={**os.environ, "PYTHONIOENCODING": "utf-8"})
         if result.returncode == 0:
             return True, json.loads(result.stdout)
         else:
@@ -51,6 +51,7 @@ def run_script(cmd):
         return False, {"error": str(e)}
 
 # ─── 工具函数 ───
+
 # v4.2: 所有 STATE.json 读写统一通过 state_io 模块（唯一入口）
 
 def cache_dispatches(state_path, dispatches):
@@ -403,16 +404,14 @@ def phase_post_execute(state_path, app_path, workspace_id, results_json):
                     "errors": gate_result.get("errors", []),
                 })
 
-    # v4.2: 清理 failed 步骤（Win版保留 rollback 委托方式，因 set_state.py 有 do_rollback 增强功能）
+    # v4.2: 清理 failed 步骤的 step_status（inline 精准清理，禁止用 rollback 核弹 pending_dispatches）
     # 僵尸 executing 的深度清理由 state_health_check.py Z1 统一接管
     for f in failed:
-        reset_cmd = [
-            sys.executable, "engine/scripts/set_state.py",
-            "--action", "rollback",
-            "--step", f["step"],
-            "--state-path", state_path,
-        ]
-        run_script(reset_cmd)
+        _st = load_state(state_path)
+        _ss = _st.get("step_status", {})
+        if f["step"] in _ss:
+            del _ss[f["step"]]
+            save_state(state_path, _st)
 
     # error 最高优先级：只要有 failed 就报 error
     if failed:

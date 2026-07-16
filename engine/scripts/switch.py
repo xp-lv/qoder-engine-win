@@ -10,6 +10,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_base, resolve_ws_state, read_app_ref
 
 
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+
 def main():
     parser = argparse.ArgumentParser(description="切换 workspace 绑定的应用")
     parser.add_argument("--workspace-id", required=True, help="workspace 编号")
@@ -25,11 +32,11 @@ def main():
     old_app = ""
     app_ref_f = os.path.join(ws_base, "APP_REF")
     if os.path.exists(app_ref_f):
-        with open(app_ref_f) as f:
+        with open(app_ref_f, "r", encoding="utf-8-sig") as f:
             old_app = f.read().strip()
 
     # 写新 APP_REF
-    with open(app_ref_f, "w") as f:
+    with open(app_ref_f, "w", encoding="utf-8") as f:
         f.write(args.app_path)
 
     # 读取当前状态快照
