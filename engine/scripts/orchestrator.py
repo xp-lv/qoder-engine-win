@@ -363,7 +363,6 @@ def _diagnose_wait_reason(st, app_path):
     # Case 4: pending_routes 存在但路由无产出 → verdict 无匹配 transition
     if pending_routes:
         route_steps = list(pending_routes.keys())
-        # 找到最后一个成功的步骤作为建议 jump 目标
         last_good = _find_last_good_step(st)
         suggest = f"建议 jump 到 '{last_good}'" if last_good else ""
         return (f"路由信号存在 ({route_steps}) 但无 dispatch 产出。{suggest}", True)
@@ -371,12 +370,19 @@ def _diagnose_wait_reason(st, app_path):
     # Case 5: 无任何信号且未终态 → STATE 可能不一致
     last_good = _find_last_good_step(st)
     suggest = f"建议 jump 到 '{last_good}'" if last_good else ""
-    return (f"无路由信号（pending_routes 为空），但工作流未完成。已完成 {len(completed)} 步。{suggest}。", True)
+    # v7.2: 包含 dispatch_log 摘要，便于排查
+    dispatch_log = st.get("dispatch_log", [])
+    log_summary = ""
+    if dispatch_log:
+        last_round = dispatch_log[-1]
+        log_summary = f" 最后分发(round {last_round['round']}): {last_round['steps']}"
+    return (f"无路由信号，已完成 {len(completed)} 步。{log_summary}{suggest}。", True)
 
 def _process_dispatches(state_path, app_path, workspace_id, dispatches, from_steps, task_request):
     """v4.0: 统一处理 dispatch 列表。
     多 dispatch = 并行（主 Agent 同时发起多个 Task），单 dispatch = 单步。
 
+    v7.2: 记录 dispatch_log 到 STATE.json，用于排查问题和还原并行批次。
     v6.0: 在同一 state_txn 内原子写入 step_status 和 active_dispatches，
     消除 set_status（子进程）与 active_dispatches 缓存之间的崩溃间隙。
     """
@@ -384,6 +390,7 @@ def _process_dispatches(state_path, app_path, workspace_id, dispatches, from_ste
     with state_txn(state_path) as st:
         ss = st.setdefault("step_status", {})
         active = st.get("active_dispatches") or {}
+        dispatch_steps = []
         for d in dispatches:
             entry = {
                 "role": d["role"],
@@ -395,7 +402,18 @@ def _process_dispatches(state_path, app_path, workspace_id, dispatches, from_ste
                 entry["from_steps"] = from_steps
             ss[d["step"]] = entry
             active[d["step"]] = d
+            dispatch_steps.append(d["step"])
         st["active_dispatches"] = active
+
+        # v7.2: 记录分发轮次日志
+        log = st.setdefault("dispatch_log", [])
+        log.append({
+            "round": len(log) + 1,
+            "steps": dispatch_steps,
+            "parallel": len(dispatches) > 1,
+            "from_steps": from_steps or [],
+            "timestamp": now_iso(),
+        })
 
     output({
         "status": "success",

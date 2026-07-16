@@ -567,7 +567,32 @@ def cmd_decide(args):
 # ─── --list-workspaces ───
 
 def cmd_list_workspaces(args):
-    """列出所有 workspace 及其状态。"""
+    """列出所有 workspace 及其状态（v7.2: 优先读 index.json）。"""
+    # v7.2: 优先从 index.json 读取
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from workspace_index import list_all
+        idx = list_all()
+        active = idx.get("active_workspace")
+        result = []
+        for ws_id, info in idx.get("workspaces", {}).items():
+            result.append({
+                "workspace_id": ws_id,
+                "app": info.get("app", ""),
+                "status": info.get("status", "?"),
+                "completed_count": info.get("completed_count", 0),
+                "terminal": info.get("terminal_state"),
+                "schema_version": info.get("schema_version", "?"),
+                "has_snapshots": info.get("has_snapshots", False),
+                "last_active_at": info.get("last_active_at", "?"),
+                "is_active": ws_id == active,
+            })
+        print(json.dumps({"workspaces": result, "active": active}, ensure_ascii=False, indent=2))
+        return
+    except Exception:
+        pass
+
+    # fallback: 扫目录（兼容旧版）
     ws_dir = os.path.join("runtime", "workspaces")
     result = []
     if os.path.isdir(ws_dir):
@@ -584,25 +609,17 @@ def cmd_list_workspaces(args):
                 executing = list(st.get("step_status", {}).keys())
                 completed = list(st.get("completed", {}).keys())
                 terminal = st.get("terminal_state")
-                # 读 APP_REF
                 app_ref_f = os.path.join(ws_base, "APP_REF")
                 app_ref = ""
                 if os.path.exists(app_ref_f):
                     with open(app_ref_f, "r", encoding="utf-8-sig") as f:
                         app_ref = f.read().strip()
-                # 读 WORKSPACE_ROOT
-                ws_root_f = os.path.join(ws_base, "WORKSPACE_ROOT")
-                ws_root = ""
-                if os.path.exists(ws_root_f):
-                    with open(ws_root_f, "r", encoding="utf-8-sig") as f:
-                        ws_root = f.read().strip()
                 result.append({
                     "workspace_id": ws_id,
                     "app": app_ref,
                     "executing": executing,
                     "completed": completed,
                     "terminal": terminal,
-                    "workspace_root": ws_root or None,
                 })
             except Exception:
                 pass

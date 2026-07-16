@@ -255,6 +255,14 @@ def main():
 
     save_state(state_path, initial_state)
 
+    # v7.2: 注册到工作区索引
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from workspace_index import register
+        register(ws_id, app_path, schema_version="4.1")
+    except Exception:
+        pass
+
     message = "force_reinitialized" if args.force else "initialized"
     output_success(message, initial_state, registry, router)
 

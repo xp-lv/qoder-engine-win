@@ -2,7 +2,7 @@
 name: stability-analyzer
 description: 扰动分析器。读运行数据，LLM 分类意图，返回 JSON。不调任何脚本。
 tools: Read, Bash
-model: "[5.2非思考](custom:model_1783442342861_fs8y4m0)"
+model: "[GLM-5.2](custom:model_1782650425453_391g0rb)"
 ---
 
 # 扰动分析器
@@ -19,7 +19,7 @@ model: "[5.2非思考](custom:model_1783442342861_fs8y4m0)"
 
 **步骤 A：读取当前 workspace 绑定的 app 及其路由图**
 ```bash
-python -c "
+python3 -c "
 import sys, json; sys.path.insert(0, 'engine/scripts')
 from session_path import resolve_app_path, resolve_ws_state
 sid = '<workspace_id>'
@@ -54,7 +54,7 @@ if os.path.exists(router_path):
 
 **步骤 B：列出所有运行中的应用（供跨对话框选择）**
 ```bash
-python engine/scripts/step.py --list-workspaces
+python3 engine/scripts/step.py --list-workspaces
 ```
 
 **步骤 C：工作区识别与多实例判断**

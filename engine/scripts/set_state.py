@@ -206,6 +206,21 @@ def main():
 
         append_history(state, args.action, args.step, "success")
         save_state(args.state_path, state)
+
+        # v7.2: 同步工作区注册表
+        try:
+            from workspace_index import sync_from_state, mark_reset
+            ws_id = args.workspace_id or ""
+            if not ws_id:
+                # 从 state_path 推导 ws_id
+                ws_id = os.path.basename(os.path.dirname(args.state_path))
+            if args.action == "reset":
+                mark_reset(ws_id)
+            else:
+                sync_from_state(ws_id, state)
+        except Exception:
+            pass
+
         output_success(state)
     except ValidationException as ve:
         output_failure(ve.error_code, ve.message)

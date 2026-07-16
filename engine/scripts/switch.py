@@ -39,6 +39,14 @@ def main():
     with open(app_ref_f, "w", encoding="utf-8") as f:
         f.write(args.app_path)
 
+    # v7.2: 更新工作区索引
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from workspace_index import set_active
+        set_active(args.workspace_id)
+    except Exception:
+        pass
+
     # 读取当前状态快照
     state_f = resolve_ws_state(args.workspace_id)
     state_snapshot = {}
