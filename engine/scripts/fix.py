@@ -14,19 +14,12 @@ v7.0 jump 语义变更：
     快照天然保留路由字段（completed / pending_routes / edge_counts），
     无需计算清除集，无交叉边污染，无 edge_counts 丢失。
 
-Usage: python scripts/fix.py --type <reset|jump> [--step <STEP_N>] [--state-path <path>]
+Usage: python3 scripts/fix.py --type <reset|jump> [--step <STEP_N>] [--state-path <path>]
 """
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state, resolve_app_path
 from state_io import load_state, save_state, state_txn
-
-
-# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
 
 
 def output(data):
@@ -64,7 +57,7 @@ def main():
     cmd = [sys.executable, "engine/scripts/set_state.py", "--action", "reset",
            "--step", "ALL", "--state-path", args.state_path]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace", env={**os.environ, "PYTHONIOENCODING": "utf-8"})
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
             data = json.loads(result.stdout)
             output({"status": data.get("status", "failure"),
@@ -121,7 +114,7 @@ def _do_jump(state_path, target_step):
                 "message": f"快照不存在: {snapshot_path}。该工作区可能创建于 v7.0 之前。",
                 "new_state_snapshot": None})
 
-    with open(snapshot_path, "r", encoding="utf-8-sig") as f:
+    with open(snapshot_path, "r", encoding="utf-8") as f:
         snapshot = json.load(f)
 
     # 3. 原子写入（state_txn 保证锁 + 不变量校验）
@@ -129,9 +122,35 @@ def _do_jump(state_path, target_step):
         st.clear()
         st.update(snapshot)
 
+        # v7.3: 恢复并行兄弟分支
+        # 快照中 step_status/active_dispatches 含有 jump 时刻正在执行的兄弟分支
+        # 时间回退后没有实际 agent 在跑，需将它们的 dispatch 指令转入 pending_dispatches 重新分发
+        snap_ss = st.get("step_status", {})
+        snap_active = st.get("active_dispatches", {})
+
+        sibling_dispatches = []
+        for step_name, entry in snap_ss.items():
+            if step_name == target_step:
+                continue
+            if entry.get("status") == "executing" and step_name in snap_active:
+                sibling_dispatches.append(snap_active[step_name])
+
+        if sibling_dispatches:
+            existing_pd = st.get("pending_dispatches") or []
+            st["pending_dispatches"] = existing_pd + sibling_dispatches
+            sibling_names = [d.get("step", "?") for d in sibling_dispatches]
+            print(
+                f"[fix v7.3] jump to {target_step}: "
+                f"restored {len(sibling_dispatches)} sibling branch(es): {sibling_names}",
+                file=sys.stderr,
+            )
+
+        # 清除僵尸 step_status 和 active_dispatches（已转入 pending_dispatches 或无需恢复）
+        st["step_status"] = {}
+        st["active_dispatches"] = {}
     cleared_count = len(completed_check) - len(snapshot.get("completed", {}))
     print(
-        f"[fix v7.0] jump to {target_step}: "
+        f"[fix v7.3] jump to {target_step}: "
         f"restored snapshot (cleared {cleared_count} downstream checkpoints)",
         file=sys.stderr,
     )

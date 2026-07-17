@@ -5,22 +5,15 @@
 所有控制流确定性，无 LLM 参与。
 
 Usage:
-  python engine/scripts/orchestrator.py --phase dispatch [--task-request <text>] [--app-path <path>]
-  python engine/scripts/orchestrator.py --phase post_execute --results <json>
-  python engine/scripts/orchestrator.py --phase post_confirm --decisions <json>
+  python3 engine/scripts/orchestrator.py --phase dispatch [--task-request <text>] [--app-path <path>]
+  python3 engine/scripts/orchestrator.py --phase post_execute --results <json>
+  python3 engine/scripts/orchestrator.py --phase post_confirm --decisions <json>
 """
 import argparse, json, os, sys, subprocess, uuid
 from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state, resolve_app_path, resolve_workspace_output, get_edge_targets, is_edge_backward
 from state_io import load_state, save_state, state_txn
-
-# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
-
 
 def now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -39,7 +32,7 @@ _SCRIPT_TIMEOUT = int(os.environ.get("STATE_OP_TIMEOUT", "30"))
 def run_script(cmd):
     """运行子脚本，返回 (success, parsed_json_or_stderr)."""
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=_SCRIPT_TIMEOUT, encoding="utf-8", errors="replace", env={**os.environ, "PYTHONIOENCODING": "utf-8"})
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=_SCRIPT_TIMEOUT)
         if result.returncode == 0:
             return True, json.loads(result.stdout)
         else:
@@ -80,11 +73,11 @@ def load_router_and_registry(app_path):
     router_steps = []
     registry = []
     if os.path.exists(router_path):
-        with open(router_path, "r", encoding="utf-8-sig") as f:
+        with open(router_path, "r", encoding="utf-8") as f:
             router_data = json.load(f)
         router_steps = router_data.get("steps", [])
     if os.path.exists(registry_path):
-        with open(registry_path, "r", encoding="utf-8-sig") as f:
+        with open(registry_path, "r", encoding="utf-8") as f:
             registry = json.load(f)
     reg_map = {r["role_name"]: r for r in registry} if registry else {}
     step_role_map = {s["step"]: s["role"] for s in router_steps}
@@ -250,7 +243,7 @@ def _global_converge(dispatches, st, app_path):
     reg_path = os.path.join(app_path, "registry.json")
     if not os.path.exists(reg_path):
         return dispatches
-    with open(reg_path, "r", encoding="utf-8-sig") as f:
+    with open(reg_path, "r", encoding="utf-8") as f:
         registry = json.load(f)
     
     # 构建 role_name → input_groups 映射，再通过 dispatch 的 role 查找
@@ -325,10 +318,10 @@ def _diagnose_wait_reason(st, app_path):
     router_steps = []
     registry = []
     if os.path.exists(router_path):
-        with open(router_path, "r", encoding="utf-8-sig") as f:
+        with open(router_path, "r", encoding="utf-8") as f:
             router_steps = json.load(f).get("steps", [])
     if os.path.exists(reg_path):
-        with open(reg_path, "r", encoding="utf-8-sig") as f:
+        with open(reg_path, "r", encoding="utf-8") as f:
             registry = json.load(f)
 
     role_input_groups = {r["role_name"]: r.get("input_groups", []) for r in (registry or [])}
@@ -434,7 +427,7 @@ def _check_required_files(app_path, role_name, workspace_id, state_path=None):
     if not os.path.exists(schema_file):
         return missing
     try:
-        with open(schema_file, "r", encoding="utf-8-sig") as f:
+        with open(schema_file, "r", encoding="utf-8") as f:
             schema = json.load(f)
     except (json.JSONDecodeError, ValueError):
         return missing
@@ -491,11 +484,14 @@ def phase_post_execute(state_path, app_path, workspace_id, results_json):
 
     for r in results:
         step = r.get("step", "")
-        status = r.get("status", "")
+        # v7.0: status 由 Hook② 推导后注入。如果 status 仍缺失（理论上不应发生），
+        # fail-safe: 默认 confirmed（因为 Hook② 已过滤了失败 case，能到这里说明已通过协议层）。
+        # 显式 fail/BLOCKING 才判失败。
+        status = r.get("status", "confirmed")
         output_paths = [o.get("path", "") for o in r.get("outputs", [])]
         role_verdict = r.get("verdict", "")
 
-        if status != "confirmed":
+        if status not in ("confirmed", ""):
             failed.append({"step": step, "reason": f"role-executor status={status}", "error": r.get("error")})
             continue
 
@@ -580,6 +576,7 @@ def phase_post_execute(state_path, app_path, workspace_id, results_json):
                     sys.executable, "engine/scripts/set_state.py",
                     "--action", "set_status", "--step", step,
                     "--status", "awaiting_confirmation",
+                    "--verdict", effective_verdict,
                     "--state-path", state_path,
                 ]
                 run_script(set_cmd)
@@ -697,13 +694,33 @@ def phase_post_confirm(state_path, app_path, workspace_id, decisions_json):
 
     router_steps, _, _, step_role_map = load_router_and_registry(app_path)
 
-    # 用户决策 = verdict：confirmed 走 advance，fail 也走 advance（统一推进）
+    # v7.0.3: 用户决策不再覆盖 role 的原始 verdict。
+    # 用户说 "confirmed" 意思是"我确认这个裁决有效"，不是"把 verdict 改成 confirmed"。
+    # fail 才是真正的拒绝（覆盖为 fail）。
+    # 如果用户 confirmed，保留 role-executor 返回的原始 verdict（如 deploy_doc_defect、challenged）。
     advance_steps = []
     for d in decisions:
         step = d.get("step", "")
         decision = d.get("decision", "")
-        verdict = "confirmed" if decision == "confirmed" else "fail"
         _role = step_role_map.get(step, "")
+
+        if decision == "fail":
+            # 用户明确拒绝 → verdict = fail
+            verdict = "fail"
+        else:
+            # 用户确认 → 保留 role 的原始 verdict（从 step_status 或 pending_routes 读取）
+            st = load_state(state_path)
+            original_verdict = None
+            # 从 pending_routes 读
+            pending_routes = st.get("pending_routes", {})
+            if step in pending_routes:
+                original_verdict = pending_routes[step].get("verdict")
+            # 从 step_status 读（awaiting_confirmation 中保存的）
+            if not original_verdict:
+                step_info = st.get("step_status", {}).get(step, {})
+                original_verdict = step_info.get("verdict")
+            # fallback：如果没有原始 verdict，默认 confirmed
+            verdict = original_verdict or "confirmed"
         advance_cmd = [
             sys.executable, "engine/scripts/set_state.py",
             "--action", "advance", "--step", step,

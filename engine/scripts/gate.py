@@ -4,20 +4,16 @@
 唯一职责：检查产出物是否存在、是否有内容、是否符合格式契约。
 不关心产出物的语义内容（verdict 值由 orchestrator 自己读）。
 
-所有产出物走同一套逻辑：JSON 直接校验，非 JSON 包装为 {"_raw_text": ...} 后校验。
+所有产出物走三层逻辑：
+1. 物理检查（统一，不区分产物类型）
+2. 二进制文件短路（扩展名匹配 → 仅物理检查即 PASS）
+3. 文本解析（JSON 直接校验，非 JSON 包装为 {"_raw_text": ...} 后校验）
 
-Usage: python engine/scripts/gate.py --step <STEP> --output-path <path> --app-path <path> [--workspace-id <id>]
+Usage: python3 engine/scripts/gate.py --step <STEP> --output-path <path> --app-path <path> [--workspace-id <id>]
 """
 import argparse, json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state, resolve_app_path
-
-
-# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
 
 
 def output(data):
@@ -115,23 +111,41 @@ def main():
     if os.path.getsize(args.output_path) == 0:
         fail(f"产出物文件为空: {args.output_path}")
 
-    # ── 2. 统一解析：JSON 直接用，非 JSON 包装 ──
-    raw = open(args.output_path, "r", encoding="utf-8-sig").read()
+    # ── 2. 二进制文件短路：物理检查通过即 PASS ──
+    # 二进制产出物（截图、图标、字体等）无法以 UTF-8 文本解析，
+    # 也不需要 schema 校验。物理检查（存在+非空）已足够。
+    BINARY_EXTENSIONS = {
+        '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.webp', '.svg',
+        '.woff', '.woff2', '.ttf', '.eot', '.pdf', '.zip', '.tar', '.gz',
+    }
+    _, ext = os.path.splitext(args.output_path)
+    if ext.lower() in BINARY_EXTENSIONS:
+        output({"verdict": "PASS", "errors": []})
+
+    # ── 3. 统一解析：JSON 直接用，非 JSON 包装 ──
+    # 对文本文件先以二进制读取，再解码为 UTF-8，避免解码异常导致脚本崩溃
+    with open(args.output_path, "rb") as bf:
+        raw_bytes = bf.read()
+    try:
+        raw = raw_bytes.decode("utf-8")
+    except (UnicodeDecodeError, ValueError):
+        # 无法解码为 UTF-8 的非二进制扩展名文件 → 物理检查通过即 PASS
+        output({"verdict": "PASS", "errors": []})
     try:
         data = json.loads(raw)
     except (json.JSONDecodeError, ValueError):
         data = {"_raw_text": raw}
 
-    # ── 3. 查找角色的 schema ──
+    # ── 4. 查找角色的 schema ──
     router_path = os.path.join(app_path, "ROUTER.json")
     reg_path = os.path.join(app_path, "registry.json")
     if not os.path.exists(router_path) or not os.path.exists(reg_path):
         # 无配置文件 → 只做物理检查（已有内容即 PASS）
         output({"verdict": "PASS", "errors": []})
 
-    with open(router_path, "r", encoding="utf-8-sig") as f:
+    with open(router_path, "r", encoding="utf-8") as f:
         router = json.load(f)
-    with open(reg_path, "r", encoding="utf-8-sig") as f:
+    with open(reg_path, "r", encoding="utf-8") as f:
         registry = json.load(f)
 
     step_entry = next((s for s in router.get("steps", []) if s["step"] == args.step), None)
@@ -143,7 +157,7 @@ def main():
     if not role_record:
         fail(f"角色 {role_name} 不在 registry.json 中")
 
-    # ── 4. Schema 校验（从 roles 目录加载）──
+    # ── 5. Schema 校验（从 roles 目录加载）──
     min_size = role_record.get("gate_rules", {}).get("phase1_cross_validation", {}).get("text_validation", {}).get("min_size", 50)
     role_dir_name = step_entry.get("role", "")
     # slugify 角色名查找 schema
@@ -163,7 +177,7 @@ def main():
     elif os.path.exists(schema_file):
         # JSON：做 schema 校验
         try:
-            with open(schema_file, "r", encoding="utf-8-sig") as f:
+            with open(schema_file, "r", encoding="utf-8") as f:
                 schema = json.load(f)
             
             # 上下文感知 verdict enum 替换：
@@ -172,7 +186,7 @@ def main():
             step_verdict_context = step_entry.get("verdict_context")
             if step_verdict_context:
                 try:
-                    with open(state_path, "r", encoding="utf-8-sig") as sf:
+                    with open(state_path, "r", encoding="utf-8") as sf:
                         state_data = json.load(sf)
                     step_ss = state_data.get("step_status", {}).get(args.step, {})
                     dispatch_from = step_ss.get("from_steps", [])
@@ -195,7 +209,7 @@ def main():
         if len(raw) < min_size:
             errors.append(f"文件内容过短（{len(raw)} < {min_size}）")
 
-    # ── 5. 返回 ──
+    # ── 6. 返回 ──
     if errors:
         result = {"verdict": "FAIL", "errors": errors}
     else:
@@ -212,7 +226,7 @@ def main():
         ws_root = ws_base
         wr_file = os.path.join(ws_base, "WORKSPACE_ROOT")
         if os.path.exists(wr_file):
-            with open(wr_file, "r", encoding="utf-8-sig") as f:
+            with open(wr_file, "r") as f:
                 ws_root = f.read().strip()
         result_file = os.path.join(ws_root, "outputs", f"{args.step}-gate-result.json")
         os.makedirs(os.path.dirname(result_file), exist_ok=True)

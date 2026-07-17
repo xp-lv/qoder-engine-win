@@ -1,0 +1,16 @@
+{
+  "schema_version": "2.0",
+  "app_name": "preview-test",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "outputs",
+      "outputs/src/backend",
+      "outputs/src/frontend"
+    ],
+    "init_files": {}
+  }
+}

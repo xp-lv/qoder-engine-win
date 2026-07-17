@@ -48,6 +48,18 @@
 6. 追踪表写入 dispatch 注入的产出物路径中的追踪表
 
 ## verdict 判定规则
-- `tracked`：本轮 TRACK 已收集，准备进入下一轮全局迭代
-- `completed`：所有 TRACK 已关闭，APP 构建完成
-- `proposal_ready`：有 SDK_SPEC 演进提案，附带提案直接完成
+
+| verdict | 触发条件 | 路由目标 |
+|---------|----------|----------|
+| `tracked` | 本轮 TRACK 已收集，准备进入下一轮全局迭代 | → 需求接收者（max: 3） |
+| `completed` | 所有 TRACK 已关闭，APP 构建完成 | → 完成（终态） |
+| `proposal_ready` | 有 SDK_SPEC 演进提案，附带提案直接完成 | → 完成（终态） |
+
+## 自检项
+
+产出追踪表和构建报告前，逐项自查：
+- [ ] TRACK 是否全部收集（新增/已解决/持续分类）？
+- [ ] 是否检查了是否有 TRACK 涉及 SDK_SPEC 规范本身改进？
+- [ ] 构建报告是否包含七大段（概览/需求摘要/架构总览/文件清单/验证结果/TRACK追踪/下一步建议）？
+- [ ] verdict 是否在 {tracked, completed, proposal_ready} 范围内？
+- [ ] result.verdict 和 result.summary 是否填写？

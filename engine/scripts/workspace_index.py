@@ -31,14 +31,32 @@ _INDEX_PATH = os.path.join(_PROJECT_ROOT, "runtime", "workspaces", "index.json")
 
 
 def _now():
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    """返回本地时间（带时区偏移，ISO 8601）。"""
+    return datetime.now().astimezone().isoformat(timespec='seconds')
+
+
+def to_local_display(ts):
+    """将 UTC 时间戳（'...Z'）转换为本地时间用于显示。
+
+    - '2026-07-16T19:41:19Z' → '2026-07-17T03:41:19+08:00'
+    - 已带时区偏移的或非时间字符串原样返回
+    """
+    if not ts or ts in ("?", "null", None):
+        return ts
+    try:
+        if isinstance(ts, str) and ts.endswith("Z"):
+            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            return dt.astimezone().isoformat(timespec='seconds')
+    except Exception:
+        pass
+    return ts
 
 
 def _load():
     """加载 index.json，不存在则返回空结构。"""
     if os.path.exists(_INDEX_PATH):
         try:
-            with open(_INDEX_PATH, "r", encoding="utf-8-sig") as f:
+            with open(_INDEX_PATH, "r", encoding="utf-8") as f:
                 return json.load(f)
         except (json.JSONDecodeError, ValueError):
             pass
@@ -162,7 +180,7 @@ def rebuild_index():
         app = ""
         if os.path.exists(app_ref_path):
             try:
-                with open(app_ref_path, "r", encoding="utf-8-sig") as f:
+                with open(app_ref_path, "r") as f:
                     app = f.read().strip()
             except Exception:
                 pass
@@ -170,7 +188,7 @@ def rebuild_index():
         # 读 STATE
         if os.path.exists(state_path):
             try:
-                with open(state_path, "r", encoding="utf-8-sig") as f:
+                with open(state_path, "r", encoding="utf-8") as f:
                     st = json.load(f)
                 terminal = st.get("terminal_state")
                 completed_count = len(st.get("completed", {}))
@@ -203,8 +221,8 @@ def rebuild_index():
         index["workspaces"][ws_id] = {
             "app": app or "?",
             "status": status,
-            "created_at": st.get("metadata", {}).get("started_at", "?") if os.path.exists(state_path) else "?",
-            "last_active_at": st.get("metadata", {}).get("last_advance_at", "?") if os.path.exists(state_path) else "?",
+            "created_at": to_local_display(st.get("metadata", {}).get("started_at", "?")) if os.path.exists(state_path) else "?",
+            "last_active_at": to_local_display(st.get("metadata", {}).get("last_advance_at", "?")) if os.path.exists(state_path) else "?",
             "terminal_state": terminal,
             "completed_count": completed_count,
             "schema_version": schema_ver,

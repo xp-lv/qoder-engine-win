@@ -1,20 +1,13 @@
 #!/usr/bin/env python3
 """set_state.py — STATE.json 状态操作 CLI。
 所有修改通过 state_io.save_state() 统一写入。
-Usage: python scripts/set_state.py --action <action> --step <STEP_N> [options]
+Usage: python3 scripts/set_state.py --action <action> --step <STEP_N> [options]
 """
 import argparse, json, os, sys, copy, shutil
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state
 from state_io import load_state, save_state
 from datetime import datetime, timezone
-
-
-# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
 
 
 class ValidationException(Exception):
@@ -72,20 +65,26 @@ def do_reset(state):
 
 
 def _save_snapshot(state_path, step, state):
-    """v7.0: 在 advance 后保存快照，用于 jump 快速还原。
+    """v7.3: 在 advance 后保存快照，用于 jump 快速还原。
 
     快照保留路由字段（completed / pending_routes / edge_counts / terminal_state / history / metadata），
-    清除运行时字段（step_status / pending_dispatches / cached_branch_results / active_dispatches）。
+    同时保留并行兄弟分支信息（step_status / active_dispatches），
+    仅清除不可复用的运行时缓存（pending_dispatches / cached_branch_results）。
+
+    v7.3 变更：不再擦除 step_status 和 active_dispatches。
+    原因：advance 时 STATE 中可能含有正在执行的并行兄弟分支，
+    擦除后 jump 还原会丢失兄弟分支，导致并行流程断裂。
     """
     snapshot_dir = os.path.join(os.path.dirname(state_path), "snapshots")
     os.makedirs(snapshot_dir, exist_ok=True)
     snapshot_path = os.path.join(snapshot_dir, f"{step}.json")
 
     snapshot = copy.deepcopy(state)
-    snapshot["step_status"] = {}
-    snapshot["pending_dispatches"] = None
-    snapshot["cached_branch_results"] = []
-    snapshot["active_dispatches"] = {}
+    # v7.3: 保留 step_status 和 active_dispatches — 含并行兄弟分支信息
+    snapshot["step_status"] = dict(state.get("step_status", {}))
+    snapshot["active_dispatches"] = dict(state.get("active_dispatches", {}))
+    snapshot["pending_dispatches"] = None       # 运行时缓存，由 --next 重新生成
+    snapshot["cached_branch_results"] = []      # Hook② 私有缓存
 
     with open(snapshot_path, "w", encoding="utf-8") as f:
         json.dump(snapshot, f, ensure_ascii=False, indent=2)
@@ -134,7 +133,7 @@ def do_resume(state, step):
         "dispatch_id": r.get("id", "")
     }
 
-def do_set_status(state, step, status, role, dispatch_id, from_steps=None):
+def do_set_status(state, step, status, role, dispatch_id, from_steps=None, verdict=None):
     ss = state.get("step_status", {})
     if status == "idle":
         if step in ss:
@@ -145,6 +144,8 @@ def do_set_status(state, step, status, role, dispatch_id, from_steps=None):
             entry["started_at"] = now_iso()
             if from_steps:
                 entry["from_steps"] = from_steps
+        if verdict and status == "awaiting_confirmation":
+            entry["verdict"] = verdict
         ss[step] = entry
     state["step_status"] = ss
 
@@ -202,7 +203,7 @@ def main():
                     from_steps = json.loads(args.from_steps)
                 except (json.JSONDecodeError, ValueError):
                     pass
-            do_set_status(state, args.step, args.status, args.role, args.dispatch_id, from_steps)
+            do_set_status(state, args.step, args.status, args.role, args.dispatch_id, from_steps, args.verdict)
 
         append_history(state, args.action, args.step, "success")
         save_state(args.state_path, state)

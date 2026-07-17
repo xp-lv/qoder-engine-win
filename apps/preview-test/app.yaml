@@ -1,0 +1,72 @@
+app_name: preview-test
+
+# --------------------------------------------------------------------
+# 闭环在线迭代验证 app
+# reviewer 自主审查前端效果 → 发现问题自动回退 → 修改后重新审查
+#
+# 流程：
+#   代码准备者 → 前端预览(daemon启动服务 + reviewer审查)
+#                ├─ confirmed → 完成
+#                └─ needs_revision → 代码修改者(修代码) → 前端预览(再看)
+#                                    (Vite HMR 自动更新，服务不重启)
+# --------------------------------------------------------------------
+
+roles:
+
+  代码准备者:
+    type: standard
+    confirm: auto
+    outputs:
+      - 前端代码: outputs/src/frontend/
+      - 后端代码: outputs/src/backend/
+
+  代码修改者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 前端代码: outputs/src/frontend/
+      - 后端代码: outputs/src/backend/
+      - 预览确认报告: outputs/预览确认报告.json, type=process
+    outputs:
+      - 前端代码: outputs/src/frontend/
+      - 后端代码: outputs/src/backend/
+
+  前端预览:
+    type: preview
+    confirm: auto
+    inputs:
+      - 前端代码: outputs/src/frontend/
+      - 后端代码: outputs/src/backend/
+    daemon:
+      - name: 后端API服务
+        command: "npm run dev"
+        cwd: "outputs/src/backend"
+        port: 3001
+        health_check: "GET /api/health"
+      - name: 前端Dev服务
+        command: "npx vite --host 127.0.0.1 --port 5173"
+        cwd: "outputs/src/frontend"
+        port: 5173
+        health_check: "GET /"
+    reviewer:
+      url: "http://127.0.0.1:5173"
+      screenshot: true
+    outputs:
+      - 预览确认报告: outputs/预览确认报告.json, type=process
+
+# --------------------------------------------------------------------
+# edges：闭环迭代路由
+# --------------------------------------------------------------------
+edges:
+
+  # 初始入口：代码准备 → 预览
+  - 代码准备者 → 前端预览
+
+  # 审查通过 → 完成
+  - 前端预览 → 完成 when: result.verdict == "confirmed"
+
+  # 审查不满意 → 代码修改者修改（携带 reviewer 的反馈报告）
+  - 前端预览 → 代码修改者 when: result.verdict == "needs_revision" max_executions: 3
+
+  # 修改完成 → 重新预览（daemon 端口幂等跳过，Vite HMR 自动更新）
+  - 代码修改者 → 前端预览

@@ -10,20 +10,20 @@
 
 1. **读取输入**：读取 dispatch 注入的输入文件（前端代码目录）
 2. **识别技术栈**：扫描前端代码目录，识别项目使用的技术栈（React / Next.js / Vite / Create React App 等）
-   - 检查 package.json 中的 dependencies 和 scripts
-   - 检查配置文件（next.config.js / vite.config.ts / webpack.config.js）
+ - 检查 package.json 中的 dependencies 和 scripts
+ - 检查配置文件（next.config.js / vite.config.ts / webpack.config.js）
 3. **确定启动命令**：根据识别的技术栈确定预览服务启动命令
-   - Next.js → `npm run dev`（默认 localhost:3000）
-   - Vite → `npm run dev`（默认 localhost:5173）
-   - Create React App → `npm start`（默认 localhost:3000）
-   - 其他 → 根据 package.json scripts 确定
+ - Next.js → `npm run dev`（默认 localhost:3000）
+ - Vite → `npm run dev`（默认 localhost:5173）
+ - Create React App → `npm start`（默认 localhost:3000）
+ - 其他 → 根据 package.json scripts 确定
 4. **安装依赖**：在前端代码目录中执行依赖安装（npm install / yarn install）
 5. **启动预览服务（nohup 后台）**：在前端代码目录中以 nohup 后台方式启动 dev server，使其脱离当前 shell 生命周期持续运行：
-   ```
-   cd {前端代码目录} && nohup npm run dev > /tmp/preview-server.log 2>&1 & disown
-   ```
-   - **nohup 写法说明**：`nohup` 抵御 SIGHUP，`&` 放到后台，`disown` 将进程从 job 表移除，三者配合保证 dev server 在本次 Bash 工具调用结束后仍持续运行（dev server 输出重定向到 `/tmp/preview-server.log` 以便后续排查）
-   - 等待若干秒让服务编译就绪
+ ```
+ cd {前端代码目录} && nohup npm run dev > /tmp/preview-server.log 2>&1 & disown
+ ```
+ - **nohup 写法说明**：`nohup` 抵御 SIGHUP，`&` 放到后台，`disown` 将进程从 job 表移除，三者配合保证 dev server 在本次 Bash 工具调用结束后仍持续运行（dev server 输出重定向到 `/tmp/preview-server.log` 以便后续排查）
+ - 等待若干秒让服务编译就绪
 6. **验证服务可用**：通过 HTTP 请求检查预览服务是否正常响应（curl 检查端口是否返回 200），或查看 `/tmp/preview-server.log` 中是否出现「Ready / Local:」就绪标志
 7. **人工确认部署成功（confirm: manual）**：本角色为 manual gate，需人工确认 dev server 已成功部署并可访问后推进
 8. **截取浏览器预览截图（新增）**：部署成功后，人工在浏览器打开预览地址（如 http://localhost:3000）查看实际渲染效果，截取渲染截图保存至 dispatch 注入的产出物路径（预览截图，outputs/preview-screenshot.png），供下游前端美学师查看评估

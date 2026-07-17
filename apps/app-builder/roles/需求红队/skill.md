@@ -38,5 +38,16 @@
 19. 产出对抗分析报告，写入 dispatch 注入的产出物路径
 
 ## verdict 判定规则
-- `confirmed`：未发现 critical/major 级别的需求缺陷
-- `challenged`：发现至少 1 个 critical/major 级别缺陷，需裁决审计者复核
+
+| verdict | 触发条件 | 路由目标 |
+|---------|----------|----------|
+| `confirmed` | 未发现 critical/major 级别的需求缺陷 | → 架构师 |
+| `challenged` | 发现至少 1 个 critical/major 级别缺陷 | → 裁决审计者（对抗复核） |
+
+## 自检项
+
+产出对抗分析报告前，逐项自查：
+- [ ] 六个对抗维度（语义矛盾/歧义性/缺失约束/角色可达性/验收可证伪性/文档链一致性）是否全部检查？
+- [ ] 每个 finding 是否包含具体引用 + 严重级别 + 问题 + 修复建议？
+- [ ] verdict 是否在 {confirmed, challenged} 范围内？
+- [ ] result.verdict 和 result.summary 是否填写？

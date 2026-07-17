@@ -12,22 +12,15 @@ v5.0 变化：
 
 Usage:
   # 初始调度（无 --from = 返回入口 STEP）
-  python engine/scripts/router.py [--workspace-id <id>] [--app-path <path>] [--task-request <text>]
+  python3 engine/scripts/router.py [--workspace-id <id>] [--app-path <path>] [--task-request <text>]
 
   # 结果驱动调度（从已完成的 STEP + 结果出发）
-  python engine/scripts/router.py --from '["STEP0"]' --on confirmed [--workspace-id <id>] [--app-path <path>]
+  python3 engine/scripts/router.py --from '["STEP0"]' --on confirmed [--workspace-id <id>] [--app-path <path>]
 """
 import argparse, json, os, re, sys, uuid
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state, resolve_app_path, resolve_workspace_output, get_edge_targets, is_edge_backward
-from state_io import load_state as _io_load, save_state
-
-# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
-
+from state_io import load_state as _io_load, save_state, state_txn
 
 def output(data):
     print(json.dumps(data, ensure_ascii=False))
@@ -37,7 +30,7 @@ def load_json(path, error_code, error_msg):
     if not os.path.exists(path):
         output({"status": "failure", "error_code": error_code, "message": f"{error_msg}: {path}", "dispatch_instructions": []})
     try:
-        with open(path, "r", encoding="utf-8-sig") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, ValueError) as e:
         output({"status": "failure", "error_code": error_code, "message": f"{error_msg}: {e}", "dispatch_instructions": []})
@@ -148,12 +141,10 @@ def main():
 
         dispatchable.append(target)
 
-    # 如果递增了 edge_counts，写回 STATE.json（通过 state_io 统一写入）
+    # 如果递增了 edge_counts，写回 STATE.json（v5.2: 使用 state_txn 原子事务）
     if edge_counts_changed:
-        st = _io_load(state_path)
-        if st is not None:
+        with state_txn(state_path) as st:
             st["edge_counts"] = edge_counts
-            save_state(state_path, st)
 
     # ─── 组装 dispatch_instructions ───
 
@@ -209,7 +200,7 @@ def main():
         schema_file_path = os.path.join(app_path, "roles", schema_dir_name, "schema.json")
         if os.path.exists(schema_file_path):
             try:
-                with open(schema_file_path, "r", encoding="utf-8-sig") as f:
+                with open(schema_file_path, "r", encoding="utf-8") as f:
                     role_schema = json.load(f)
                 req_top = role_schema.get("required", [])
                 props = role_schema.get("properties", {})

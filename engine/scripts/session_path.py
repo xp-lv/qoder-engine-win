@@ -31,7 +31,7 @@ def resolve_ws_process(ws_id):
 def read_app_ref(ws_id):
     app_ref_f = os.path.join(resolve_ws_base(ws_id), "APP_REF")
     if os.path.exists(app_ref_f):
-        with open(app_ref_f, "r", encoding="utf-8-sig") as f:
+        with open(app_ref_f, "r") as f:
             return f.read().strip()
     raise FileNotFoundError(f"workspace {ws_id} 没有 APP_REF")
 
@@ -39,7 +39,7 @@ def read_app_ref(ws_id):
 def read_workspace_root(ws_id):
     ws_root_f = os.path.join(resolve_ws_base(ws_id), "WORKSPACE_ROOT")
     if os.path.exists(ws_root_f):
-        with open(ws_root_f, "r", encoding="utf-8-sig") as f:
+        with open(ws_root_f, "r") as f:
             return f.read().strip()
     return None
 

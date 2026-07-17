@@ -36,5 +36,56 @@
 
 22. 汇总发现，写入 dispatch 注入的产出物路径
 
+## 产出物格式
+
+```
+顶层字段:
+  result.verdict: "confirmed"
+  result.summary: "结构审阅概述"
+
+结构审阅报告主体:
+  维度一_角色扩展性:
+    角色清单完整性: pass / fail (详情)
+    职责边界清晰度: pass / fail (详情)
+    producer入口唯一性: pass / fail (详情)
+  维度二_编排复杂度:
+    DAG拓扑合理性: pass / fail (详情)
+    并行化能力: pass / fail (详情)
+    max_executions合理性: pass / fail (详情)
+  维度三_文档链完整性:
+    文档链串行性: pass / fail (详情)
+    文档层与执行层界限: pass / fail (详情)
+    治理层独立性: pass / fail (详情)
+  维度四_知识文档完备性:
+    知识文档覆盖率: pass / fail (详情)
+    inject_to一致性: pass / fail (详情)
+    content_guide实质大纲: pass / fail (详情)
+  findings:
+    - 具体引用: "<角色名/边名/字段名>"
+      严重级别: critical / major / minor
+      问题描述: "<具体问题>"
+      建议修复方案: "<修复建议>"
+```
+
 ## verdict 判定规则
-- `confirmed`：角色扩展性、编排复杂度、文档链完整性和知识文档完备性均达标
+
+| verdict | 触发条件 | 路由目标 |
+|---------|----------|----------|
+| `confirmed` | 四个维度均达标 | → 综合裁决者（JOIN） |
+
+## 设计约束
+
+- **只审阅不修改**：不修改任何文件，只产出审阅报告
+- **findings 必须具名**：每个 finding 必须包含具体引用
+- **严重级别分级**：critical=阻断性缺陷 / major=重要缺陷 / minor=建议性改进
+
+## 自检项
+
+产出审阅报告前，逐项自查：
+- [ ] 四个维度（角色扩展性/编排复杂度/文档链/知识文档）是否全部检查？
+- [ ] 角色清单是否覆盖需求中的所有能力域？
+- [ ] DAG拓扑是否合理（无冗余/层次清晰）？
+- [ ] 文档链是否完整（文档层串行、执行层以实现规格为输入）？
+- [ ] knowledge inject_to 是否与 app.yaml 完全对齐？
+- [ ] 每个 finding 是否包含具名引用 + 严重级别 + 问题 + 修复方案？
+- [ ] result.verdict 和 result.summary 是否填写？

@@ -1,7 +1,73 @@
 {
   "schema_version": "2.0",
-  "entry": "需求接收者",
+  "entry": "迭代守门人",
   "steps": [
+    {
+      "step": "迭代守门人",
+      "role": "迭代守门人",
+      "transitions": {
+        "fresh_start": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/迭代守门人-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 迭代守门人"
+            }
+          ]
+        },
+        "incremental": {
+          "targets": [
+            "全栈联调验证者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/迭代守门人-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 迭代守门人"
+            }
+          ]
+        },
+        "done": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/迭代守门人-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 迭代守门人"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "迭代守门人"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/迭代守门人/迭代守门人.json",
+              "type": "feedback",
+              "name": "[反馈] 迭代守门人"
+            },
+            {
+              "path": "outputs/迭代守门人-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 迭代守门人 Gate校验结果"
+            },
+            {
+              "path": "outputs/迭代守门人-feedback.json",
+              "type": "feedback",
+              "name": "[反馈] 迭代守门人 用户反馈"
+            }
+          ]
+        }
+      }
+    },
     {
       "step": "需求接收者",
       "role": "需求接收者",
@@ -66,7 +132,6 @@
             "需求接收者"
           ],
           "type": "normal",
-          "max_executions": 3,
           "carries": [
             {
               "path": "outputs/需求审计者-gate-result.json",
@@ -253,7 +318,6 @@
             "前端文档管理者"
           ],
           "type": "normal",
-          "max_executions": 3,
           "carries": [
             {
               "path": "outputs/交叉审核者-gate-result.json",
@@ -272,7 +336,6 @@
             "后端文档管理者"
           ],
           "type": "normal",
-          "max_executions": 3,
           "carries": [
             {
               "path": "outputs/交叉审核者-gate-result.json",
@@ -292,7 +355,6 @@
             "后端文档管理者"
           ],
           "type": "normal",
-          "max_executions": 3,
           "carries": [
             {
               "path": "outputs/交叉审核者-gate-result.json",
@@ -639,7 +701,7 @@
       "transitions": {
         "confirmed": {
           "targets": [
-            "前端美学师"
+            "全栈联调验证者"
           ],
           "type": "normal",
           "carries": [
@@ -670,92 +732,6 @@
               "path": "outputs/预览部署者-gate-result.json",
               "type": "feedback",
               "name": "[反馈] 预览部署者 Gate校验结果"
-            },
-            {
-              "path": "outputs/预览部署者-feedback.json",
-              "type": "feedback",
-              "name": "[反馈] 预览部署者 用户反馈"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "step": "前端美学师",
-      "role": "前端美学师",
-      "transitions": {
-        "confirmed": {
-          "targets": [
-            "全栈联调验证者"
-          ],
-          "type": "normal",
-          "carries": [
-            {
-              "path": "outputs/前端美学师-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 前端美学师"
-            }
-          ]
-        },
-        "needs_revision": {
-          "targets": [
-            "交互逻辑设计师",
-            "美学布局设计师"
-          ],
-          "type": "normal",
-          "max_executions": 3,
-          "carries": [
-            {
-              "path": "outputs/前端美学师-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 前端美学师"
-            },
-            {
-              "path": "outputs/前端美学评审报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 前端美学评审报告"
-            }
-          ]
-        },
-        "service_down": {
-          "targets": [
-            "预览部署者"
-          ],
-          "type": "normal",
-          "max_executions": 3,
-          "carries": [
-            {
-              "path": "outputs/前端美学师-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 前端美学师"
-            },
-            {
-              "path": "outputs/前端美学评审报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 前端美学评审报告"
-            }
-          ]
-        },
-        "fail": {
-          "targets": [
-            "前端美学师"
-          ],
-          "type": "backward",
-          "carries": [
-            {
-              "path": "outputs/前端美学评审报告.json",
-              "type": "feedback",
-              "name": "[反馈] 前端美学评审报告"
-            },
-            {
-              "path": "outputs/前端美学师-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 前端美学师 Gate校验结果"
-            },
-            {
-              "path": "outputs/前端美学师-feedback.json",
-              "type": "feedback",
-              "name": "[反馈] 前端美学师 用户反馈"
             }
           ]
         }
@@ -783,7 +759,6 @@
             "后端实现者"
           ],
           "type": "normal",
-          "max_executions": 3,
           "carries": [
             {
               "path": "outputs/后端启动验证者-gate-result.json",
@@ -839,7 +814,6 @@
             "前端实现者"
           ],
           "type": "normal",
-          "max_executions": 3,
           "carries": [
             {
               "path": "outputs/全栈联调验证者-gate-result.json",
@@ -858,7 +832,25 @@
             "后端实现者"
           ],
           "type": "normal",
-          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/全栈联调验证者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 全栈联调验证者"
+            },
+            {
+              "path": "outputs/联调验证报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 联调验证报告"
+            }
+          ]
+        },
+        "design_fix": {
+          "targets": [
+            "交互逻辑设计师",
+            "美学布局设计师"
+          ],
+          "type": "normal",
           "carries": [
             {
               "path": "outputs/全栈联调验证者-gate-result.json",
@@ -887,6 +879,11 @@
               "path": "outputs/全栈联调验证者-gate-result.json",
               "type": "feedback",
               "name": "[反馈] 全栈联调验证者 Gate校验结果"
+            },
+            {
+              "path": "outputs/全栈联调验证者-feedback.json",
+              "type": "feedback",
+              "name": "[反馈] 全栈联调验证者 用户反馈"
             }
           ]
         }
@@ -914,7 +911,6 @@
             "前端实现者"
           ],
           "type": "normal",
-          "max_executions": 5,
           "carries": [
             {
               "path": "outputs/合并校验者-gate-result.json",
@@ -933,7 +929,6 @@
             "后端实现者"
           ],
           "type": "normal",
-          "max_executions": 3,
           "carries": [
             {
               "path": "outputs/合并校验者-gate-result.json",
@@ -1019,7 +1014,9 @@
       "role": "综合裁决者",
       "transitions": {
         "confirmed": {
-          "targets": [],
+          "targets": [
+            "迭代守门人"
+          ],
           "type": "normal",
           "carries": [
             {
@@ -1031,10 +1028,23 @@
         },
         "challenged": {
           "targets": [
-            "交叉审核者"
+            "需求分流者"
           ],
           "type": "normal",
-          "max_executions": 2,
+          "carries": [
+            {
+              "path": "outputs/综合裁决者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 综合裁决者"
+            }
+          ]
+        },
+        "doc_challenged": {
+          "targets": [
+            "前端文档管理者",
+            "后端文档管理者"
+          ],
+          "type": "normal",
           "carries": [
             {
               "path": "outputs/综合裁决者-gate-result.json",
@@ -1048,7 +1058,6 @@
             "部署文档管理者"
           ],
           "type": "normal",
-          "max_executions": 2,
           "carries": [
             {
               "path": "outputs/综合裁决者-gate-result.json",

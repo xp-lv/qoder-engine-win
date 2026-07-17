@@ -28,7 +28,7 @@ from filelock import acquire_lock, release_lock
 def load_state(state_path):
     """安全读取 STATE.json，返回 dict。文件不存在或解析失败返回 None。"""
     try:
-        with open(state_path, "r", encoding="utf-8-sig") as f:
+        with open(state_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return None
@@ -71,7 +71,7 @@ def save_state(state_path, state, validate=True):
     if d:
         os.makedirs(d, exist_ok=True)
     lock_path = state_path + ".lock"
-    with open(lock_path, "w", encoding="utf-8") as lock_file:
+    with open(lock_path, "w") as lock_file:
         if not acquire_lock(lock_file):
             raise RuntimeError("获取 STATE.json 文件锁失败")
         try:
@@ -106,7 +106,7 @@ def state_txn(state_path, timeout=60):
     if d:
         os.makedirs(d, exist_ok=True)
     lock_path = state_path + ".lock"
-    with open(lock_path, "w", encoding="utf-8") as lock_file:
+    with open(lock_path, "w") as lock_file:
         if not acquire_lock(lock_file, timeout):
             raise RuntimeError("获取 STATE.json 文件锁失败")
         try:

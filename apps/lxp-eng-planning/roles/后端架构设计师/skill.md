@@ -11,29 +11,29 @@
 1. **读取输入**：读取 dispatch 注入的输入文件（后端需求规格文档 + 后端业务逻辑文档 + 交叉审核报告）
 2. **参考知识文档**：参考 dispatch 注入的 knowledge 文档（树形数据结构存储优化）
 3. **技术选型设计**：
-   - 运行时：Node.js ≥ 18
-   - Web 框架：Express / Fastify
-   - ORM：Prisma（SQLite 驱动）
-   - TypeScript 严格模式
+ - 运行时：Node.js ≥ 18
+ - Web 框架：Express / Fastify
+ - ORM：Prisma（SQLite 驱动）
+ - TypeScript 严格模式
 4. **模块划分设计**：
-   - 路由层（routes/）：API 路由定义
-   - 控制器层（controllers/）：请求处理、参数校验
-   - 服务层（services/）：业务逻辑实现
-   - 数据层（repositories/）：数据库操作封装
-   - 中间件层（middleware/）：认证、日志、错误处理
+ - 路由层（routes/）：API 路由定义
+ - 控制器层（controllers/）：请求处理、参数校验
+ - 服务层（services/）：业务逻辑实现
+ - 数据层（repositories/）：数据库操作封装
+ - 中间件层（middleware/）：认证、日志、错误处理
 5. **分层架构设计**：
-   - 依赖方向：routes → controllers → services → repositories → Prisma
-   - 错误传播策略：统一错误中间件
-   - 事务管理策略
+ - 依赖方向：routes → controllers → services → repositories → Prisma
+ - 错误传播策略：统一错误中间件
+ - 事务管理策略
 6. **中间件配置**：
-   - CORS 配置
-   - 请求日志中间件
-   - 参数校验中间件（Zod / Joi）
-   - 错误处理中间件
+ - CORS 配置
+ - 请求日志中间件
+ - 参数校验中间件（Zod / Joi）
+ - 错误处理中间件
 7. **部署拓扑设计**：
-   - 单进程部署（Node.js + SQLite 内置）
-   - 端口配置、数据库文件路径
-   - Docker 容器化方案
+ - 单进程部署（Node.js + SQLite 内置）
+ - 端口配置、数据库文件路径
+ - Docker 容器化方案
 8. **写入产出物**：将后端架构设计文档写入 dispatch 注入的产出物路径
 
 ## 设计约束

@@ -11,7 +11,8 @@
       "outputs",
       "outputs/prisma",
       "outputs/src/backend",
-      "outputs/src/frontend"
+      "outputs/src/frontend",
+      "outputs/迭代守门人"
     ],
     "init_files": {},
     "knowledge_sources": [

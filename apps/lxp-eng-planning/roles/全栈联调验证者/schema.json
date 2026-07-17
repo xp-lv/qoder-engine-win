@@ -14,7 +14,8 @@
           "enum": [
             "BACKEND_BLOCKING",
             "FRONTEND_BLOCKING",
-            "confirmed"
+            "confirmed",
+            "design_fix"
           ]
         },
         "summary": {

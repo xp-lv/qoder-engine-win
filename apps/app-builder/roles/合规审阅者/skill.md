@@ -31,5 +31,48 @@
 
 19. 汇总发现，写入 dispatch 注入的产出物路径
 
+## 产出物格式
+
+```
+顶层字段:
+  result.verdict: "confirmed"
+  result.summary: "合规审阅概述"
+
+合规审阅报告主体:
+  app.yaml语法检查:
+    四段结构: pass / fail (详情)
+    角色定义字段: pass / fail (详情)
+    edges原子模式: pass / fail (详情)
+  schema.json格式检查:
+    verdict_enum一致性: pass / fail (详情)
+    _required_files对齐: pass / fail (详情)
+  skill.md完整性检查:
+    四部分齐全: pass / fail (详情)
+    无硬编码路径: pass / fail (详情)
+  findings:
+    - 具体引用: "<文件名/字段名>"
+      严重级别: critical / major / minor
+      问题描述: "<具体问题>"
+      建议修复方案: "<修复建议>"
+```
+
 ## verdict 判定规则
-- `confirmed`：所有 SDK_SPEC.md 合规检查项通过
+
+| verdict | 触发条件 | 路由目标 |
+|---------|----------|----------|
+| `confirmed` | 所有 SDK_SPEC.md 合规检查项通过，findings 中无 critical/major 问题 | → 综合裁决者（JOIN） |
+
+## 设计约束
+
+- **只审阅不修改**：不修改任何文件，只产出审阅报告
+- **findings 必须具名**：每个 finding 必须包含具体引用（文件名/字段名）
+- **严重级别分级**：critical=阻断性缺陷 / major=重要缺陷需修复 / minor=建议性改进
+
+## 自检项
+
+产出审阅报告前，逐项自查：
+- [ ] app.yaml 语法（四段结构/角色字段/edges/when/max_executions/fail保留词）是否全部检查？
+- [ ] schema.json 格式（verdict enum/_required_files/summary必填）是否全部检查？
+- [ ] skill.md 完整性（四部分/无硬编码路径/knowledge注入一致性）是否全部检查？
+- [ ] 每个 finding 是否包含具名引用 + 严重级别 + 问题 + 修复方案？
+- [ ] result.verdict 和 result.summary 是否填写？

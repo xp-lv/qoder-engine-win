@@ -240,13 +240,10 @@ edges:
   # 治理层：[JOIN] 三路审阅 → 综合裁决者
   # ═══════════════════════════════════════════════════════════════
 
-  # 3 审阅者 → 综合裁决者 [JOIN]（barrier 同步，默认 confirmed 路径）
-  - [改造红队, 结构审阅者, 合规审阅者] → 综合裁决者
-
-  # issues_found → 综合裁决者（确保 verdict enum 含 issues_found）
-  - 改造红队 → 综合裁决者 when: result.verdict == "issues_found"
-  - 结构审阅者 → 综合裁决者 when: result.verdict == "issues_found"
-  - 合规审阅者 → 综合裁决者 when: result.verdict == "issues_found"
+  # 3 审阅者 → 综合裁决者 [JOIN]（barrier 同步）
+  # confirmed / issues_found 均走 JOIN 路径，保持 AND 屏障不被独立边稀释
+  - [改造红队, 结构审阅者, 合规审阅者] → 综合裁决者 when: result.verdict == "confirmed"
+  - [改造红队, 结构审阅者, 合规审阅者] → 综合裁决者 when: result.verdict == "issues_found"
 
   # ═══════════════════════════════════════════════════════════════
   # 治理层·裁决：R8 综合裁决者三路径

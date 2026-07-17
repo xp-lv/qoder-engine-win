@@ -10,15 +10,15 @@
 旧 5 步协议（直接调用 orchestrator.py）完全保留向后兼容。
 
 Usage:
-  python engine/scripts/step.py --next  [--workspace-id WS_ID] [--task-request "..."]
-  python engine/scripts/step.py --submit --step STEP1 --dispatch-id ckpt_xxx --outputs '[...]' [--workspace-id WS_ID]
+  python3 engine/scripts/step.py --next  [--workspace-id WS_ID] [--task-request "..."]
+  python3 engine/scripts/step.py --submit --step STEP1 --dispatch-id ckpt_xxx --outputs '[...]' [--workspace-id WS_ID]
   python engine/scripts/step.py --decide --decisions '[...]' [--workspace-id WS_ID]
 
 典型流程：
   主 Agent:
-    1. python engine/scripts/step.py --next → action=delegate + dispatches
+    1. python3 engine/scripts/step.py --next → action=delegate + dispatches
     2. Task(role-executor) 执行 dispatch
-    3. (role-executor 内部) python engine/scripts/step.py --submit → next=delegate/confirm/complete/rework
+    3. (role-executor 内部) python3 engine/scripts/step.py --submit → next=delegate/confirm/complete/rework
     4. 若 next=delegate → 回到 1
        若 next=confirm  → 收集决策后 --decide，再回到 1
        若 next=complete → 结束
@@ -44,13 +44,6 @@ _ORCHESTRATOR = "engine/scripts/orchestrator.py"
 # ─── 工具函数 ───
 # v4.2: _save_state_locked 已删除，所有写入通过 state_io.save_state()
 
-# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
-
-
 def run_engine(args_list):
     """调用引擎脚本并返回 (success, result_dict)。
 
@@ -65,7 +58,7 @@ def run_engine(args_list):
             cmd,
             capture_output=True,
             text=True,
-            timeout=_SCRIPT_TIMEOUT, encoding="utf-8", errors="replace", env={**os.environ, "PYTHONIOENCODING": "utf-8"}
+            timeout=_SCRIPT_TIMEOUT,
         )
         if result.returncode == 0:
             try:
@@ -270,7 +263,7 @@ def _build_task_prompt(dispatch, workspace_id, state_path, app_path=None):
         principles_full = os.path.join(app_path, principles_path)
         if os.path.exists(principles_full):
             try:
-                with open(principles_full, "r", encoding="utf-8-sig") as f:
+                with open(principles_full, "r", encoding="utf-8") as f:
                     principles_content = f.read().strip()
                 if principles_content:
                     lines.append(f"## 原则指导")
@@ -287,14 +280,14 @@ def _build_task_prompt(dispatch, workspace_id, state_path, app_path=None):
     lines.append(f"1. Read skill 文件")
     lines.append(f"2. 按 skill 文件的步骤执行")
     lines.append(f"3. 用 Write 写入产出物到指定路径")
-    # verdict 从返回值读取（不从产出物文件读），产出物可以是任意格式
+    # v7.0: status 不再要求 role-executor 显式写入，由 Hook② 自动推导。
+    # role-executor 只需返回 step + verdict + outputs，status 由系统判定。
     verdict_hint = ""
     schema_constraints = dispatch.get("schema_constraints", {})
     verdict_enum = schema_constraints.get("verdict_enum")
     if verdict_enum:
         verdict_hint = f'，verdict 从以下值中选择: {", ".join(verdict_enum)}'
-    lines.append(f'4. 返回 JSON：{{"status": "confirmed", "step": "{step}", "workspace_id": "{workspace_id}", "verdict": "<verdict值>"{verdict_hint}, "outputs": [产出物列表]}}')
-
+    lines.append(f'4. 返回 JSON：{{"step": "{step}", "workspace_id": "{workspace_id}", "verdict": "<verdict值>"{verdict_hint}, "outputs": [产出物列表]}}')
     return "\n".join(lines)
 
 
@@ -397,9 +390,9 @@ def cmd_submit(args):
 
     authoritative_outputs = []
     try:
-        with open(router_path, "r", encoding="utf-8-sig") as f:
+        with open(router_path, "r", encoding="utf-8") as f:
             router_data = json.load(f)
-        with open(registry_path, "r", encoding="utf-8-sig") as f:
+        with open(registry_path, "r", encoding="utf-8") as f:
             registry_data = json.load(f)
 
         # 从 ROUTER.json 找到 step → role 映射
@@ -434,7 +427,7 @@ def cmd_submit(args):
         ws_root = ws_base
         wr_file = os.path.join(ws_base, "WORKSPACE_ROOT") if ws_base else None
         if wr_file and os.path.exists(wr_file):
-            with open(wr_file, "r", encoding="utf-8-sig") as f:
+            with open(wr_file, "r", encoding="utf-8") as f:
                 ws_root = f.read().strip()
         for i, o in enumerate(outputs):
             if isinstance(o, str):
@@ -446,7 +439,7 @@ def cmd_submit(args):
 
     # ── 加载 STATE.json ──
     try:
-        with open(state_path, "r", encoding="utf-8-sig") as f:
+        with open(state_path, "r", encoding="utf-8") as f:
             st = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         st = {}
@@ -571,7 +564,7 @@ def cmd_list_workspaces(args):
     # v7.2: 优先从 index.json 读取
     try:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        from workspace_index import list_all
+        from workspace_index import list_all, to_local_display
         idx = list_all()
         active = idx.get("active_workspace")
         result = []
@@ -584,7 +577,7 @@ def cmd_list_workspaces(args):
                 "terminal": info.get("terminal_state"),
                 "schema_version": info.get("schema_version", "?"),
                 "has_snapshots": info.get("has_snapshots", False),
-                "last_active_at": info.get("last_active_at", "?"),
+                "last_active_at": to_local_display(info.get("last_active_at", "?")),
                 "is_active": ws_id == active,
             })
         print(json.dumps({"workspaces": result, "active": active}, ensure_ascii=False, indent=2))
@@ -604,7 +597,7 @@ def cmd_list_workspaces(args):
             if not os.path.exists(state_f):
                 continue
             try:
-                with open(state_f, "r", encoding="utf-8-sig") as f:
+                with open(state_f, "r", encoding="utf-8") as f:
                     st = json.load(f)
                 executing = list(st.get("step_status", {}).keys())
                 completed = list(st.get("completed", {}).keys())
@@ -612,7 +605,7 @@ def cmd_list_workspaces(args):
                 app_ref_f = os.path.join(ws_base, "APP_REF")
                 app_ref = ""
                 if os.path.exists(app_ref_f):
-                    with open(app_ref_f, "r", encoding="utf-8-sig") as f:
+                    with open(app_ref_f) as f:
                         app_ref = f.read().strip()
                 result.append({
                     "workspace_id": ws_id,

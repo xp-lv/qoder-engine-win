@@ -33,6 +33,51 @@
 
 15. 汇总压力测试结果，写入 dispatch 注入的产出物路径
 
+## 产出物格式
+
+```
+顶层字段:
+  result.verdict: "confirmed" / "challenged"
+  result.summary: "压力测试概述"
+
+压力测试报告主体:
+  压力测试结果:
+    STRESS-1_回退路径完备性: pass / vulnerability_found (详情)
+    STRESS-2_并行时序竞争: pass / vulnerability_found (详情)
+    STRESS-3_跨层回退链路: pass / vulnerability_found (详情)
+    STRESS-4_数据流极端场景: pass / vulnerability_found (详情)
+    STRESS-5_对抗路径真实性: pass / vulnerability_found (详情)
+    STRESS-6_循环终止性证明: pass / vulnerability_found (详情)
+  极端场景测试:
+    - 场景: "<场景描述>"
+      结果: pass / vulnerability_found
+      详情: "<具体问题>"
+  findings:
+    - 具体引用: "<角色名/边名/verdict值>"
+      严重级别: critical / major / minor
+      问题描述: "<具体问题>"
+      建议修复方案: "<修复建议>"
+```
+
 ## verdict 判定规则
-- `confirmed`：未发现 critical 级别系统性风险
-- `challenged`：发现至少 1 个 critical 级别缺陷，需裁决审计者复核
+
+| verdict | 触发条件 | 路由目标 |
+|---------|----------|----------|
+| `confirmed` | 未发现 critical 级别系统性风险 | → 综合裁决者（JOIN） |
+| `challenged` | 发现至少 1 个 critical 级别缺陷 | → 裁决审计者（对抗复核） |
+
+## 设计约束
+
+- **对抗立场**：不信任架构产出，主动攻击——你的价值在于发现问题
+- **findings 必须具名**：每个 finding 必须包含具体引用（角色名/边名/verdict值）
+- **严重级别分级**：critical=阻断性缺陷 / major=重要缺陷 / minor=建议性改进
+- **循环终止性必须数学证明**：不可凭感觉判断"应该能终止"
+
+## 自检项
+
+产出报告前，逐项自查：
+- [ ] 六个压力测试维度是否全部执行？
+- [ ] 循环终止性是否有数学论证（有界+有退出verdict）？
+- [ ] 每个 finding 是否包含具名引用 + 严重级别 + 问题 + 修复方案？
+- [ ] verdict 是否在 {confirmed, challenged} 范围内？
+- [ ] result.verdict 和 result.summary 是否填写？

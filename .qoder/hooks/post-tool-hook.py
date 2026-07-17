@@ -15,7 +15,7 @@ _ENGINE_SCRIPTS = os.path.normpath(os.path.join(_HOOK_DIR, "..", "..", "engine",
 sys.path.insert(0, _ENGINE_SCRIPTS)
 
 from session_path import resolve_ws_state, resolve_app_path, resolve_ws_base, read_workspace_root
-from state_io import load_state, save_state
+from state_io import load_state, save_state, state_txn
 
 # 项目根目录
 _PROJECT_ROOT = os.path.normpath(os.path.join(_HOOK_DIR, "..", ".."))
@@ -31,7 +31,7 @@ def default_workspace_path(app_path, ws_id):
 def load_json_file(path):
     """安全加载 JSON 文件。"""
     try:
-        with open(path, "r", encoding="utf-8-sig") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return None
@@ -56,7 +56,7 @@ def run_script(args):
     try:
         r = subprocess.run(
             [sys.executable] + args,
-            capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace", env={**os.environ, "PYTHONIOENCODING": "utf-8"}
+            capture_output=True, text=True, timeout=30
         )
         if r.returncode != 0:
             # 非零退出：尝试解析 stdout（引擎错误也输出 JSON），回退到 stderr
@@ -205,27 +205,9 @@ def handle_analyzer_return(tool_output, workspace_id):
     action = data.get("action", "")
     sid = data.get("workspace_id", workspace_id or "default")
 
-    # ── 全局 STATE 健康检测（在所有 intent 分支前执行）──
-    # 原理：主 Agent 可能违规调用 --next/step.py，或 Task 被取消后留下僵尸状态。
-    # 每次进入 analyzer 路径时，基于 ROUTER.json DAG 拓扑做全局一致性校验+修复。
-    # 这不替代扰动分析器的意图分类，而是确保引擎状态在处理用户意图前是合法的。
-    _inv_state_path = resolve_ws_state(sid)
-    if os.path.exists(_inv_state_path):
-        _hc_result = run_script([
-            "engine/scripts/state_health_check.py",
-            "--workspace-id", sid,
-            "--fix"
-        ])
-        if _hc_result and not _hc_result.get("_error"):
-            _summary = _hc_result.get("summary", {})
-            _fixes = _hc_result.get("fix_actions", [])
-            if _summary.get("critical", 0) > 0 or _summary.get("major", 0) > 0:
-                _hook2_log(f"HEALTH_CHECK: status={_hc_result.get('status')} fixes={_fixes}")
-            elif _fixes:
-                _hook2_log(f"HEALTH_CHECK: minor fixes applied: {_fixes}")
-        else:
-            _err = _hc_result.get("_error", "unknown") if _hc_result else "no result"
-            _hook2_log(f"HEALTH_CHECK: failed - {_err}")
+    # v7.1: 全局 STATE health_check 已移除。
+    # 引擎自身的错误输出（_diagnose_wait_reason）已足够清晰，
+    # 无需外部预测性检测层。
 
     # ── 1. chitchat ──
     if intent == "chitchat":
@@ -252,7 +234,7 @@ def handle_analyzer_return(tool_output, workspace_id):
                 emit(f"BLOCKING：初始化失败 — {init_result.get('error_code', '?')}: {init_result.get('message', '?')}")
                 return
 
-        # v4.2: rework 已由 state_health_check.py Z1 取代，不再走 fix.py
+        # v7.1: rework/reset/jump 统一由 fix.py 处理
         if action in ("reset", "jump"):
             target_step = data.get("target_step", "")
             fix_args = ["engine/scripts/fix.py", "--type", action,
@@ -283,7 +265,7 @@ def handle_analyzer_return(tool_output, workspace_id):
                 ws_root = ws_base
                 wr_file = os.path.join(ws_base, "WORKSPACE_ROOT")
                 if os.path.exists(wr_file):
-                    with open(wr_file, "r", encoding="utf-8-sig") as f:
+                    with open(wr_file, "r") as f:
                         ws_root = f.read().strip()
                 for d in decisions:
                     fb_file = os.path.join(ws_root, "outputs", f"{d['step']}-feedback.json")
@@ -400,28 +382,53 @@ def _hook2_log(msg):
         pass
 
 
-def _clear_zombie_executing(sid, reason=""):
-    """清理僵尸 executing：从 STATE 的 step_status 中删除所有 executing 条目。
+def _clear_zombie_executing(sid, reason="", target_step=None, redispatch=True):
+    """清理僵尸 executing：从 STATE 的 step_status 中删除 executing 条目。
 
-    触发场景：role-executor 返回非 JSON、返回异常状态、或 Task 被取消。
-    正常返回（status=confirmed）时不调用此函数。
+    v6.0 机制修复：清除崩溃分支时，从 active_dispatches 恢复完整 dispatch 指令
+    到 pending_dispatches，使下一轮 --next 自动重新 dispatch 崩溃的分支。
 
-    关键设计：只删 step_status，不删 completed（保护重执行场景的上一轮完成记录）。
+    Args:
+      target_step: 指定时只清除该 step（并行场景保护其他活跃分支）。None 时清除全部。
+      redispatch: True 时将 dispatch 指令恢复到 pending_dispatches（崩溃恢复）。
+                  False 时只清除不恢复（BLOCKING 场景，角色有意阻塞不重 dispatch）。
     """
     try:
         sp = resolve_ws_state(sid)
-        st = load_json_file(sp)
-        if not st:
-            return []
-        ss = st.get("step_status", {})
-        zombies = [s for s, info in ss.items()
-                   if isinstance(info, dict) and info.get("status") == "executing"]
-        if zombies:
-            for z in zombies:
-                del ss[z]
-            save_state(sp, st)
-            _hook2_log(f"ZOMBIE_CLEAR: cleared {zombies} ({reason})")
-        return zombies
+        cleared = []
+        redispatched = []
+        with state_txn(sp) as st:
+            ss = st.get("step_status", {})
+            active = st.get("active_dispatches") or {}
+            pending = st.get("pending_dispatches") or []
+
+            for s, info in list(ss.items()):
+                if not (isinstance(info, dict) and info.get("status") == "executing"):
+                    continue
+                # v6.0: target_step 指定时只清除该 step
+                if target_step is not None and s != target_step:
+                    continue
+                cleared.append(s)
+                del ss[s]
+                # v6.0: 从 active_dispatches 恢复 dispatch 指令（仅崩溃场景）
+                if redispatch and s in active:
+                    dispatch = active[s]
+                    del active[s]
+                    # 生成新 checkpoint_id（旧的已随崩溃失效）
+                    import uuid
+                    dispatch["checkpoint_id"] = f"ckpt_{uuid.uuid4().hex[:12]}"
+                    pending.append(dispatch)
+                    redispatched.append(s)
+
+            st["active_dispatches"] = active
+            st["pending_dispatches"] = pending if pending else None
+
+        if cleared:
+            msg = f"cleared {cleared}"
+            if redispatched:
+                msg += f", redispatched {redispatched}"
+            _hook2_log(f"ZOMBIE_CLEAR: {msg} ({reason})")
+        return cleared
     except Exception as e:
         _hook2_log(f"ZOMBIE_CLEAR_ERROR: {e} ({reason})")
         return []
@@ -441,17 +448,25 @@ def handle_role_executor_return(tool_output, workspace_id):
         """v4.1: pbc 从 step_status 派生，不再使用独立计数器。
         消除多源冲突：step_status 是 set_state.py 唯一写者维护的权威源。
         rollback 删除 step_status 条目时，pbc 自然递减，无需手动清零。
+        v7.0.2: 仅计算 status="executing" 的步骤，排除 awaiting_confirmation。
+        awaiting_confirmation 表示步骤已完成但等待用户确认，不是"正在执行"，
+        不应阻塞 Hook② 的 confirm/delegate 决策。
         """
         try:
             sp = resolve_ws_state(sid)
             st = load_json_file(sp) or {}
-            return len(st.get("step_status", {}))
+            return sum(1 for v in st.get("step_status", {}).values()
+                       if isinstance(v, dict) and v.get("status") == "executing")
         except Exception:
             return 0
 
     sid_fallback = workspace_id or "default"
 
-    data = extract_json_from_text(tool_output, required_keys=["status"])
+    # v7.0: status 不再由 role-executor 显式写入，由 Hook② 根据返回内容自动推导。
+    # fail-safe 原则：默认 fail，仅在返回合法 JSON 且含关键字段时覆盖为 confirmed。
+    # 兼容：如果 role-executor 仍然显式写了 status，以显式值为准（向后兼容）。
+    # v7.0.1: required_keys 从 ["status"] 改为 ["step"]，确保匹配协议信封而非产出物内容 JSON。
+    data = extract_json_from_text(tool_output, required_keys=["step"])
     if not data:
         # v5.0: role-executor 返回非 JSON（Task 被取消/崩溃/超时）
         # → 立即清理僵尸 executing，不再等待 Z1 事后检测
@@ -460,23 +475,46 @@ def handle_role_executor_return(tool_output, workspace_id):
         emit(f"BLOCKING：role-executor 返回格式异常，无法解析为 JSON{zombie_msg}。向用户报告此问题，不要继续推进流程。")
         return
 
-    status = data.get("status", "")
     sid = data.get("workspace_id", sid_fallback)
     branch_id = data.get("branch_id", None)
     outputs = data.get("outputs", [])
-    role_verdict = data.get("verdict", "")  # 从 role-executor 返回值读 verdict
+    role_verdict = data.get("verdict", "")
     step = data.get("step", "")
 
-    # ── 状态检查（非 confirmed 状态直接报告 + 清理僵尸）──
-    if status == "BLOCKING":
-        zombies = _clear_zombie_executing(sid, "role-executor 返回 BLOCKING")
+    # ── v7.0: status 自动推导（fail-safe: 默认 fail）──
+    explicit_status = data.get("status", "")  # role-executor 可能显式写了 status（向后兼容）
+    if explicit_status == "BLOCKING":
+        # v6.0: BLOCKING 是角色有意阻塞，清除但不重 dispatch
+        zombies = _clear_zombie_executing(sid, "role-executor 返回 BLOCKING", target_step=step, redispatch=False)
         zombie_msg = f"（已清理僵尸 executing: {zombies}）" if zombies else ""
         emit(f"BLOCKING：role-executor 返回 BLOCKING{zombie_msg}。向用户报告以下信息：\n{json.dumps(data, ensure_ascii=False)[:500]}")
         return
-    if status != "confirmed":
-        zombies = _clear_zombie_executing(sid, f"role-executor 异常状态 '{status}'")
+    if explicit_status and explicit_status not in ("confirmed", "BLOCKING"):
+        # 显式写了非 confirmed/BLOCKING 的 status → 异常
+        zombies = _clear_zombie_executing(sid, f"role-executor 异常状态 '{explicit_status}'", target_step=step)
         zombie_msg = f"（已清理僵尸 executing: {zombies}）" if zombies else ""
-        emit(f"BLOCKING：role-executor 返回异常状态 '{status}'{zombie_msg}，向用户报告此问题。")
+        emit(f"BLOCKING：role-executor 返回异常状态 '{explicit_status}'{zombie_msg}，向用户报告此问题。")
+        return
+
+    # fail-safe 推导：status 默认 fail，以下条件全部满足才覆盖为 confirmed
+    # 1) 显式写了 status=confirmed（向后兼容），或
+    # 2) 未写 status 但返回了合法 JSON 且含 step + (verdict 或 result.verdict)
+    has_step = bool(step)
+    has_verdict = bool(role_verdict) or bool(data.get("result", {}).get("verdict", ""))
+    if explicit_status == "confirmed":
+        status = "confirmed"
+    elif not explicit_status and has_step and has_verdict:
+        # role-executor 未写 status 但返回了完整数据 → 推导为 confirmed
+        status = "confirmed"
+    else:
+        status = "fail"
+
+    if status == "fail":
+        # fail-safe：推导后仍为 fail → 清理僵尸并 BLOCKING
+        reason = "返回 JSON 缺少关键字段（step/verdict）且未显式声明 status=confirmed"
+        zombies = _clear_zombie_executing(sid, f"role-executor 推导状态 fail: {reason}", target_step=step)
+        zombie_msg = f"（已清理僵尸 executing: {zombies}）" if zombies else ""
+        emit(f"BLOCKING：role-executor 执行结果无法确认为成功{zombie_msg}。向用户报告此问题。")
         return
 
     # ── 调 step.py --submit ──
@@ -496,49 +534,48 @@ def handle_role_executor_return(tool_output, workspace_id):
     # submit 失败时清理僵尸并报错
     if submit_result.get("action") == "error" or submit_result.get("status") == "error":
         _err = submit_result.get("error", "submit 失败")
-        zombies = _clear_zombie_executing(sid, f"submit 失败: {_err}")
+        # v6.0: 精确清除崩溃的 step
+        zombies = _clear_zombie_executing(sid, f"submit 失败: {_err}", target_step=step)
         zombie_msg = f"（已清理僵尸 executing: {zombies}）" if zombies else ""
         emit(f"BLOCKING：引擎错误 — {_err}{zombie_msg}")
         return
 
     # ── pbc 门控（从 step_status 派生）──
     state_path = resolve_ws_state(sid)
-    state = load_json_file(state_path) or {}
     pbc = _derive_pbc(sid)  # v4.1: 从 step_status 派生
-    _hook2_log(f"PBC_DERIVED: pbc={pbc} pending_dispatches={state.get('pending_dispatches')} step_status_keys={list(state.get('step_status',{}).keys())}")
+    _hook2_log(f"PBC_DERIVED: pbc={pbc}")
 
     if pbc > 0:
         # ══════════════════════════════════════════════════════
         # pbc > 0：仍有并行分支在执行（step_status 非空）
         # ══════════════════════════════════════════════════════
         # 缓存当前分支结果，纯静默，等其他分支返回
-        cached = state.setdefault("cached_branch_results", [])
-        cached.append({
-            "branch_id": branch_id,
-            "step": step,
-            "submit_next": submit_next,
-            "gate_results": submit_result.get("gate_results", []),
-            "pending": submit_result.get("pending", []),
-            "failed": submit_result.get("failed", []),
-            "reason": submit_result.get("reason", ""),
-        })
-        save_state(state_path, state)
+        # v5.2: state_txn 保证缓存追加的原子性
+        with state_txn(state_path) as st:
+            st.setdefault("cached_branch_results", []).append({
+                "branch_id": branch_id,
+                "step": step,
+                "submit_next": submit_next,
+                "gate_results": submit_result.get("gate_results", []),
+                "pending": submit_result.get("pending", []),
+                "failed": submit_result.get("failed", []),
+                "reason": submit_result.get("reason", ""),
+            })
         sys.exit(0)
 
     # pbc == 0：最后一个分支返回（step_status 已空），统一决策
+    # v5.2: state_txn 保证「读缓存 + 清空」的原子性
     all_results = [submit_result]
-    for c in state.get("cached_branch_results", []):
-        all_results.append({
-            "next": c.get("submit_next", ""),
-            "gate_results": c.get("gate_results", []),
-            "pending": c.get("pending", []),
-            "failed": c.get("failed", []),
-            "reason": c.get("reason", ""),
-        })
-
-    # 清空缓存
-    state["cached_branch_results"] = []
-    save_state(state_path, state)
+    with state_txn(state_path) as st:
+        for c in st.get("cached_branch_results", []):
+            all_results.append({
+                "next": c.get("submit_next", ""),
+                "gate_results": c.get("gate_results", []),
+                "pending": c.get("pending", []),
+                "failed": c.get("failed", []),
+                "reason": c.get("reason", ""),
+            })
+        st["cached_branch_results"] = []
 
     # ══════════════════════════════════════════════════════
     # pbc == 0：统一决策（v4.3 优先级修订）
@@ -621,13 +658,6 @@ def handle_role_executor_return(tool_output, workspace_id):
 
 def main():
     try:
-        # Windows: 重配置 stdin/stdout 为 UTF-8（防止 GBK 编码崩溃）
-        try:
-            import io
-            sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding="utf-8", errors="replace")
-            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-        except Exception:
-            pass
         raw = sys.stdin.read()
         data = json.loads(raw)
     except Exception:
@@ -661,9 +691,7 @@ def main():
     except Exception:
         pass
 
-    # ── v5.0: 检测主 Agent 违规调用引擎脚本 ──
-    # Bash 调用中如果包含引擎脚本路径，说明主 Agent 越权了
-    # Hook② 立即跑 health_check --fix 修复 STATE，并注入禁止指令
+    # v7.1: 检测主 Agent 违规调用引擎脚本（仅拦截+报告，不修复 STATE）
     if tool_name == "Bash":
         bash_cmd = tool_input.get("command", "") or ""
         _ENGINE_SCRIPT_PATTERNS = [
@@ -692,32 +720,11 @@ def main():
                 except Exception:
                     pass
 
-            # 立即跑 health_check --fix 修复可能的非法 STATE
-            try:
-                viol_state_path = resolve_ws_state(viol_sid)
-                if os.path.exists(viol_state_path):
-                    hc_result = run_script([
-                        "engine/scripts/state_health_check.py",
-                        "--workspace-id", viol_sid, "--fix",
-                    ])
-                    fixes = hc_result.get("fix_actions", []) if hc_result else []
-                    summary = hc_result.get("summary", {}) if hc_result else {}
-                    if fixes:
-                        _hook2_log(f"VIOLATION_FIX: 修复了 {len(fixes)} 条: {fixes}")
-                else:
-                    fixes = []
-                    summary = {}
-            except Exception as e:
-                fixes = []
-                summary = {}
-                _hook2_log(f"VIOLATION_FIX_ERROR: {e}")
+            # v7.1: health_check 调用已移除。引擎自身的错误输出已足够清晰。
 
             # 注入禁止指令
-            fix_msg = ""
-            if fixes:
-                fix_msg = f"Hook② 已自动修复 {len(fixes)} 项状态异常。"
             emit(
-                f"【主Agent指令】检测到违规行为：你刚才通过 Bash 调用了引擎脚本，这会破坏引擎状态机。{fix_msg}\n"
+                f"【主Agent指令】检测到违规行为：你刚才通过 Bash 调用了引擎脚本，这会破坏引擎状态机。\n"
                 f"禁止事项：不要通过 Bash 调用 engine/scripts/ 下的任何脚本（step.py、init.py、fix.py、set_state.py、gate.py 等）。\n"
                 f"你的唯一合法动作：\n"
                 f"1. 调用 Task(stability-analyzer) 处理用户消息\n"
@@ -765,7 +772,7 @@ def main():
         import traceback
         debug_path = os.path.join(os.path.dirname(__file__), "_hook_error.log")
         try:
-            with open(debug_path, "a", encoding="utf-8") as f:
+            with open(debug_path, "a") as f:
                 f.write(f"\n[{__import__('datetime').datetime.now()}] {traceback.format_exc()}\n")
         except:
             pass

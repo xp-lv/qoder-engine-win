@@ -11,27 +11,27 @@
 1. **读取输入**：读取 dispatch 注入的输入文件（后端需求规格文档 + 后端业务逻辑文档 + 接口翻译文档 + 交叉审核报告）
 2. **参考知识文档**：参考 dispatch 注入的 knowledge 文档（树形数据结构存储优化）
 3. **设计 RESTful 路由**：
-   - 任务管理：GET/POST/PUT/DELETE /api/tasks
-   - 任务树：GET /api/tasks/tree, PUT /api/tasks/:id/move
-   - 精力标签：GET/PUT /api/tasks/:id/energy
-   - 每日清单：GET /api/tasks/daily?date=YYYY-MM-DD
-   - 预算：GET /api/budget/daily?date=, GET /api/budget/weekly?weekStart=
+ - 任务管理：GET/POST/PUT/DELETE /api/tasks
+ - 任务树：GET /api/tasks/tree, PUT /api/tasks/:id/move
+ - 精力标签：GET/PUT /api/tasks/:id/energy
+ - 每日清单：GET /api/tasks/daily?date=YYYY-MM-DD
+ - 预算：GET /api/budget/daily?date=, GET /api/budget/weekly?weekStart=
 4. **设计请求/响应 Schema**：
-   - 每个端点的请求参数（路径/查询/请求体）
-   - 每个端点的响应格式（成功/错误）
-   - 字段类型、必填、校验规则
+ - 每个端点的请求参数（路径/查询/请求体）
+ - 每个端点的响应格式（成功/错误）
+ - 字段类型、必填、校验规则
 5. **设计业务逻辑处理流程**：
-   - 任务创建：参数校验→精力等级设置→排序分配→持久化
-   - 拖拽移动：层级更新→排序重排→子树跟随
-   - 预算聚合：查询日期范围→按精力等级求和→对比预算
+ - 任务创建：参数校验→精力等级设置→排序分配→持久化
+ - 拖拽移动：层级更新→排序重排→子树跟随
+ - 预算聚合：查询日期范围→按精力等级求和→对比预算
 6. **设计错误码体系**：
-   - 400 Bad Request（参数校验失败）
-   - 404 Not Found（资源不存在）
-   - 409 Conflict（状态冲突，如已完成任务不能再拖拽）
-   - 500 Internal Server Error
+ - 400 Bad Request（参数校验失败）
+ - 404 Not Found（资源不存在）
+ - 409 Conflict（状态冲突，如已完成任务不能再拖拽）
+ - 500 Internal Server Error
 7. **与接口翻译文档对齐**：
-   - 核对接口翻译师定义的 API 端点是否全部覆盖
-   - 核对请求/响应格式是否与翻译文档一致
+ - 核对接口翻译师定义的 API 端点是否全部覆盖
+ - 核对请求/响应格式是否与翻译文档一致
 8. **写入产出物**：将 API 详细设计文档写入 dispatch 注入的产出物路径
 
 ## 设计约束

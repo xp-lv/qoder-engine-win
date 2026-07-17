@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """初始化器。校验功能层配置 → 创建工作目录 → 初始化 STATE.json。
-Usage: python engine/scripts/init.py --workspace-path <path> --app-path <path> [--workspace-id <id>] [--force]
+Usage: python3 engine/scripts/init.py --workspace-path <path> --app-path <path> [--workspace-id <id>] [--force]
 """
 import argparse, json, os, sys, shutil
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -10,13 +10,6 @@ from session_path import (
 )
 from state_io import save_state
 from datetime import datetime, timezone
-
-# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
-
 
 def now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -47,7 +40,7 @@ def load_json(path, error_code, missing_msg):
     if not os.path.exists(path):
         output_failure(error_code, f"{missing_msg}: {path}")
     try:
-        with open(path, "r", encoding="utf-8-sig") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, ValueError) as e:
         output_failure(error_code, f"JSON 解析失败: {e}")
@@ -171,12 +164,12 @@ def main():
 
     # 写入 APP_REF
     app_ref_f = os.path.join(ws_base, "APP_REF")
-    with open(app_ref_f, "w", encoding="utf-8") as f:
+    with open(app_ref_f, "w") as f:
         f.write(app_path)
 
     # 写入 WORKSPACE_ROOT（必须在 process 目录创建之前写入，因为 resolve_ws_process 读它）
     ws_root_f = os.path.join(ws_base, "WORKSPACE_ROOT")
-    with open(ws_root_f, "w", encoding="utf-8") as f:
+    with open(ws_root_f, "w") as f:
         f.write(os.path.abspath(args.workspace_path))
 
     # 创建 process 目录（现在 resolve_ws_process 能正确读到 WORKSPACE_ROOT）
@@ -201,7 +194,7 @@ def main():
 
     manifest_path = os.path.join(app_path, "manifest.json")
     if os.path.exists(manifest_path):
-        with open(manifest_path, "r", encoding="utf-8-sig") as f:
+        with open(manifest_path, "r", encoding="utf-8") as f:
             manifest = json.load(f)
         ws_template = manifest.get("workspace_template", {})
         # manifest dirs 是相对路径，join workspace_path
@@ -231,7 +224,7 @@ def main():
     # Step 7: 初始化 STATE.json
     if os.path.exists(state_path) and not args.force:
         try:
-            with open(state_path, "r", encoding="utf-8-sig") as f:
+            with open(state_path, "r", encoding="utf-8") as f:
                 existing = json.load(f)
             if existing.get("terminal_state"):
                 output_success("already_terminal")

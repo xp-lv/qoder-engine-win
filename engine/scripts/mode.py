@@ -2,7 +2,7 @@
 """mode.py - 切换系统运行模式（跨平台，支持 --session-id）
 
 用法：
-  python engine/scripts/mode.py [选项] [模式]
+  python3 engine/scripts/mode.py [选项] [模式]
 
 选项：
   --session-id <id>   指定 Session ID（默认 "default"）
@@ -52,7 +52,7 @@ def show_mode(session_id, current):
         print("  规则: stability-layer.mdc 完整生效")
         print("  适用: 正式运行多角色编排任务")
     print("")
-    print(f"切换: python engine/scripts/mode.py --session-id {session_id} [prod|dev|orch|toggle]")
+    print(f"切换: python3 engine/scripts/mode.py --session-id {session_id} [prod|dev|orch|toggle]")
 
 
 def switch_mode(session_id, target, current):
@@ -82,10 +82,10 @@ def main():
 
     # 如果 MODE 文件不存在，默认为 production
     if not os.path.exists(mode_file):
-        with open(mode_file, "w", encoding="utf-8") as f:
+        with open(mode_file, "w") as f:
             f.write("production\n")
 
-    with open(mode_file, "r", encoding="utf-8-sig") as f:
+    with open(mode_file, "r") as f:
         current = f.read().strip()
 
     target = args.mode.strip()
@@ -112,7 +112,7 @@ def main():
         sys.exit(0)
 
     # 写入新模式
-    with open(mode_file, "w", encoding="utf-8") as f:
+    with open(mode_file, "w") as f:
         f.write(target + "\n")
 
     switch_mode(args.session_id, target, current)

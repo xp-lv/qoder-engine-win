@@ -1,0 +1,213 @@
+{
+  "schema_version": "2.0",
+  "entry": "代码准备者",
+  "steps": [
+    {
+      "step": "代码准备者",
+      "role": "代码准备者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "前端预览"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/代码准备者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 代码准备者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "代码准备者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/src/frontend/",
+              "type": "feedback",
+              "name": "[反馈] 前端代码"
+            },
+            {
+              "path": "outputs/src/backend/",
+              "type": "feedback",
+              "name": "[反馈] 后端代码"
+            },
+            {
+              "path": "outputs/代码准备者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 代码准备者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "代码修改者",
+      "role": "代码修改者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "前端预览"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/代码修改者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 代码修改者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "代码修改者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/src/frontend/",
+              "type": "feedback",
+              "name": "[反馈] 前端代码"
+            },
+            {
+              "path": "outputs/src/backend/",
+              "type": "feedback",
+              "name": "[反馈] 后端代码"
+            },
+            {
+              "path": "outputs/代码修改者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 代码修改者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "前端预览",
+      "role": "前端预览",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "前端预览-daemon"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/前端预览-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 前端预览"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "前端预览"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/前端预览-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 前端预览 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "前端预览-daemon",
+      "role": "前端预览（守护）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "前端预览-review"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/前端预览-daemon-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 前端预览-daemon"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "前端预览-daemon"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/前端预览-daemon-status.json",
+              "type": "feedback",
+              "name": "[反馈] 前端预览服务状态"
+            },
+            {
+              "path": "outputs/前端预览-daemon-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 前端预览-daemon Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "前端预览-review",
+      "role": "前端预览（审查）",
+      "transitions": {
+        "confirmed": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/前端预览-review-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 前端预览-review"
+            }
+          ]
+        },
+        "needs_revision": {
+          "targets": [
+            "代码修改者"
+          ],
+          "type": "normal",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/前端预览-review-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 前端预览-review"
+            },
+            {
+              "path": "outputs/预览确认报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 预览确认报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "前端预览-review"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/预览确认报告.json",
+              "type": "feedback",
+              "name": "[反馈] 预览确认报告"
+            },
+            {
+              "path": "outputs/前端预览-review-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 前端预览-review Gate校验结果"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

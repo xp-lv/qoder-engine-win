@@ -2,19 +2,12 @@
 """switch.py — 切换 workspace 绑定的应用
 
 用法：
-  python engine/scripts/switch.py --workspace-id <id> --app-path <目标应用包>
+  python3 engine/scripts/switch.py --workspace-id <id> --app-path <目标应用包>
 """
 import argparse, json, os, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_base, resolve_ws_state, read_app_ref
-
-
-# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
 
 
 def main():
@@ -32,11 +25,11 @@ def main():
     old_app = ""
     app_ref_f = os.path.join(ws_base, "APP_REF")
     if os.path.exists(app_ref_f):
-        with open(app_ref_f, "r", encoding="utf-8-sig") as f:
+        with open(app_ref_f) as f:
             old_app = f.read().strip()
 
     # 写新 APP_REF
-    with open(app_ref_f, "w", encoding="utf-8") as f:
+    with open(app_ref_f, "w") as f:
         f.write(args.app_path)
 
     # v7.2: 更新工作区索引
@@ -52,7 +45,7 @@ def main():
     state_snapshot = {}
     if os.path.exists(state_f):
         try:
-            with open(state_f, "r", encoding="utf-8-sig") as f:
+            with open(state_f, "r", encoding="utf-8") as f:
                 s = json.load(f)
             state_snapshot = {
                 "executing": list(s.get("step_status", {}).keys()),

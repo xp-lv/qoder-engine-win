@@ -131,4 +131,20 @@
 - 三方（skill / schema / ROUTER）的 verdict 值必须完全一致
 
 ## verdict 判定规则
-- `confirmed`：app.yaml 设计完成，包含完整的文档层/执行层/治理层角色定义，可以进入技能填充阶段
+
+| verdict | 触发条件 | 路由目标 |
+|---------|----------|----------|
+| `confirmed` | app.yaml 设计完成，包含完整的文档层/执行层/治理层角色定义，可以进入技能填充阶段 | → 技能填充者 |
+
+## 自检项
+
+产出 app.yaml 前，逐项自查：
+- [ ] 四段结构（app_name/knowledge/roles/edges）是否完整？
+- [ ] 每个角色是否有 type/confirm/inputs/outputs 四要素？
+- [ ] 是否有至少一个 producer 入口角色？
+- [ ] edges 是否覆盖所有角色（无死角色）？
+- [ ] 是否有边指向'完成'（终态可达）？
+- [ ] 循环边是否有 max_executions？
+- [ ] knowledge 段 inject_to 的角色名是否在 roles 中存在？
+- [ ] 知识文档设计清单是否与 knowledge 段对齐？
+- [ ] result.verdict 和 result.summary 是否填写？
