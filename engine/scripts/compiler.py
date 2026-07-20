@@ -6,14 +6,21 @@
   2. 检查模式（--check）：读已生成的 ROUTER.json → 静态分析
 
 用法：
-  python3 engine/scripts/compiler.py --app-path apps/xxx          # 编译
-  python3 engine/scripts/compiler.py --app-path apps/xxx --check  # 检查
+  python engine/scripts/compiler.py --app-path apps/xxx          # 编译
+  python engine/scripts/compiler.py --app-path apps/xxx --check  # 检查
 """
 import argparse, json, os, sys, re
 from collections import deque
 
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+
 def load_json(path):
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, "r", encoding="utf-8-sig") as f:
         return json.load(f)
 
 def save_json(path, data):
@@ -100,7 +107,9 @@ def validate_app_yaml(roles, edges):
             errors.append(f"角色名 '{name}' 包含非法字符: {' '.join(bad)}（不允许 →,:/[] 等）")
 
     # ── 2. 角色字段名校验 ──
-    VALID_ROLE_FIELDS = {'type', 'confirm', 'inputs', 'outputs'}
+    # 注：原 `type` 字段（producer/standard）已删除，所有角色平等
+    # P2: 新增 fail_max_executions（Gate FAIL 边重试上限覆盖）
+    VALID_ROLE_FIELDS = {'confirm', 'inputs', 'outputs', 'fail_max_executions'}
     for name, data in roles.items():
         if isinstance(data, dict):
             for field in data:
@@ -110,7 +119,7 @@ def validate_app_yaml(roles, edges):
                     warnings.append(f"角色 '{name}': 未知字段 '{field}'（合法字段: {sorted(VALID_ROLE_FIELDS)}）")
 
     # ── 3. 路径校验 ──
-    VALID_TYPES = {'deliverable', 'process'}
+    # v9.2: 删除 VALID_TYPES（type 字段已废弃）
     for name, data in roles.items():
         if not isinstance(data, dict):
             continue
@@ -124,10 +133,6 @@ def validate_app_yaml(roles, edges):
                 # 路径不能含 ..
                 if '..' in path:
                     errors.append(f"角色 '{name}': {key} 项 '{item_name}' 路径含 '..'（不允许路径穿越）")
-                # type 值校验
-                item_type = item.get('type', 'deliverable')
-                if item_type not in VALID_TYPES:
-                    warnings.append(f"角色 '{name}': {key} 项 '{item_name}' type='{item_type}' 不是合法值（合法: {sorted(VALID_TYPES)}）")
 
     # ── 4. edges 中引用的角色是否存在 ──
     for e in edges:
@@ -140,10 +145,7 @@ def validate_app_yaml(roles, edges):
                 errors.append(f"edges: {srcs} → 目标 '{t}' 不存在")
 
     # ── 5. 每个角色至少有一条出去的边（或走向完成）──
-    # 校验者的边由编译器自动生成（边重定向），跳过出边检查
     for r in role_names:
-        if roles.get(r, {}).get("_is_validator"):
-            continue
         has_outgoing = any(r in (e["src"] if isinstance(e["src"], list) else [e["src"]]) for e in edges)
         if not has_outgoing and len(role_names) > 1:
             errors.append(f"角色 '{r}' 没有任何出去的边")
@@ -165,6 +167,13 @@ def validate_app_yaml(roles, edges):
         if mx is not None and (not isinstance(mx, int) or mx <= 0):
             errors.append(f"edges: max_executions={mx} 不是正整数。来源: {e['src']} → {e['targets']}")
 
+    # ── 8.1 角色级 fail_max_executions 必须是正整数（v8.2 P2）──
+    for name, data in roles.items():
+        if isinstance(data, dict) and 'fail_max_executions' in data:
+            fmx = data['fail_max_executions']
+            if not isinstance(fmx, int) or fmx <= 0:
+                errors.append(f"角色 '{name}': fail_max_executions={fmx} 不是正整数")
+
     # 输出警告
     for w in warnings:
         print(f"  ⚠️  {w}")
@@ -182,7 +191,7 @@ def compile_app(app_path, force=False):
         print(f"错误：{yaml_path} 不存在")
         sys.exit(1)
 
-    with open(yaml_path, "r", encoding="utf-8") as f:
+    with open(yaml_path, "r", encoding="utf-8-sig") as f:
         content = f.read()
 
     # 简易 YAML 解析（不依赖 PyYAML）
@@ -241,8 +250,24 @@ def compile_app(app_path, force=False):
             # 检测 restrict_verdict 子行（缩进在边定义下方）
             rv_match = re.match(r'restrict_verdict:\s*\[([^\]]*)\]', stripped)
             if rv_match and edges_lines:
-                rv_list = [v.strip().strip('\"\'') for v in rv_match.group(1).split(',') if v.strip()]
+                rv_list = [v.strip().strip("\"'") for v in rv_match.group(1).split(',') if v.strip()]
                 edges_lines[-1]['restrict_verdict'] = rv_list
+                continue
+            # 检测 carries 子行（v8.4：边级显式物料声明，与 restrict_verdict 同模式）
+            # 支持单行数组：carries: [a.json, b.json]
+            # 多行列表写法暂不支持（与 restrict_verdict 保持一致）
+            cv_match = re.match(r'carries:\s*\[([^\]]*)\]', stripped)
+            if cv_match and edges_lines:
+                cv_list = [v.strip().strip("\"'") for v in cv_match.group(1).split(',') if v.strip()]
+                edges_lines[-1]['carries'] = cv_list
+                continue
+            # 检测 max_executions 子行（v8.0 修复 P0-4：YAML 格式中 max_executions 可单独成行）
+            # 例：
+            #   - A → B when: result.verdict == "xxx"
+            #     max_executions: 2
+            mx_sub_match = re.match(r'max_executions:\s*(\d+)', stripped)
+            if mx_sub_match and edges_lines:
+                edges_lines[-1]['max_executions'] = int(mx_sub_match.group(1))
                 continue
             parsed = parse_edges_line(stripped)
             if parsed:
@@ -260,8 +285,18 @@ def compile_app(app_path, force=False):
                 if ':' in stripped and not stripped.startswith('- '):
                     k = stripped.split(':', 1)[0].strip()
                     v = stripped.split(':', 1)[1].strip()
-                    if k in ('type', 'confirm'):
+                    if k == 'type':
+                        # 向后兼容：静默忽略原 type 字段（producer/standard 已删除）
+                        current_list_key = None
+                    elif k == 'confirm':
                         roles[current_role][k] = v
+                        current_list_key = None
+                    elif k == 'fail_max_executions':
+                        # P2: Gate FAIL 边重试上限（角色级覆盖全局默认 3）
+                        try:
+                            roles[current_role][k] = int(v)
+                        except ValueError:
+                            errors.append(f"角色 '{current_role}': fail_max_executions='{v}' 不是整数")
                         current_list_key = None
                     elif k in ('outputs', 'inputs'):
                         roles[current_role].setdefault(k, [])
@@ -274,20 +309,16 @@ def compile_app(app_path, force=False):
                     if current_list_key and ':' in item_str:
                         # 简单格式: - 名称: 路径
                         nm = item_str.split(':', 1)[0].strip().strip('"\'')
-                        rest = item_str.split(':', 1)[1].strip().strip('"\'')
-                        # 检查是否有逗号分隔的额外字段（如 路径, type=process）
-                        item_type = 'deliverable'
+                        rest = item_str.split(':', 1)[1].strip().strip("\'")
+                        # v9.2: 删除 type 推断，路径原样保留（type 字段已废弃）
+                        # 向后兼容：忽略逗号后的旧式 type=xxx
                         if ',' in rest:
-                            parts = rest.split(',', 1)
-                            pt = parts[0].strip().strip('"\'')
-                            type_part = parts[1].strip()
-                            if 'process' in type_part:
-                                item_type = 'process'
+                            pt = rest.split(',', 1)[0].strip().strip("\'")
                         else:
                             pt = rest
-                        roles[current_role][current_list_key].append({"name": nm, "path": pt, "type": item_type})
+                        roles[current_role][current_list_key].append({"name": nm, "path": pt})
                     elif current_list_key:
-                        roles[current_role][current_list_key].append({"name": item_str.strip('"\''), "path": item_str.strip('"\''), "type": "deliverable"})
+                        roles[current_role][current_list_key].append({"name": item_str.strip("\'"), "path": item_str.strip("\'")})
 
     if not roles:
         print("错误：app.yaml 中没有角色定义")
@@ -300,20 +331,6 @@ def compile_app(app_path, force=False):
             print(f"  ❌ {e}")
         sys.exit(1)
 
-    # ── 预注册 producer 自动展开的校验角色（供 validate_app_yaml 识别）──
-    # 补全 outputs + _is_validator 标记，确保后续编译流程一致
-    for r_name, r_data in list(roles.items()):
-        if r_data.get("type") == "producer":
-            val_role = f"{r_name}（校验）"
-            if val_role not in roles:
-                roles[val_role] = {
-                    "type": "standard",
-                    "confirm": "auto",
-                    "_is_validator": True,
-                    "_validator_for": r_name,
-                    "outputs": [{"name": f"{r_name}校验报告", "path": f"outputs/{slugify(r_name)}-validation.json", "type": "deliverable"}],
-                }
-
     # ── 编译期语法校验 ──
     errors = validate_app_yaml(roles, edges_lines)
     if errors:
@@ -323,32 +340,6 @@ def compile_app(app_path, force=False):
         sys.exit(1)
 
     role_names = list(roles.keys())
-
-    # ── 边重定向：producer 的边 → 校验者的边 ──
-    # 用户从 producer 视角写 edges（producer 只负责产出，校验者负责路由决策），
-    # 编译器将 producer 的所有条件边重定向到校验者。
-    # producer 自身只保留自动生成的 confirmed → 校验者。
-    # 如果用户已为校验者显式定义了 edges，不重定向（向后兼容）。
-    for r_name, r_data in list(roles.items()):
-        if r_data.get("type") != "producer":
-            continue
-        val_role = f"{r_name}（校验）"
-        if val_role not in roles:
-            continue
-        # 检查用户是否已为校验者显式定义了 edges
-        val_has_user_edges = any(
-            val_role in (e["src"] if isinstance(e["src"], list) else [e["src"]])
-            for e in edges_lines
-        )
-        if val_has_user_edges:
-            continue
-        # 重定向：将 producer 的所有边源改为校验者
-        for e in edges_lines:
-            if isinstance(e["src"], list):
-                e["src"] = [val_role if s == r_name else s for s in e["src"]]
-            else:
-                if e["src"] == r_name:
-                    e["src"] = val_role
 
     # ── 计算 input_groups（目标视角：每个 role 的前置依赖组）──
     # [A,B,C] → D  : D 得到 input_groups [["A","B","C"]]（组内 AND）
@@ -419,21 +410,6 @@ def compile_app(app_path, force=False):
     step_map = {r: slugify(r) for r in role_order}
     step_map["完成"] = None
 
-    # ── producer 展开为执行+校验两个 STEP ──
-    # producer 角色自动插入一个校验 STEP：执行STEP confirmed → 校验STEP
-    # 校验STEP 的 confirmed → 下游，Gate FAIL → 回校验STEP自身
-    producer_validators = {}  # {执行STEP: (校验STEP, 校验角色名)}
-    for r in role_order:
-        if roles[r].get("type") == "producer":
-            exec_step = step_map[r]
-            val_step = f"{exec_step}-validate"
-            val_role = f"{r}（校验）"
-            step_map[r + "（校验）"] = val_step
-            producer_validators[exec_step] = (val_step, val_role, r)
-            # 校验角色已在预注册阶段创建（含 outputs + _is_validator），此处仅确保标记存在
-            roles[val_role]["_is_validator"] = True
-            roles[val_role]["_validator_for"] = r
-
     # ── ROUTER.json ──
     # transitions 格式：{"targets": [...], "type": "forward|backward", ...元数据}
     # 编译器全权编码边语义，运行时零知识执行（只读元数据）
@@ -442,13 +418,6 @@ def compile_app(app_path, force=False):
         step_id = step_map[r]
         role_data = roles[r]
         transitions = {}
-        is_producer = role_data.get("type") == "producer"
-
-        # 模板校验者（无重定向边也无用户定义边）由 producer 展开代码生成，跳过主循环
-        if role_data.get("_is_validator"):
-            val_has_edges = any(e["src"] == r for e in edges_lines)
-            if not val_has_edges:
-                continue
 
         for e in edges_lines:
             if e["src"] != r:
@@ -457,12 +426,9 @@ def compile_app(app_path, force=False):
             targets = e["targets"]
 
             if verdict is None:
-                # confirmed 边 → 如果是 producer，confirmed 指向校验 STEP
+                # 无条件边 → confirmed 路由
                 step_targets = [step_map[t] for t in targets if t != "完成" and t in step_map and step_map[t]]
-                if is_producer and step_id in producer_validators:
-                    val_step = producer_validators[step_id][0]
-                    transitions["confirmed"] = {"targets": [val_step], "type": "normal"}
-                elif step_targets:
+                if step_targets:
                     # 合并同 verdict 多目标边（修复并行扇出覆盖缺陷）
                     if "confirmed" in transitions:
                         existing = transitions["confirmed"]
@@ -473,9 +439,16 @@ def compile_app(app_path, force=False):
                         else:
                             transitions["confirmed"] = {"targets": merged, "type": "normal"}
                     else:
-                        transitions["confirmed"] = {"targets": step_targets, "type": "normal"}
+                        edge_val = {"targets": step_targets, "type": "normal"}
+                        # v8.4: 无条件边也支持 carries（与条件边同构）
+                        if e.get("carries"):
+                            edge_val["carries"] = [{"path": p} for p in e["carries"]]
+                        transitions["confirmed"] = edge_val
                 elif all(t == "完成" for t in targets):
-                    transitions["confirmed"] = {"targets": [], "type": "normal"}
+                    edge_val = {"targets": [], "type": "normal"}
+                    if e.get("carries"):
+                        edge_val["carries"] = [{"path": p} for p in e["carries"]]
+                    transitions["confirmed"] = edge_val
             else:
                 step_targets = []
                 for t in targets:
@@ -497,6 +470,10 @@ def compile_app(app_path, force=False):
                 # 传递 restrict_verdict（边级元数据，编译期聚合后写入 step.verdict_context）
                 if e.get("restrict_verdict"):
                     edge_val["restrict_verdict"] = e["restrict_verdict"]
+                # 传递 carries（v8.4：边级显式物料声明，字符串列表→[{path}] 格式）
+                # 不写 carries 的边不注入该字段，下游零物料
+                if e.get("carries"):
+                    edge_val["carries"] = [{"path": p} for p in e["carries"]]
                 if step_targets or all(t == "完成" for t in targets):
                     # 合并同 verdict 多目标边（修复并行扇出覆盖缺陷）
                     if verdict in transitions:
@@ -510,63 +487,46 @@ def compile_app(app_path, force=False):
                     else:
                         transitions[verdict] = edge_val
 
-        # producer 没有显式 confirmed 边时，自动指向校验 STEP
-        if is_producer and "confirmed" not in transitions and step_id in producer_validators:
-            transitions["confirmed"] = {"targets": [producer_validators[step_id][0]], "type": "normal"}
-
         # 检查角色是否有前进边——没有则报错（不猜测拓扑）
         has_forward = any(
             (v.get("type") == "normal") if isinstance(v, dict) else False
             for v in transitions.values()
         )
         if "confirmed" not in transitions and not has_forward:
-            if is_producer and step_id in producer_validators:
-                transitions["confirmed"] = {"targets": [producer_validators[step_id][0]], "type": "normal"}
-            else:
-                print(f"\n❌ 编译失败：角色 '{r}' 没有任何前进边（在 edges 中未声明任何出边）")
-                sys.exit(1)
+            print(f"\n❌ 编译失败：角色 '{r}' 没有任何前进边（在 edges 中未声明任何出边）")
+            sys.exit(1)
 
-        # fail 边：Gate FAIL 是产出物格式问题，回到角色自身重做，不设 max_executions
-        # （格式错误只需修正格式重做，全局 max_executions 反而会阻塞后续语义回退）
-        transitions.setdefault("fail", {"targets": [step_id], "type": "backward"})
+        # P2: Gate FAIL 边默认上限 3 次（v8.2）
+        # 原 v8.1 设计认为"格式错误只需重做即可修复"，但实际 LLM 可能反复产出同样的错误格式
+        # （如 R1~R4 响应记录被误判），导致 backward 自循环死锁。
+        # 现改为默认 3 次，超过则 orchestrator 升级为 BLOCKING 等用户介入。
+        # 角色可在 app.yaml 中用 fail_max_executions 覆盖。
+        fail_max = role_data.get("fail_max_executions", 3)
+        # v8.4: fail 边 carries 内联生成（fail 边是引擎自动生成的，其 carries 也由引擎管理）
+        # 开发者写的 normal 边必须显式声明 carries（见 transition 构造段）
+        fail_carries = []
+        seen_paths = set()
+        # 1. 当前角色的 outputs（fail 边源 = target = 自己，合并为一类）
+        for o in role_data.get("outputs", []):
+            p = o.get("path", "")
+            if p and p not in seen_paths:
+                fail_carries.append({"path": p})
+                seen_paths.add(p)
+        # 2. Gate 结果
+        gate_p = f"outputs/{step_id}-gate-result.json"
+        if gate_p not in seen_paths:
+            fail_carries.append({"path": gate_p})
+            seen_paths.add(gate_p)
+        # 3. 用户反馈（仅 manual 角色）
+        if role_data.get("confirm", "manual") == "manual":
+            fb_p = f"outputs/{step_id}-feedback.json"
+            if fb_p not in seen_paths:
+                fail_carries.append({"path": fb_p})
+                seen_paths.add(fb_p)
+        transitions.setdefault("fail", {"targets": [step_id], "type": "backward", "max_executions": fail_max, "carries": fail_carries})
 
         step_entry = {"step": step_id, "role": r, "transitions": transitions}
         router_steps.append(step_entry)
-
-        # ── 如果是 producer，生成校验 STEP ──
-        if is_producer and step_id in producer_validators:
-            val_step, val_role, exec_role = producer_validators[step_id]
-            val_role_data = roles.get(val_role, {})
-            val_has_user_edges = any(e["src"] == val_role for e in edges_lines)
-
-            if val_has_user_edges:
-                # 用户已为校验角色定义了 edges，主循环会自然处理该角色
-                # 不在此处生成 validate step，避免重复
-                pass
-            else:
-                # 用户未定义校验角色 edges，用模板
-                val_transitions = {}
-                # confirmed → 原始 confirmed 边的下游
-                downstream_targets = []
-                for e in edges_lines:
-                    if e["src"] == exec_role and e["verdict"] is None:
-                        for t in e["targets"]:
-                            if t != "完成" and t in step_map and step_map[t]:
-                                downstream_targets.append(step_map[t])
-                if downstream_targets:
-                    val_transitions["confirmed"] = {"targets": downstream_targets, "type": "normal"}
-                else:
-                    # 找拓扑排序中下一个角色
-                    exec_idx = role_order.index(exec_role)
-                    if exec_idx + 1 < len(role_order):
-                        val_transitions["confirmed"] = {"targets": [step_map[role_order[exec_idx + 1]]], "type": "normal"}
-                    else:
-                        val_transitions["confirmed"] = {"targets": [], "type": "normal"}  # 终态
-                # fail → 回退到校验者自身（Gate 格式错误是校验者的产出物问题，不是 producer 的）
-                val_transitions["fail"] = {"targets": [val_step], "type": "backward"}
-
-                val_entry = {"step": val_step, "role": val_role, "transitions": val_transitions}
-                router_steps.append(val_entry)
 
     # 写入 SDK schema_version 到编译产物
     _sdk_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sdk")
@@ -583,17 +543,13 @@ def compile_app(app_path, force=False):
     registry = []
     for r in role_order:
         role_data = roles[r]
-        # 跳过预注册的校验角色——由 producer 展开代码生成其 registry 条目
-        if role_data.get("_is_validator"):
-            continue
         role_dir = slugify(r)
-        role_type = role_data.get("type", "standard")
         confirm = role_data.get("confirm", "manual")
 
         outputs = role_data.get("outputs", [{"name": slugify(r), "path": f"outputs/{slugify(r)}/{slugify(r)}.json", "type": "deliverable"}])
 
-        # gate：统一二元校验（文件存在 + 非空）
-        gate_rules = {"phase1_cross_validation": {"enabled": True, "text_validation": {"min_size": 50}}, "phase2_schema_comparison": {"enabled": False}, "phase3_anomaly_detection": {"enabled": False}}
+        # gate：统一二元校验（文件存在 + 非空），v8.0 删除 min_size 长度校验
+        gate_rules = {"phase1_cross_validation": {"enabled": True}, "phase2_schema_comparison": {"enabled": False}, "phase3_anomaly_detection": {"enabled": False}}
 
         # app 级公共知识按 inject_to 选择性注入到角色 inputs
         # 缺省 inject_to = None → 不注入（方案 B）
@@ -613,43 +569,12 @@ def compile_app(app_path, force=False):
             "role_name": r,
             "skill_path": f"roles/{role_dir}/skill.md",
             "blocking_mode": confirm,
-            "role_type": role_type,
             "outputs": outputs,
             "gate_rules": gate_rules,
         }
         if role_inputs:
             entry["inputs"] = role_inputs
-        if role_type == "producer":
-            entry["principles"] = f"roles/{role_dir}/principles.md"
         registry.append(entry)
-
-        # ── producer 校验角色 ──
-        if role_type == "producer":
-            val_role = f"{r}（校验）"
-            val_dir = slugify(val_role)
-            # 校验角色的 inputs = 执行角色的 outputs + principles
-            val_inputs = []
-            for o in outputs:
-                val_inputs.append(dict(o))
-            val_outputs = [{"name": f"{r}校验报告", "path": f"outputs/{slugify(r)}-validation.json", "type": "deliverable"}]
-            val_gate = {
-                "phase1_cross_validation": {"enabled": True,
-                    "rules": [{"type": "field_exists", "field": "result.verdict", "must_be_non_empty": True,
-                               "description": "校验角色必须输出 result.verdict"}]},
-                "phase2_schema_comparison": {"enabled": False},
-                "phase3_anomaly_detection": {"enabled": False},
-            }
-            val_entry = {
-                "role_name": val_role,
-                "skill_path": f"roles/{val_dir}/skill.md",
-                "blocking_mode": "auto",
-                "role_type": "standard",
-                "outputs": val_outputs,
-                "inputs": val_inputs,
-                "gate_rules": val_gate,
-                "principles": f"roles/{role_dir}/principles.md",
-            }
-            registry.append(val_entry)
 
     # ── 从 edges 提取 verdict 值，同步到 registry + schema（唯一权威源）──
     # 同时注入 input_groups 到 registry
@@ -683,8 +608,13 @@ def compile_app(app_path, force=False):
         entry = reg_by_name_ig.get(role_name)
         if entry and groups:
             step_groups = []
+            seen_tuples = set()  # 去重：同一 step_group 只保留一份
             for group in groups:
                 step_group = [role_to_step_map.get(r, r) for r in group]
+                group_tuple = tuple(step_group)
+                if group_tuple in seen_tuples:
+                    continue
+                seen_tuples.add(group_tuple)
                 step_groups.append(step_group)
             entry["input_groups"] = step_groups
 
@@ -702,91 +632,12 @@ def compile_app(app_path, force=False):
     # 普通编译也应全量重新生成，与 ROUTER.json 保持一致。
     # skill.md / principles.md / knowledge 文件才是内容文件，普通编译不覆盖。
 
-    # ── 边级 carries 物料注入 ──
-    # 统一机制：每条边自带 carries 列表，router 运行时只读 carries 注入物料。
-    # backward 边：自动推导 carries（源 outputs + gate result + 用户反馈 + target 自身 outputs）
-    # forward 边（所有 verdict）：注入 gate result + 源角色 process 类型产出物
-    #   - confirmed 边：gate result（PASS_FLAW 瑕疵描述）
-    #   - custom-verdict 边（challenged/loop/...）：gate result + 源角色分析报告
-    #     原理：下游角色需要看到上游的分析内容才能做出裁决决策，而不仅是 gate 的 PASS/FAIL
-    for s in router_steps:
-        src_step = s["step"]
-        src_role = s["role"]
-        transitions = s.get("transitions", {})
-        for tkey, tval in transitions.items():
-            if not isinstance(tval, dict):
-                continue
-
-            edge_type = tval.get("type", "normal")
-            targets = tval.get("targets", [])
-
-            if edge_type == "backward":
-                # 自动推导 backward 边 carries
-                carries = []
-                existing_paths = set()
-
-                # 1. 源角色 outputs（校验报告、分析报告等）
-                src_outputs = reg_by_name.get(src_role, {}).get("outputs", [])
-                for o in src_outputs:
-                    p = o.get("path", "")
-                    if p and p not in existing_paths:
-                        carries.append({"path": p, "type": "feedback", "name": f"[反馈] {o.get('name', '')}"})
-                        existing_paths.add(p)
-
-                # 2. Gate 结果文件（gate.py 运行时写入）
-                gate_path = f"outputs/{src_step}-gate-result.json"
-                if gate_path not in existing_paths:
-                    carries.append({"path": gate_path, "type": "feedback", "name": f"[反馈] {src_step} Gate校验结果"})
-                    existing_paths.add(gate_path)
-
-                # 3. 用户反馈文件（仅 manual 角色有）
-                src_blocking = reg_by_name.get(src_role, {}).get("blocking_mode", "manual")
-                if src_blocking == "manual":
-                    fb_path = f"outputs/{src_step}-feedback.json"
-                    if fb_path not in existing_paths:
-                        carries.append({"path": fb_path, "type": "feedback", "name": f"[反馈] {src_step} 用户反馈"})
-                        existing_paths.add(fb_path)
-
-                # 4. 所有 target 的自身上一轮产出（redo 隐含语义）
-                for target_step in targets:
-                    target_role = step_to_role.get(target_step)
-                    if not target_role:
-                        continue
-                    target_outputs = reg_by_name.get(target_role, {}).get("outputs", [])
-                    for o in target_outputs:
-                        p = o.get("path", "")
-                        if p and p not in existing_paths:
-                            carries.append({"path": p, "type": "feedback", "name": f"[自身上一轮] {o.get('name', '')}"})
-                            existing_paths.add(p)
-
-                tval["carries"] = carries
-
-            elif edge_type == "normal":
-                # 所有 forward 边统一注入：gate result + 源角色 process 类型产出物
-                carries = []
-                existing_paths = set()
-
-                # 1. Gate 结果文件
-                gate_path = f"outputs/{src_step}-gate-result.json"
-                carries.append({"path": gate_path, "type": "deliverable", "name": f"[上游Gate结果] {src_step}"})
-                existing_paths.add(gate_path)
-
-                # 2. 源角色 process 类型产出物（分析报告、审阅报告等）
-                # 仅对非 confirmed 的 custom-verdict 边注入（confirmed 边的 gate result 已足够）
-                if tkey != "confirmed":
-                    src_outputs = reg_by_name.get(src_role, {}).get("outputs", [])
-                    for o in src_outputs:
-                        p = o.get("path", "")
-                        otype = o.get("type", "deliverable")
-                        # 只注入 process 类型的产出物（分析/审阅报告），跳过 deliverable（实体产物如 app.yaml）
-                        if p and otype == "process" and p not in existing_paths:
-                            carries.append({"path": p, "type": "deliverable", "name": f"[上游分析] {o.get('name', '')}"})
-                            existing_paths.add(p)
-
-                tval["carries"] = carries
-
-            else:
-                tval.setdefault("carries", [])
+    # ── carries 注入说明（v8.4）──
+    # carries 机制已从“自动推导”改为“app.yaml 显式声明”。
+    # app.yaml 中的边可选拄一个子行：
+    #   carries: [outputs/xxx.json, outputs/yyy.json]
+    # compiler 在解析 edges 时已将其写入 edge_val['carries']（见 transition 构造段）。
+    # 不写 carries 的边 → 下游零物料注入。
 
     # ── manifest.json ──
     auto_dirs = set()
@@ -820,7 +671,13 @@ def compile_app(app_path, force=False):
             rv = tval.get("restrict_verdict")
             if rv:
                 for t in tval.get("targets", []):
-                    incoming_restrict.setdefault(t, {})[s["step"]] = rv
+                    # 同源多边的 restrict_verdict 合并（而非覆盖）
+                    # 例如极限红队的 r3_passed 和 r3_escalate 都指向终审
+                    # 各自的 restrict_verdict 应合并为并集
+                    existing = incoming_restrict.setdefault(t, {}).setdefault(s["step"], [])
+                    for v in rv:
+                        if v not in existing:
+                            existing.append(v)
 
     steps_map_for_vc = {s["step"]: s for s in router_steps}
     for s in router_steps:
@@ -839,13 +696,12 @@ def compile_app(app_path, force=False):
                     print(f"   {step_id} 的合法出边 verdict: {sorted(outgoing_verdicts)}")
                     sys.exit(1)
 
-                # 校验 2：死链检测（该 verdict 的出边 target 必须存在且非空）
+                # 校验 2：死链检测（该 verdict 的出边 target 必须存在于 ROUTER steps 中）
+                # 注：空 target（targets=[]）是合法的终态出口（→ 完成），不是死链
                 out_edge = s["transitions"].get(v, {})
                 if isinstance(out_edge, dict):
                     out_targets = out_edge.get("targets", [])
-                    if not out_targets:
-                        print(f"\n❌ 编译失败：{step_id} 的 verdict '{v}' 出边 target 为空（死链）")
-                        sys.exit(1)
+                    # 空 target = 终态出口，跳过死链检测
                     for ot in out_targets:
                         if ot not in steps_map_for_vc:
                             print(f"\n❌ 编译失败：{step_id} 的 verdict '{v}' 出边 target '{ot}' 不在 ROUTER steps 中（死链）")
@@ -880,55 +736,53 @@ def compile_app(app_path, force=False):
     # ── 骨架文件 ──
     for r in role_order:
         role_data = roles[r]
-        # 校验者角色由后续专用逻辑生成骨架，此处跳过避免通用模板覆盖
-        if role_data.get("_is_validator"):
-            continue
         role_dir = slugify(r)
         role_full = os.path.join(app_path, "roles", role_dir)
         os.makedirs(role_full, exist_ok=True)
 
-        # skill.md / principles.md 是内容文件，仅文件不存在时生成骨架，--force 不覆盖
+        # skill.md 是内容文件，仅文件不存在时生成骨架，--force 不覆盖
         skill_f = os.path.join(role_full, "skill.md")
         if not os.path.exists(skill_f):
             with open(skill_f, "w", encoding="utf-8") as f:
                 f.write(f"# {r} 执行指令\n\n## 执行步骤\n1. （待填充）\n\n## 产出物\n（待填充）\n")
 
-        if role_data.get("type") == "producer":
-            princ_f = os.path.join(role_full, "principles.md")
-            if not os.path.exists(princ_f):
-                with open(princ_f, "w", encoding="utf-8") as f:
-                    f.write(f"# {r} 原则\n\n## 设计原则\n1. （待填充）\n\n## 校验清单\n- [ ] （待填充）\n")
-
-        # schema.json 是派生文件（verdict enum + _required_files 从 app.yaml 编译得出），
+        # schema.json 是派生文件（_required_files 从 app.yaml 编译得出），
         # 普通编译和 --force 编译都全量重新生成（与 ROUTER.json 一致）。
+        # v9.2: 删除 result.verdict enum（信封字段由 Gate Layer 0 从 ROUTER.json transitions 读取）
         schema_f = os.path.join(role_full, "schema.json")
         schema = {"$schema": "http://json-schema.org/draft-07/schema#", "type": "object", "properties": {}, "required": []}
-        # verdicts 从 edges 提取（与 registry 写入保持一致），不从角色级 verdicts 读
-        verdicts = sorted(role_edge_verdicts.get(r, set()))
-        if verdicts:
-            # 条件路由角色：自动写入 result.verdict enum
-            schema["required"] = ["result"]
-            schema["properties"]["result"] = {
-                "type": "object",
-                "required": ["verdict", "summary"],
-                "properties": {
-                    "verdict": {"type": "string", "enum": verdicts},
-                    "summary": {"type": "string"},
-                    "findings": {"type": "array"},
-                    "errors": {"type": "array"}
-                }
-            }
 
-        # 写入产出物文件要求（Gate 据此检查文件是否存在+新鲜）
+        # 写入产出物文件要求（Gate Layer 1 据此检查文件是否存在）
+        # v9.2: 删除 type 字段（type 区分已废弃）
+        # contract 是可选的细粒度校验声明，由开发者手动写在 schema.json 里。
+        # compiler 重新生成时保留已有 contract 不覆盖。
         outputs = role_data.get("outputs", [])
         if outputs:
+            # 读取已有 schema.json 的 _required_files（用于保留手写 contract）
+            existing_rf_map = {}  # {name: rf_dict}
+            if os.path.exists(schema_f):
+                try:
+                    with open(schema_f, "r", encoding="utf-8-sig") as ef:
+                        existing_schema = json.load(ef)
+                    for erf in existing_schema.get("_required_files", []):
+                        ename = erf.get("name", "")
+                        if ename:
+                            existing_rf_map[ename] = erf
+                except (json.JSONDecodeError, IOError):
+                    pass
+
             schema["_required_files"] = []
             for o in outputs:
-                schema["_required_files"].append({
-                    "name": o.get("name", ""),
+                name = o.get("name", "")
+                rf_entry = {
+                    "name": name,
                     "path": o.get("path", ""),
-                    "type": o.get("type", "deliverable")
-                })
+                }
+                # P1: 保留已有 contract 字段（手写的深度校验规则）
+                existing = existing_rf_map.get(name, {})
+                if "contract" in existing:
+                    rf_entry["contract"] = existing["contract"]
+                schema["_required_files"].append(rf_entry)
 
         with open(schema_f, "w", encoding="utf-8") as f:
             json.dump(schema, f, ensure_ascii=False, indent=2)
@@ -944,47 +798,6 @@ def compile_app(app_path, force=False):
                 with open(kp_path, "w", encoding="utf-8") as f:
                     f.write(f"# {kp['name']}\n\n（待填充）\n")
         print(f"[compiler] knowledge 骨架: {len(app_knowledge)} 个文件")
-
-    # ── 为 producer 校验角色生成骨架 ──
-    for r in role_order:
-        if roles[r].get("type") != "producer":
-            continue
-        val_role = f"{r}（校验）"
-        val_dir = slugify(val_role)
-        val_full = os.path.join(app_path, "roles", val_dir)
-        os.makedirs(val_full, exist_ok=True)
-
-        # 校验 skill（内容文件，仅文件不存在时生成骨架，--force 不覆盖）
-        val_skill_f = os.path.join(val_full, "skill.md")
-        if not os.path.exists(val_skill_f):
-            with open(val_skill_f, "w", encoding="utf-8") as f:
-                f.write(f"# {r} 校验执行指令\n\n## 执行步骤\n1. Read 上游产出物（输入文件）\n2. 逐项检查原则文档中的校验清单\n3. 输出校验报告\n\n## 输出格式\n返回 JSON，包含 result.verdict（confirmed/loop）\n\n## verdict 判定规则\n- `confirmed`：校验通过\n- `loop`：校验未通过，回退上游角色修正\n")
-
-        # 校验 schema 是派生文件，普通编译和 --force 编译都全量重新生成
-        # verdict enum = 用户定义的边 verdicts + confirmed（fail 为系统保留，不写入 enum）
-        val_edge_verdicts = role_edge_verdicts.get(val_role, set())
-        val_verdict_enum = sorted(val_edge_verdicts | {"confirmed"})
-        val_schema_f = os.path.join(val_full, "schema.json")
-        val_schema = {
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "type": "object",
-            "required": ["result"],
-            "properties": {
-                "result": {
-                    "type": "object",
-                    "required": ["verdict", "summary"],
-                    "properties": {
-                        "verdict": {"type": "string", "enum": val_verdict_enum},
-                        "summary": {"type": "string"},
-                        "findings": {"type": "array"},
-                        "errors": {"type": "array"}
-                    }
-                }
-            },
-            "_required_files": [{"name": f"{r}校验报告", "path": f"outputs/{slugify(r)}-validation.json", "type": "deliverable"}]
-        }
-        with open(val_schema_f, "w", encoding="utf-8") as f:
-            json.dump(val_schema, f, ensure_ascii=False, indent=2)
 
     print(f"[compiler] ✅ 编译完成: {app_path}")
 
@@ -1601,7 +1414,7 @@ def check_app(app_path, strict=False):
         skill_full = os.path.join(app_path, skill_path)
         if not os.path.exists(skill_full):
             continue
-        with open(skill_full, "r", encoding="utf-8") as f:
+        with open(skill_full, "r", encoding="utf-8-sig") as f:
             skill_content = f.read()
         # 检查是否有任何 verdict enum 值未在 skill 中被提及
         undocumented = [v for v in verdict_enum if v not in skill_content]

@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "_required_files": [
+    {
+      "name": "红队综合裁决",
+      "path": "process/outputs/红队综合裁决.json"
+    }
+  ]
+}

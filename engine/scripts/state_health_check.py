@@ -13,8 +13,8 @@ v5.0: 基于 state_invariants.py 不变量体系。
   - Z3 断裂 JOIN 检测（仅报告）
 
 Usage:
-  python3 state_health_check.py --workspace-id <ws_id> [--dry-run] [--fix]
-  python3 state_health_check.py --state-path <path> --router-path <path> [--dry-run] [--fix]
+  python state_health_check.py --workspace-id <ws_id> [--dry-run] [--fix]
+  python state_health_check.py --state-path <path> --router-path <path> [--dry-run] [--fix]
 """
 import argparse, json, os, sys
 from datetime import datetime, timezone
@@ -26,13 +26,20 @@ from state_invariants import (
 )
 
 
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+
 def now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def load_json(path):
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
     except Exception:
         return None
@@ -66,11 +73,11 @@ def build_router_index(router_data):
 # ═══════════════════════════════════════════════════════════════
 
 def _z1_zombie_heuristic(state):
-    """Z1: 僵尸 executing 检测（v6.0: 并行安全版，仅报告）。
+    """Z1: 僵尸 executing 检测（并行安全版，仅报告）。
 
-    v6.0: 不再自动标记 executing 为僵尸。
+    不再自动标记 executing 为僵尸。
     并行场景下 step_status 中有 N 个 executing 是合法常态。
-    实际清理由 Hook② 在确定时机执行（_clear_zombie_executing）。
+    Hook② 不再自动清理僵尸 executing，由用户在取消后通过 jump 显式回到正常状态。
     """
     return []
 
@@ -125,7 +132,20 @@ def _z3_broken_join_detection(state, router_idx, join_idx):
             in_dispatches = any(d.get("step") == tgt for d in pending_dispatches)
         in_pending_routes = any(s in pending_routes for s in satisfied_sources)
 
-        if not in_dispatches and not in_pending_routes and not cached_branch_results:
+        # v8.0 修复 P1-4：cached_branch_results 屏蔽全量改按 target 维度判断。
+        # 原实现：not cached_branch_results（只要缓存非空就跳过所有检测）。
+        # 问题：并行场景下，分支 A 的 cached_branch_results 不应屏蔽分支 B 的断裂检测。
+        # 修复：检查该 target 的 sources 是否在 cached_branch_results 内。
+        sources_in_cache = False
+        if cached_branch_results:
+            sources_set = set(satisfied_sources)
+            for cbr in cached_branch_results:
+                cbr_step = cbr.get("step", "")
+                if cbr_step in sources_set:
+                    sources_in_cache = True
+                    break
+
+        if not in_dispatches and not in_pending_routes and not sources_in_cache:
             findings.append({
                 "id": "Z3",
                 "severity": "major",

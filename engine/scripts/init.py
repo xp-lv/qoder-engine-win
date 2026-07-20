@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 """初始化器。校验功能层配置 → 创建工作目录 → 初始化 STATE.json。
-Usage: python3 engine/scripts/init.py --workspace-path <path> --app-path <path> [--workspace-id <id>] [--force]
+Usage: python engine/scripts/init.py --workspace-path <path> --app-path <path> [--workspace-id <id>] [--force]
 """
 import argparse, json, os, sys, shutil
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import (
-    resolve_ws_base, resolve_ws_state, resolve_ws_process,
+    resolve_ws_base, resolve_ws_state,
     derive_ws_id, get_app_name, get_edge_targets, resolve_workspace_output,
 )
 from state_io import save_state
 from datetime import datetime, timezone
+
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 
 def now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -40,7 +47,7 @@ def load_json(path, error_code, missing_msg):
     if not os.path.exists(path):
         output_failure(error_code, f"{missing_msg}: {path}")
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
     except (json.JSONDecodeError, ValueError) as e:
         output_failure(error_code, f"JSON 解析失败: {e}")
@@ -164,67 +171,63 @@ def main():
 
     # 写入 APP_REF
     app_ref_f = os.path.join(ws_base, "APP_REF")
-    with open(app_ref_f, "w") as f:
+    with open(app_ref_f, "w", encoding="utf-8") as f:
         f.write(app_path)
 
-    # 写入 WORKSPACE_ROOT（必须在 process 目录创建之前写入，因为 resolve_ws_process 读它）
+    # 写入 WORKSPACE_ROOT
     ws_root_f = os.path.join(ws_base, "WORKSPACE_ROOT")
-    with open(ws_root_f, "w") as f:
+    with open(ws_root_f, "w", encoding="utf-8") as f:
         f.write(os.path.abspath(args.workspace_path))
 
-    # 创建 process 目录（现在 resolve_ws_process 能正确读到 WORKSPACE_ROOT）
-    ws_process = resolve_ws_process(ws_id)
-    os.makedirs(ws_process, exist_ok=True)
+    # v9.2: 删除 process 目录创建（process 机制已废弃）
 
-    # 创建产出物目录（按 type 路由到正确位置，与 router.py/step.py 保持一致）
-    auto_dirs_resolved = set()  # 已解析的绝对路径
+    # 创建产出物目录（v9.2: 删除 type 路由，统一解析）
+    auto_dirs_resolved = set()
     for role in registry:
         for o in role.get("outputs", []):
-            o_type = o.get("type", "deliverable")
-            resolved = resolve_workspace_output(ws_id, o["path"], app_path, o_type)
+            resolved = resolve_workspace_output(ws_id, o["path"], app_path)
             out_dir = os.path.dirname(resolved)
             if out_dir:
                 auto_dirs_resolved.add(out_dir)
         for inp in role.get("inputs", []):
-            inp_type = inp.get("type", "deliverable")
-            resolved = resolve_workspace_output(ws_id, inp["path"], app_path, inp_type)
+            resolved = resolve_workspace_output(ws_id, inp["path"], app_path)
             inp_dir = os.path.dirname(resolved)
             if inp_dir:
                 auto_dirs_resolved.add(inp_dir)
 
     manifest_path = os.path.join(app_path, "manifest.json")
     if os.path.exists(manifest_path):
-        with open(manifest_path, "r", encoding="utf-8") as f:
+        with open(manifest_path, "r", encoding="utf-8-sig") as f:
             manifest = json.load(f)
         ws_template = manifest.get("workspace_template", {})
-        # manifest dirs 是相对路径，join workspace_path
         for dir_path in ws_template.get("dirs", []):
             full_dir = os.path.join(args.workspace_path, dir_path)
             os.makedirs(full_dir, exist_ok=True)
 
-    # auto_dirs_resolved 是按 type 解析后的绝对路径，直接创建
     for dir_path in auto_dirs_resolved:
         os.makedirs(dir_path, exist_ok=True)
 
-    # 为 inputs 创建占位骨架（按 type 路由，与 router 的 resolve_workspace_output 一致）
+    # 为 inputs 创建占位骨架（v9.2: 不再读 type，按扩展名判断）
     for role in registry:
         for inp in role.get("inputs", []):
-            inp_type = inp.get("type", "deliverable")
-            if inp_type in ("deliverable", "process"):
-                inp_path = inp.get("path", "")
-                if not inp_path:
+            inp_path = inp.get("path", "")
+            if not inp_path:
+                continue
+            full_path = resolve_workspace_output(ws_id, inp_path, app_path)
+            if not os.path.exists(full_path):
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                _, ext = os.path.splitext(full_path)
+                if ext.lower() == '.json':
                     continue
-                full_path = resolve_workspace_output(ws_id, inp_path, app_path, inp_type)
-                if not os.path.exists(full_path):
-                    os.makedirs(os.path.dirname(full_path), exist_ok=True)
-                    placeholder = f"# {inp.get('name', inp_path)}\n\n（待填写）\n"
-                    with open(full_path, "w", encoding="utf-8") as f:
-                        f.write(placeholder)
+                inp_name = inp.get('name', inp_path)
+                placeholder = f"# {inp_name}\n\n（待填写）\n"
+                with open(full_path, "w", encoding="utf-8") as f:
+                    f.write(placeholder)
 
     # Step 7: 初始化 STATE.json
     if os.path.exists(state_path) and not args.force:
         try:
-            with open(state_path, "r", encoding="utf-8") as f:
+            with open(state_path, "r", encoding="utf-8-sig") as f:
                 existing = json.load(f)
             if existing.get("terminal_state"):
                 output_success("already_terminal")

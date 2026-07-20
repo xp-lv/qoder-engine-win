@@ -78,6 +78,29 @@
               "name": "[反馈] 变更分析师-validate Gate校验结果"
             }
           ]
+        },
+        "loop": {
+          "targets": [
+            "变更分析师"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/变更分析师-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 变更分析师校验报告"
+            },
+            {
+              "path": "outputs/变更分析师-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 变更分析师-validate Gate校验结果"
+            },
+            {
+              "path": "outputs/变更分析报告.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 变更分析报告"
+            }
+          ]
         }
       }
     },

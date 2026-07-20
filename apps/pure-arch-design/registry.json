@@ -1,0 +1,659 @@
+[
+  {
+    "role_name": "需求分析师",
+    "skill_path": "roles/需求分析师/skill.md",
+    "blocking_mode": "manual",
+    "outputs": [
+      {
+        "name": "L2需求规格文档",
+        "path": "outputs/需求规格文档.md"
+      },
+      {
+        "name": "需求澄清请求",
+        "path": "process/outputs/需求澄清请求.md"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "L1原始诉求",
+        "path": "00-需求描述.md"
+      },
+      {
+        "name": "L2需求规格编写指南",
+        "path": "knowledge/L2需求规格编写指南.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "SDK陷阱规避",
+        "path": "knowledge/SDK陷阱规避.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "C1路由语义说明",
+        "path": "knowledge/C1路由语义说明.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "L2需求规格设计原则",
+        "path": "knowledge/L2需求规格设计原则.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "需求分析师校验"
+      ],
+      [
+        "终审裁决者"
+      ],
+      [
+        "需求分析师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "需求分析师校验",
+    "skill_path": "roles/需求分析师校验/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "需求分析师校验报告",
+        "path": "process/outputs/需求分析师-validation.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "L2需求规格文档",
+        "path": "outputs/需求规格文档.md"
+      },
+      {
+        "name": "需求澄清请求",
+        "path": "process/outputs/需求澄清请求.md"
+      },
+      {
+        "name": "L1原始诉求",
+        "path": "00-需求描述.md"
+      },
+      {
+        "name": "L2需求规格编写指南",
+        "path": "knowledge/L2需求规格编写指南.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "SDK陷阱规避",
+        "path": "knowledge/SDK陷阱规避.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "C1路由语义说明",
+        "path": "knowledge/C1路由语义说明.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "L2需求规格校验清单",
+        "path": "knowledge/L2需求规格校验清单.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "需求分析师"
+      ],
+      [
+        "需求分析师校验"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "loop"
+    ]
+  },
+  {
+    "role_name": "架构设计师",
+    "skill_path": "roles/架构设计师/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "架构蓝图",
+        "path": "outputs/架构蓝图.md"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "L2需求规格文档",
+        "path": "outputs/需求规格文档.md"
+      },
+      {
+        "name": "严重度判定准则",
+        "path": "knowledge/严重度判定准则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "架构蓝图规范",
+        "path": "knowledge/架构蓝图规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "L2需求规格编写指南",
+        "path": "knowledge/L2需求规格编写指南.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "轮内迭代与终审判定",
+        "path": "knowledge/轮内迭代与终审判定.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "归档策略",
+        "path": "knowledge/归档策略.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "REQ-ID增补流程",
+        "path": "knowledge/REQ-ID增补流程.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "SDK陷阱规避",
+        "path": "knowledge/SDK陷阱规避.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "架构蓝图设计原则",
+        "path": "knowledge/架构蓝图设计原则.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "需求分析师校验"
+      ],
+      [
+        "架构设计师校验"
+      ],
+      [
+        "红队校验角色"
+      ],
+      [
+        "终审裁决者"
+      ],
+      [
+        "架构设计师"
+      ]
+    ],
+    "verdicts": [
+      "blueprint_v1_ready"
+    ]
+  },
+  {
+    "role_name": "架构设计师校验",
+    "skill_path": "roles/架构设计师校验/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "架构设计师校验报告",
+        "path": "process/outputs/架构设计师-validation.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "L2需求规格文档",
+        "path": "outputs/需求规格文档.md"
+      },
+      {
+        "name": "架构蓝图",
+        "path": "outputs/架构蓝图.md"
+      },
+      {
+        "name": "架构蓝图规范",
+        "path": "knowledge/架构蓝图规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "SDK陷阱规避",
+        "path": "knowledge/SDK陷阱规避.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "架构蓝图校验清单",
+        "path": "knowledge/架构蓝图校验清单.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "架构设计师"
+      ],
+      [
+        "架构设计师校验"
+      ]
+    ],
+    "verdicts": [
+      "blueprint_v1_ready",
+      "loop",
+      "unregistered_requirement"
+    ]
+  },
+  {
+    "role_name": "结构红队",
+    "skill_path": "roles/结构红队/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "R1问题清单",
+        "path": "process/outputs/R1-问题清单.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "L2需求规格文档",
+        "path": "outputs/需求规格文档.md"
+      },
+      {
+        "name": "架构蓝图",
+        "path": "outputs/架构蓝图.md"
+      },
+      {
+        "name": "对抗维度与检查清单",
+        "path": "knowledge/对抗维度与检查清单.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "严重度判定准则",
+        "path": "knowledge/严重度判定准则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "红队通用方法论",
+        "path": "knowledge/红队通用方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "架构设计师校验"
+      ],
+      [
+        "结构红队"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "边界红队",
+    "skill_path": "roles/边界红队/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "R2问题清单",
+        "path": "process/outputs/R2-问题清单.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "L2需求规格文档",
+        "path": "outputs/需求规格文档.md"
+      },
+      {
+        "name": "架构蓝图",
+        "path": "outputs/架构蓝图.md"
+      },
+      {
+        "name": "对抗维度与检查清单",
+        "path": "knowledge/对抗维度与检查清单.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "严重度判定准则",
+        "path": "knowledge/严重度判定准则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "红队通用方法论",
+        "path": "knowledge/红队通用方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "架构设计师校验"
+      ],
+      [
+        "边界红队"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "极限红队",
+    "skill_path": "roles/极限红队/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "R3问题清单",
+        "path": "process/outputs/R3-问题清单.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "L2需求规格文档",
+        "path": "outputs/需求规格文档.md"
+      },
+      {
+        "name": "架构蓝图",
+        "path": "outputs/架构蓝图.md"
+      },
+      {
+        "name": "对抗维度与检查清单",
+        "path": "knowledge/对抗维度与检查清单.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "严重度判定准则",
+        "path": "knowledge/严重度判定准则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "红队通用方法论",
+        "path": "knowledge/红队通用方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "架构设计师校验"
+      ],
+      [
+        "极限红队"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "质量红队",
+    "skill_path": "roles/质量红队/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "R4问题清单",
+        "path": "process/outputs/R4-问题清单.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "L2需求规格文档",
+        "path": "outputs/需求规格文档.md"
+      },
+      {
+        "name": "架构蓝图",
+        "path": "outputs/架构蓝图.md"
+      },
+      {
+        "name": "对抗维度与检查清单",
+        "path": "knowledge/对抗维度与检查清单.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "严重度判定准则",
+        "path": "knowledge/严重度判定准则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "红队通用方法论",
+        "path": "knowledge/红队通用方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "架构设计师校验"
+      ],
+      [
+        "质量红队"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "红队校验角色",
+    "skill_path": "roles/红队校验角色/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "红队综合裁决",
+        "path": "process/outputs/红队综合裁决.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "R1问题清单",
+        "path": "process/outputs/R1-问题清单.json"
+      },
+      {
+        "name": "R2问题清单",
+        "path": "process/outputs/R2-问题清单.json"
+      },
+      {
+        "name": "R3问题清单",
+        "path": "process/outputs/R3-问题清单.json"
+      },
+      {
+        "name": "R4问题清单",
+        "path": "process/outputs/R4-问题清单.json"
+      }
+    ],
+    "input_groups": [
+      [
+        "结构红队",
+        "边界红队",
+        "极限红队",
+        "质量红队"
+      ],
+      [
+        "红队校验角色"
+      ]
+    ],
+    "verdicts": [
+      "all_passed",
+      "issues_found"
+    ]
+  },
+  {
+    "role_name": "终审裁决者",
+    "skill_path": "roles/终审裁决者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "终审裁决书",
+        "path": "outputs/终审裁决书.json"
+      },
+      {
+        "name": "REQ-ID增补审批",
+        "path": "process/outputs/REQ-ID增补审批.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "L2需求规格文档",
+        "path": "outputs/需求规格文档.md"
+      },
+      {
+        "name": "架构蓝图",
+        "path": "outputs/架构蓝图.md"
+      },
+      {
+        "name": "红队综合裁决",
+        "path": "process/outputs/红队综合裁决.json"
+      },
+      {
+        "name": "严重度判定准则",
+        "path": "knowledge/严重度判定准则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "L2需求规格编写指南",
+        "path": "knowledge/L2需求规格编写指南.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "轮内迭代与终审判定",
+        "path": "knowledge/轮内迭代与终审判定.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "归档策略",
+        "path": "knowledge/归档策略.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "REQ-ID增补流程",
+        "path": "knowledge/REQ-ID增补流程.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "SDK陷阱规避",
+        "path": "knowledge/SDK陷阱规避.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "架构设计师校验"
+      ],
+      [
+        "红队校验角色"
+      ],
+      [
+        "终审裁决者"
+      ]
+    ],
+    "verdicts": [
+      "consistency_defect",
+      "passed",
+      "reqid_approved",
+      "reqid_rejected",
+      "terminated"
+    ]
+  }
+]

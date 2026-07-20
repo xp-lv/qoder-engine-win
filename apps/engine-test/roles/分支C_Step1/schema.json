@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "_required_files": [
+    {
+      "name": "步骤1报告",
+      "path": "outputs/分支C步骤1报告.json"
+    }
+  ]
+}

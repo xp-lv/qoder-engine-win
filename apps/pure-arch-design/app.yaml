@@ -1,0 +1,205 @@
+app_name: pure-arch-design
+
+# v4 — 纯架构设计 APP（producer 类型已删除，校验角色显式定义）
+# 4 轮对抗：R1 需求覆盖度 → R2 边界协作 → [R3 演化失败 ∥ R4 架构质量] → 终审
+# R3 与 R4 并行执行（维度正交），两者全过后进入终审
+# 必须连续 4 轮全部通过才输出最终架构蓝图
+# R4 是进攻型对抗——评估架构设计本身的质量（不只查漏补缺）
+#
+# v4 相对 v3 变更：
+# - 删除 type: producer 字段（所有角色平等）
+# - 新增 2 个显式校验角色：需求分析师校验 / 架构设计师校验
+# - edges 显式连接校验角色
+# - 删除原 SDK陷阱规避（producer 陷阱已失效），重新创建 v8.0 版本（显式校验角色陷阱）
+# - 新增 C1路由语义说明（manual confirm + REQ-ID 增补路由机制）
+
+knowledge:
+  - 对抗维度与检查清单: knowledge/对抗维度与检查清单.md
+    inject_to: [结构红队, 边界红队, 极限红队, 质量红队]
+  - 严重度判定准则: knowledge/严重度判定准则.md
+    inject_to: [结构红队, 边界红队, 极限红队, 质量红队, 架构设计师, 终审裁决者]
+  - 架构蓝图规范: knowledge/架构蓝图规范.md
+    inject_to: [架构设计师, 架构设计师校验]
+  - L2需求规格编写指南: knowledge/L2需求规格编写指南.md
+    inject_to: [需求分析师, 需求分析师校验, 架构设计师, 终审裁决者]
+  - 轮内迭代与终审判定: knowledge/轮内迭代与终审判定.md
+    inject_to: [架构设计师, 终审裁决者]
+  - 红队通用方法论: knowledge/红队通用方法论.md
+    inject_to: [结构红队, 边界红队, 极限红队, 质量红队]
+  - 归档策略: knowledge/归档策略.md
+    inject_to: [架构设计师, 终审裁决者]
+  - REQ-ID增补流程: knowledge/REQ-ID增补流程.md
+    inject_to: [架构设计师, 终审裁决者]
+  - SDK陷阱规避: knowledge/SDK陷阱规避.md
+    inject_to: [需求分析师, 需求分析师校验, 架构设计师, 架构设计师校验, 终审裁决者]
+  - C1路由语义说明: knowledge/C1路由语义说明.md
+    inject_to: [需求分析师, 需求分析师校验]
+
+  # v4.1: 原则文档从 roles/*/principles.md 提升为项目共享 knowledge 资产
+  # 拆分设计原则/校验清单，让 producer 和校验者各读自己需要的部分
+  - L2需求规格设计原则: knowledge/L2需求规格设计原则.md
+    inject_to: [需求分析师]
+  - L2需求规格校验清单: knowledge/L2需求规格校验清单.md
+    inject_to: [需求分析师校验]
+  - 架构蓝图设计原则: knowledge/架构蓝图设计原则.md
+    inject_to: [架构设计师]
+  - 架构蓝图校验清单: knowledge/架构蓝图校验清单.md
+    inject_to: [架构设计师校验]
+
+roles:
+  # ═══ 需求基线化层 ═══
+
+  需求分析师:
+    confirm: manual
+    inputs:
+      - L1原始诉求: 00-需求描述.md
+      # REQ-ID增补审批 由 终审裁决者→需求分析师 边 carries 动态注入（reqid_approved 时）
+    outputs:
+      - L2需求规格文档: outputs/需求规格文档.md
+      - 需求澄清请求: process/outputs/需求澄清请求.md
+
+  需求分析师校验:
+    confirm: auto
+    inputs:
+      - L2需求规格文档: outputs/需求规格文档.md
+      - 需求澄清请求: process/outputs/需求澄清请求.md
+      - L1原始诉求: 00-需求描述.md
+    outputs:
+      - 需求分析师校验报告: process/outputs/需求分析师-validation.json
+
+  # ═══ 架构设计层 ═══
+
+  架构设计师:
+    confirm: auto
+    inputs:
+      - L2需求规格文档: outputs/需求规格文档.md
+    # 红队问题清单、终审裁决书、REQ-ID增补审批 不在此声明
+    # 它们由对应边 carries 动态注入（issues_found / consistency_defect / reqid_rejected）
+    # 首次执行只需 L2，避免声明不存在的文件
+    outputs:
+      - 架构蓝图: outputs/架构蓝图.md
+
+  架构设计师校验:
+    confirm: auto
+    inputs:
+      - L2需求规格文档: outputs/需求规格文档.md
+      - 架构蓝图: outputs/架构蓝图.md
+    outputs:
+      - 架构设计师校验报告: process/outputs/架构设计师-validation.json
+
+  # ═══ R1 结构红队（需求覆盖度）═══
+
+  结构红队:
+    confirm: auto
+    inputs:
+      - L2需求规格文档: outputs/需求规格文档.md
+      - 架构蓝图: outputs/架构蓝图.md
+    outputs:
+      - R1问题清单: process/outputs/R1-问题清单.json
+
+  # ═══ R2 边界红队（边界与协作）═══
+
+  边界红队:
+    confirm: auto
+    inputs:
+      - L2需求规格文档: outputs/需求规格文档.md
+      - 架构蓝图: outputs/架构蓝图.md
+    outputs:
+      - R2问题清单: process/outputs/R2-问题清单.json
+
+  # ═══ R3 极限红队（演化与失败）═══
+
+  极限红队:
+    confirm: auto
+    inputs:
+      - L2需求规格文档: outputs/需求规格文档.md
+      - 架构蓝图: outputs/架构蓝图.md
+    outputs:
+      - R3问题清单: process/outputs/R3-问题清单.json
+
+  # ═══ R4 质量红队（架构质量，进攻型对抗）═══
+
+  质量红队:
+    confirm: auto
+    inputs:
+      - L2需求规格文档: outputs/需求规格文档.md
+      - 架构蓝图: outputs/架构蓝图.md
+    outputs:
+      - R4问题清单: process/outputs/R4-问题清单.json
+
+  # ═══ 红队校验角色（4 红队 JOIN 汇合点，verdict-only 决策）═══
+  # 读取 4 红队问题清单，判断全过还是有意见
+  # verdict: all_passed（4 个都没意见）/ issues_found（至少一个有意见）
+  # 不产出业务文档，只产出决策记录（用于 Gate 通过 + 审计追溯）
+
+  红队校验角色:
+    confirm: auto
+    inputs:
+      - R1问题清单: process/outputs/R1-问题清单.json
+      - R2问题清单: process/outputs/R2-问题清单.json
+      - R3问题清单: process/outputs/R3-问题清单.json
+      - R4问题清单: process/outputs/R4-问题清单.json
+    outputs:
+      - 红队综合裁决: process/outputs/红队综合裁决.json
+
+  # ═══ 终审裁决者（全局一致性 + REQ-ID 审批）═══
+
+  终审裁决者:
+    confirm: auto
+    inputs:
+      - L2需求规格文档: outputs/需求规格文档.md
+      - 架构蓝图: outputs/架构蓝图.md
+      - 红队综合裁决: process/outputs/红队综合裁决.json
+    outputs:
+      - 终审裁决书: outputs/终审裁决书.json
+      - REQ-ID增补审批: process/outputs/REQ-ID增补审批.json
+
+edges:
+  # ═══ 需求分析师 → 校验 → 架构设计师 ═══
+  - 需求分析师 → 需求分析师校验 when: result.verdict == "confirmed"
+  - 需求分析师校验 → 架构设计师 when: result.verdict == "confirmed"
+  - 需求分析师校验 → 需求分析师 when: result.verdict == "loop"
+
+  # ═══ 架构设计师 → 校验 → 4 红队并行扇出 ═══
+  - 架构设计师 → 架构设计师校验 when: result.verdict == "blueprint_v1_ready"
+  - 架构设计师校验 → 架构设计师 when: result.verdict == "loop"
+    carries: [process/outputs/架构设计师-validation.json, outputs/架构设计师校验-gate-result.json]
+
+  # 架构设计师校验 → 4 红队 FORK 扇出（4 条边同一 verdict，router 同时分发）
+  # carries 冗余已删除：架构蓝图/需求规格文档在 4 红队 inputs 中已声明，gate-result 为语义冗余
+  - 架构设计师校验 → 结构红队 when: result.verdict == "blueprint_v1_ready"
+  - 架构设计师校验 → 边界红队 when: result.verdict == "blueprint_v1_ready"
+  - 架构设计师校验 → 极限红队 when: result.verdict == "blueprint_v1_ready"
+  - 架构设计师校验 → 质量红队 when: result.verdict == "blueprint_v1_ready"
+
+  # REQ-ID 增补路由（决策 2：保留）
+  - 架构设计师校验 → 终审裁决者 when: result.verdict == "unregistered_requirement"
+    restrict_verdict: [reqid_approved, reqid_rejected]
+
+  # ═══ 4 红队汇入红队校验角色（JOIN：4 路全完成才触发）═══
+  # 数组源写法 [A,B,C,D] → T 表示 AND JOIN（4 个全部完成才触发）
+  # 每个红队 verdict 统一为 confirmed（无条件汇入）
+  # carries 冗余已删除：R1-R4 问题清单已在红队校验角色 inputs 中声明
+  - [结构红队, 边界红队, 极限红队, 质量红队] → 红队校验角色
+
+  # ═══ 红队校验角色路由（verdict-only 决策）═══
+  # all_passed → 终审裁决者
+  # carries 冗余已删除：红队综合裁决已在终审裁决者 inputs 中声明
+  - 红队校验角色 → 终审裁决者 when: result.verdict == "all_passed"
+  # issues_found → 回退架构师（携带 4 红队原产出，架构师能看到哪几个红队提了什么意见）
+  - 红队校验角色 → 架构设计师 when: result.verdict == "issues_found"
+    carries: [process/outputs/R1-问题清单.json, process/outputs/R2-问题清单.json, process/outputs/R3-问题清单.json, process/outputs/R4-问题清单.json, outputs/红队校验角色-gate-result.json]
+
+  # ═══ 终审裁决者（简化：删除轮内仲裁 escalate，仅保留终态 + REQ-ID）═══
+  - 终审裁决者 → 完成 when: result.verdict == "passed"
+  - 终审裁决者 → 架构设计师 when: result.verdict == "consistency_defect"
+    carries: [outputs/终审裁决书.json, outputs/终审裁决者-gate-result.json]
+    max_executions: 2
+  - 终审裁决者 → 完成 when: result.verdict == "terminated"
+
+  # ═══ REQ-ID 增补审批（保留）═══
+  - 终审裁决者 → 需求分析师 when: result.verdict == "reqid_approved"
+    carries: [process/outputs/REQ-ID增补审批.json, outputs/终审裁决者-gate-result.json]
+    max_executions: 2
+  - 终审裁决者 → 架构设计师 when: result.verdict == "reqid_rejected"
+    carries: [process/outputs/REQ-ID增补审批.json, outputs/终审裁决者-gate-result.json]

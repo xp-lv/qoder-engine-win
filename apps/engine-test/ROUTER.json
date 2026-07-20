@@ -1,0 +1,473 @@
+{
+  "schema_version": "2.0",
+  "entry": "发起者",
+  "steps": [
+    {
+      "step": "发起者",
+      "role": "发起者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "分支A_Manual",
+            "分支B_Auto",
+            "分支C_Step1"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "发起者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/启动信号.json"
+            },
+            {
+              "path": "outputs/发起者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "分支A_Manual",
+      "role": "分支A_Manual",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "汇聚者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "分支A_Manual"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/分支A报告.json"
+            },
+            {
+              "path": "outputs/分支A_Manual-gate-result.json"
+            },
+            {
+              "path": "outputs/分支A_Manual-feedback.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "分支B_Auto",
+      "role": "分支B_Auto",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "汇聚者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "分支B_Auto"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/分支B报告.json"
+            },
+            {
+              "path": "outputs/分支B_Auto-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "分支C_Step1",
+      "role": "分支C_Step1",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "分支C_Step2"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "分支C_Step1"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/分支C步骤1报告.json"
+            },
+            {
+              "path": "outputs/分支C_Step1-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "分支C_Step2",
+      "role": "分支C_Step2",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "汇聚者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "分支C_Step2"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/分支C步骤2报告.json"
+            },
+            {
+              "path": "outputs/分支C_Step2-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "汇聚者",
+      "role": "汇聚者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "路由者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "汇聚者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/汇聚报告.json"
+            },
+            {
+              "path": "outputs/汇聚者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "路由者",
+      "role": "路由者",
+      "transitions": {
+        "pass": {
+          "targets": [
+            "正路径"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/路由决策.json"
+            }
+          ]
+        },
+        "revise": {
+          "targets": [
+            "回退路径"
+          ],
+          "type": "normal",
+          "max_executions": 2,
+          "carries": [
+            {
+              "path": "outputs/路由决策.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "路由者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/路由决策.json"
+            },
+            {
+              "path": "outputs/路由者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "正路径",
+      "role": "正路径",
+      "transitions": {
+        "approved": {
+          "targets": [
+            "判定者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/正路径结果.json"
+            }
+          ]
+        },
+        "rejected": {
+          "targets": [
+            "判定者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/正路径结果.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "正路径"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/正路径结果.json"
+            },
+            {
+              "path": "outputs/正路径-gate-result.json"
+            }
+          ]
+        }
+      },
+      "verdict_context": {
+        "路由者": [
+          "approved",
+          "rejected"
+        ]
+      }
+    },
+    {
+      "step": "回退路径",
+      "role": "回退路径",
+      "transitions": {
+        "retry": {
+          "targets": [
+            "路由者"
+          ],
+          "type": "normal",
+          "max_executions": 2
+        },
+        "give_up": {
+          "targets": [
+            "判定者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/回退路径结果.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "回退路径"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/回退路径结果.json"
+            },
+            {
+              "path": "outputs/回退路径-gate-result.json"
+            }
+          ]
+        }
+      },
+      "verdict_context": {
+        "路由者": [
+          "retry",
+          "give_up"
+        ]
+      }
+    },
+    {
+      "step": "判定者",
+      "role": "判定者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "物料生产者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/判定报告.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "判定者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/判定报告.json"
+            },
+            {
+              "path": "outputs/判定者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "物料生产者",
+      "role": "物料生产者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "物料消费者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/测试报告.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "物料生产者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/测试报告.json"
+            },
+            {
+              "path": "outputs/物料生产者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "物料消费者",
+      "role": "物料消费者",
+      "transitions": {
+        "redo": {
+          "targets": [
+            "循环者"
+          ],
+          "type": "normal",
+          "max_executions": 2
+        },
+        "done": {
+          "targets": [
+            "终态报告者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "物料消费者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/消费报告.json"
+            },
+            {
+              "path": "outputs/物料消费者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "循环者",
+      "role": "循环者",
+      "transitions": {
+        "redo": {
+          "targets": [
+            "循环者"
+          ],
+          "type": "normal",
+          "max_executions": 2
+        },
+        "done": {
+          "targets": [
+            "终态报告者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/循环报告.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "循环者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/循环报告.json"
+            },
+            {
+              "path": "outputs/循环者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "终态报告者",
+      "role": "终态报告者",
+      "transitions": {
+        "confirmed": {
+          "targets": [],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "终态报告者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/最终报告.json"
+            },
+            {
+              "path": "outputs/终态报告者-gate-result.json"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

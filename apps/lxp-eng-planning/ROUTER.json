@@ -724,14 +724,19 @@
               "name": "[反馈] 预览部署报告"
             },
             {
-              "path": "outputs/preview-screenshot.png",
+              "path": "outputs/src/frontend/src/_preview/StatesShowcase.tsx",
               "type": "feedback",
-              "name": "[反馈] 预览截图"
+              "name": "[反馈] 组件状态目录页"
             },
             {
               "path": "outputs/预览部署者-gate-result.json",
               "type": "feedback",
               "name": "[反馈] 预览部署者 Gate校验结果"
+            },
+            {
+              "path": "outputs/预览部署者-feedback.json",
+              "type": "feedback",
+              "name": "[反馈] 预览部署者 用户反馈"
             }
           ]
         }

@@ -1,0 +1,74 @@
+{
+  "schema_version": "2.0",
+  "app_name": "pure-arch-design",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "knowledge",
+      "outputs",
+      "process/outputs"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/对抗维度与检查清单.md",
+        "to": "knowledge/对抗维度与检查清单.md"
+      },
+      {
+        "from": "knowledge/严重度判定准则.md",
+        "to": "knowledge/严重度判定准则.md"
+      },
+      {
+        "from": "knowledge/架构蓝图规范.md",
+        "to": "knowledge/架构蓝图规范.md"
+      },
+      {
+        "from": "knowledge/L2需求规格编写指南.md",
+        "to": "knowledge/L2需求规格编写指南.md"
+      },
+      {
+        "from": "knowledge/轮内迭代与终审判定.md",
+        "to": "knowledge/轮内迭代与终审判定.md"
+      },
+      {
+        "from": "knowledge/红队通用方法论.md",
+        "to": "knowledge/红队通用方法论.md"
+      },
+      {
+        "from": "knowledge/归档策略.md",
+        "to": "knowledge/归档策略.md"
+      },
+      {
+        "from": "knowledge/REQ-ID增补流程.md",
+        "to": "knowledge/REQ-ID增补流程.md"
+      },
+      {
+        "from": "knowledge/SDK陷阱规避.md",
+        "to": "knowledge/SDK陷阱规避.md"
+      },
+      {
+        "from": "knowledge/C1路由语义说明.md",
+        "to": "knowledge/C1路由语义说明.md"
+      },
+      {
+        "from": "knowledge/L2需求规格设计原则.md",
+        "to": "knowledge/L2需求规格设计原则.md"
+      },
+      {
+        "from": "knowledge/L2需求规格校验清单.md",
+        "to": "knowledge/L2需求规格校验清单.md"
+      },
+      {
+        "from": "knowledge/架构蓝图设计原则.md",
+        "to": "knowledge/架构蓝图设计原则.md"
+      },
+      {
+        "from": "knowledge/架构蓝图校验清单.md",
+        "to": "knowledge/架构蓝图校验清单.md"
+      }
+    ]
+  }
+}

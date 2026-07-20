@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 """set_state.py — STATE.json 状态操作 CLI。
 所有修改通过 state_io.save_state() 统一写入。
-Usage: python3 scripts/set_state.py --action <action> --step <STEP_N> [options]
+Usage: python scripts/set_state.py --action <action> --step <STEP_N> [options]
 """
 import argparse, json, os, sys, copy, shutil
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state
 from state_io import load_state, save_state
 from datetime import datetime, timezone
+
+
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
 
 
 class ValidationException(Exception):
@@ -102,13 +109,17 @@ def do_advance(state, step, role, dispatch_id, verdict=None):
     ss = state.get("step_status", {})
     existing = ss.get(step, {})
     if not dispatch_id:
-        dispatch_id = existing.get("dispatch_id", "")
+        # v8.0 修复 P0-3：dispatch_id 为空时，禁止 fallback 到旧 checkpoint_id。
+        # 原 bug：fallback 会导致 step.py --submit 的 _check_idempotent 误判为已处理，
+        # 实际未生成新 checkpoint，advance 后的状态对下游不可追溯。
+        # 修复方案：生成新 checkpoint_id，确保每次 advance 都有唯一幂等令牌。
+        dispatch_id = f"ckpt_{now_iso().replace(':', '').replace('-', '')}"
     if not role:
         role = existing.get("role", "")
     if step in ss:
         del ss[step]
     result = {
-        "id": dispatch_id or f"ckpt_{now_iso()}",
+        "id": dispatch_id,
         "created_at": now_iso(),
         "role": role,
     }

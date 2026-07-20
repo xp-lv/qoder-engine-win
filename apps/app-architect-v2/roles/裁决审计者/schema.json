@@ -43,7 +43,7 @@
     {
       "name": "裁决审计报告",
       "path": "outputs/裁决审计报告.json",
-      "type": "process"
+      "type": "deliverable"
     }
   ]
 }

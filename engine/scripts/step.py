@@ -10,15 +10,15 @@
 旧 5 步协议（直接调用 orchestrator.py）完全保留向后兼容。
 
 Usage:
-  python3 engine/scripts/step.py --next  [--workspace-id WS_ID] [--task-request "..."]
-  python3 engine/scripts/step.py --submit --step STEP1 --dispatch-id ckpt_xxx --outputs '[...]' [--workspace-id WS_ID]
+  python engine/scripts/step.py --next  [--workspace-id WS_ID] [--task-request "..."]
+  python engine/scripts/step.py --submit --step STEP1 --dispatch-id ckpt_xxx --outputs '[...]' [--workspace-id WS_ID]
   python engine/scripts/step.py --decide --decisions '[...]' [--workspace-id WS_ID]
 
 典型流程：
   主 Agent:
-    1. python3 engine/scripts/step.py --next → action=delegate + dispatches
+    1. python engine/scripts/step.py --next → action=delegate + dispatches
     2. Task(role-executor) 执行 dispatch
-    3. (role-executor 内部) python3 engine/scripts/step.py --submit → next=delegate/confirm/complete/rework
+    3. (role-executor 内部) python engine/scripts/step.py --submit → next=delegate/confirm/complete/rework
     4. 若 next=delegate → 回到 1
        若 next=confirm  → 收集决策后 --decide，再回到 1
        若 next=complete → 结束
@@ -44,6 +44,13 @@ _ORCHESTRATOR = "engine/scripts/orchestrator.py"
 # ─── 工具函数 ───
 # v4.2: _save_state_locked 已删除，所有写入通过 state_io.save_state()
 
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+
 def run_engine(args_list):
     """调用引擎脚本并返回 (success, result_dict)。
 
@@ -58,7 +65,7 @@ def run_engine(args_list):
             cmd,
             capture_output=True,
             text=True,
-            timeout=_SCRIPT_TIMEOUT,
+            timeout=_SCRIPT_TIMEOUT, encoding="utf-8", errors="replace", env={**os.environ, "PYTHONIOENCODING": "utf-8"}
         )
         if result.returncode == 0:
             try:
@@ -236,6 +243,7 @@ def _build_task_prompt(dispatch, workspace_id, state_path, app_path=None):
     lines.append(f"- skill: {skill_full}")
     lines.append(f"")
     lines.append(f"## 产出物路径")
+    lines.append(f"⚠️ 以下路径是权威绝对路径，必须严格按此路径写入，禁止自行截取/修改/拼接路径（包括不加 process 前缀等错误）。skill.md 中的相对路径仅供参考，以本段绝对路径为准。")
     for ot in output_targets:
         lines.append(f"- {ot.get('name', '')}: {ot.get('path', '')}")
     lines.append(f"")
@@ -263,7 +271,7 @@ def _build_task_prompt(dispatch, workspace_id, state_path, app_path=None):
         principles_full = os.path.join(app_path, principles_path)
         if os.path.exists(principles_full):
             try:
-                with open(principles_full, "r", encoding="utf-8") as f:
+                with open(principles_full, "r", encoding="utf-8-sig") as f:
                     principles_content = f.read().strip()
                 if principles_content:
                     lines.append(f"## 原则指导")
@@ -279,7 +287,7 @@ def _build_task_prompt(dispatch, workspace_id, state_path, app_path=None):
     lines.append(f"## 执行要求")
     lines.append(f"1. Read skill 文件")
     lines.append(f"2. 按 skill 文件的步骤执行")
-    lines.append(f"3. 用 Write 写入产出物到指定路径")
+    lines.append(f"3. 写入产出物到指定路径（已存在文件优先用 SearchReplace；新建文件用 Write）")
     # v7.0: status 不再要求 role-executor 显式写入，由 Hook② 自动推导。
     # role-executor 只需返回 step + verdict + outputs，status 由系统判定。
     verdict_hint = ""
@@ -390,9 +398,9 @@ def cmd_submit(args):
 
     authoritative_outputs = []
     try:
-        with open(router_path, "r", encoding="utf-8") as f:
+        with open(router_path, "r", encoding="utf-8-sig") as f:
             router_data = json.load(f)
-        with open(registry_path, "r", encoding="utf-8") as f:
+        with open(registry_path, "r", encoding="utf-8-sig") as f:
             registry_data = json.load(f)
 
         # 从 ROUTER.json 找到 step → role 映射
@@ -402,12 +410,11 @@ def cmd_submit(args):
             reg_entry = next((r for r in registry_data if r.get("role_name") == role_name), None)
             if reg_entry:
                 for o in reg_entry.get("outputs", []):
-                    o_type = o.get("type", "deliverable")
-                    resolved = resolve_workspace_output(ws_id, o["path"], app_path, o_type)
+                    # v9.2: 删除 o_type 传递（resolve_workspace_output 已不接受 type 参数）
+                    resolved = resolve_workspace_output(ws_id, o["path"], app_path)
                     authoritative_outputs.append({
                         "name": o.get("name", ""),
                         "path": resolved,
-                        "type": o_type
                     })
     except Exception:
         pass  # 读取失败时回退到 role-executor 返回值
@@ -427,7 +434,7 @@ def cmd_submit(args):
         ws_root = ws_base
         wr_file = os.path.join(ws_base, "WORKSPACE_ROOT") if ws_base else None
         if wr_file and os.path.exists(wr_file):
-            with open(wr_file, "r", encoding="utf-8") as f:
+            with open(wr_file, "r", encoding="utf-8-sig") as f:
                 ws_root = f.read().strip()
         for i, o in enumerate(outputs):
             if isinstance(o, str):
@@ -439,7 +446,7 @@ def cmd_submit(args):
 
     # ── 加载 STATE.json ──
     try:
-        with open(state_path, "r", encoding="utf-8") as f:
+        with open(state_path, "r", encoding="utf-8-sig") as f:
             st = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         st = {}
@@ -468,6 +475,12 @@ def cmd_submit(args):
     }
     if args.verdict:
         result_entry["verdict"] = args.verdict
+    # v9.2: 传递完整协议信封，供 Gate Layer 0 校验
+    if args.envelope:
+        try:
+            result_entry["envelope"] = json.loads(args.envelope)
+        except (json.JSONDecodeError, ValueError):
+            pass  # 非 JSON 时由 Gate Layer 0 自然报错
 
     extra = ["--state-path", state_path, "--app-path", app_path]
     if args.workspace_id:
@@ -597,7 +610,7 @@ def cmd_list_workspaces(args):
             if not os.path.exists(state_f):
                 continue
             try:
-                with open(state_f, "r", encoding="utf-8") as f:
+                with open(state_f, "r", encoding="utf-8-sig") as f:
                     st = json.load(f)
                 executing = list(st.get("step_status", {}).keys())
                 completed = list(st.get("completed", {}).keys())
@@ -605,7 +618,7 @@ def cmd_list_workspaces(args):
                 app_ref_f = os.path.join(ws_base, "APP_REF")
                 app_ref = ""
                 if os.path.exists(app_ref_f):
-                    with open(app_ref_f) as f:
+                    with open(app_ref_f, "r", encoding="utf-8-sig") as f:
                         app_ref = f.read().strip()
                 result.append({
                     "workspace_id": ws_id,
@@ -645,6 +658,7 @@ def main():
     parser.add_argument("--dispatch-id", default=None, help="--submit: dispatch 唯一 ID（可选，未传入时自动从 STATE.json 定位）")
     parser.add_argument("--outputs", default=None, help="--submit: 产出物 JSON 数组 [{name, path}]")
     parser.add_argument("--verdict", default=None, help="--submit: 角色 verdict 值（从 role-executor 返回值读取）")
+    parser.add_argument("--envelope", default=None, help="--submit: 完整协议信封 JSON（v9.2，供 Gate Layer 0）")
 
     # --decide 参数
     parser.add_argument("--decisions", default=None, help="--decide: 用户决策 JSON 数组")

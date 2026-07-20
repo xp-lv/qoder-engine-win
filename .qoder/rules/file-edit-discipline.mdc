@@ -1,0 +1,40 @@
+---
+description: 文件修改工具选择铁律——根因级规避 Write 追加模式坑
+alwaysApply: true
+---
+
+## 根因
+
+Write 工具的 `append` 参数语义是"续写"而非"覆盖":
+- `append=false`(默认) → 新建/整体替换（仅对**不存在**的文件安全）
+- `append=true` → 追加（专为 truncated Write 分批续写设计）
+
+真正的坑来自把 Write 用在"想覆盖已存在文件"的场景——响应显示 `create file success` 却实际追加了旧内容，导致函数重复定义、章节叠加、`__pycache__` 缓存干扰新代码不生效。
+
+## 工具选择禁止清单
+
+已存在文件的修改，**严禁**直接调用 Write（无论 append 取值）。必须按下表选择:
+
+| 场景 | 强制工具 | 说明 |
+|---|---|---|
+| 已存在文件的局部修改 | `SearchReplace` | 精确字符串替换，天然无追加问题 |
+| 已存在文件的完整重写 | `DeleteFile` → `Write` | 先删后写，从空文件开始，保证覆盖语义 |
+| 新建文件（原本不存在） | `Write` | 唯一允许直接 Write 的场景 |
+| 分批续写大文件（显式续写意图） | `Write(append=true)` + 续写前 `wc -l` 记录基线 + 完成后 `wc -l` 校验 | 唯一允许 append 的边界场景 |
+
+## Python 文件附加约束
+
+修改任何 `.py` 文件后，必须清除目标目录的 `__pycache__`，避免 `.pyc` 缓存让新代码不生效:
+
+```
+rm -rf <target_dir>/__pycache__
+```
+
+## 兜底校验（仅当不确定时）
+
+- 行数校验: `wc -l <file>` 对比预期
+- 语法校验: `python3 -c "import ast; ast.parse(open('<file>').read())"` 抓重复定义
+
+## 铁律一句话
+
+> **已存在文件的修改默认走 SearchReplace；只有新建文件才用 Write。**

@@ -1,0 +1,578 @@
+[
+  {
+    "role_name": "发起者",
+    "skill_path": "roles/发起者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "启动信号",
+        "path": "outputs/启动信号.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "v9.2引擎机制速查",
+        "path": "knowledge/v9.2引擎机制速查.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "发起者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "分支A_Manual",
+    "skill_path": "roles/分支A_Manual/skill.md",
+    "blocking_mode": "manual",
+    "outputs": [
+      {
+        "name": "分支A报告",
+        "path": "outputs/分支A报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "input_groups": [
+      [
+        "发起者"
+      ],
+      [
+        "分支A_Manual"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "分支B_Auto",
+    "skill_path": "roles/分支B_Auto/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "分支B报告",
+        "path": "outputs/分支B报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "input_groups": [
+      [
+        "发起者"
+      ],
+      [
+        "分支B_Auto"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "分支C_Step1",
+    "skill_path": "roles/分支C_Step1/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "步骤1报告",
+        "path": "outputs/分支C步骤1报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "input_groups": [
+      [
+        "发起者"
+      ],
+      [
+        "分支C_Step1"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "分支C_Step2",
+    "skill_path": "roles/分支C_Step2/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "步骤2报告",
+        "path": "outputs/分支C步骤2报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "步骤1报告",
+        "path": "outputs/分支C步骤1报告.json"
+      }
+    ],
+    "input_groups": [
+      [
+        "分支C_Step1"
+      ],
+      [
+        "分支C_Step2"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "汇聚者",
+    "skill_path": "roles/汇聚者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "汇聚报告",
+        "path": "outputs/汇聚报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "分支A报告",
+        "path": "outputs/分支A报告.json"
+      },
+      {
+        "name": "分支B报告",
+        "path": "outputs/分支B报告.json"
+      },
+      {
+        "name": "步骤2报告",
+        "path": "outputs/分支C步骤2报告.json"
+      }
+    ],
+    "input_groups": [
+      [
+        "分支A_Manual",
+        "分支B_Auto",
+        "分支C_Step2"
+      ],
+      [
+        "汇聚者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "路由者",
+    "skill_path": "roles/路由者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "路由决策",
+        "path": "outputs/路由决策.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "汇聚报告",
+        "path": "outputs/汇聚报告.json"
+      },
+      {
+        "name": "v9.2引擎机制速查",
+        "path": "knowledge/v9.2引擎机制速查.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "汇聚者"
+      ],
+      [
+        "回退路径"
+      ],
+      [
+        "路由者"
+      ]
+    ],
+    "verdicts": [
+      "pass",
+      "revise"
+    ]
+  },
+  {
+    "role_name": "正路径",
+    "skill_path": "roles/正路径/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "正路径结果",
+        "path": "outputs/正路径结果.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "路由决策",
+        "path": "outputs/路由决策.json"
+      },
+      {
+        "name": "v9.2引擎机制速查",
+        "path": "knowledge/v9.2引擎机制速查.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "路由者"
+      ],
+      [
+        "正路径"
+      ]
+    ],
+    "verdicts": [
+      "approved",
+      "rejected"
+    ]
+  },
+  {
+    "role_name": "回退路径",
+    "skill_path": "roles/回退路径/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "回退路径结果",
+        "path": "outputs/回退路径结果.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "路由决策",
+        "path": "outputs/路由决策.json"
+      },
+      {
+        "name": "v9.2引擎机制速查",
+        "path": "knowledge/v9.2引擎机制速查.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "路由者"
+      ],
+      [
+        "回退路径"
+      ]
+    ],
+    "verdicts": [
+      "give_up",
+      "retry"
+    ]
+  },
+  {
+    "role_name": "判定者",
+    "skill_path": "roles/判定者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "判定报告",
+        "path": "outputs/判定报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "正路径结果",
+        "path": "outputs/正路径结果.json"
+      },
+      {
+        "name": "回退路径结果",
+        "path": "outputs/回退路径结果.json"
+      }
+    ],
+    "input_groups": [
+      [
+        "回退路径"
+      ],
+      [
+        "正路径"
+      ],
+      [
+        "判定者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "物料生产者",
+    "skill_path": "roles/物料生产者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "测试报告",
+        "path": "outputs/测试报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "判定报告",
+        "path": "outputs/判定报告.json"
+      }
+    ],
+    "input_groups": [
+      [
+        "判定者"
+      ],
+      [
+        "物料生产者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "物料消费者",
+    "skill_path": "roles/物料消费者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "消费报告",
+        "path": "outputs/消费报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "v9.2引擎机制速查",
+        "path": "knowledge/v9.2引擎机制速查.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "物料生产者"
+      ],
+      [
+        "物料消费者"
+      ]
+    ],
+    "verdicts": [
+      "done",
+      "redo"
+    ]
+  },
+  {
+    "role_name": "循环者",
+    "skill_path": "roles/循环者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "循环报告",
+        "path": "outputs/循环报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "v9.2引擎机制速查",
+        "path": "knowledge/v9.2引擎机制速查.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "物料消费者"
+      ],
+      [
+        "循环者"
+      ]
+    ],
+    "verdicts": [
+      "done",
+      "redo"
+    ]
+  },
+  {
+    "role_name": "终态报告者",
+    "skill_path": "roles/终态报告者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "最终报告",
+        "path": "outputs/最终报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "循环报告",
+        "path": "outputs/循环报告.json"
+      },
+      {
+        "name": "v9.2引擎机制速查",
+        "path": "knowledge/v9.2引擎机制速查.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "物料消费者"
+      ],
+      [
+        "循环者"
+      ],
+      [
+        "终态报告者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  }
+]

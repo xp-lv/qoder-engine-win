@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "_required_files": [
+    {
+      "name": "汇聚报告",
+      "path": "outputs/汇聚报告.json"
+    }
+  ]
+}

@@ -12,25 +12,48 @@ v5.0 变化：
 
 Usage:
   # 初始调度（无 --from = 返回入口 STEP）
-  python3 engine/scripts/router.py [--workspace-id <id>] [--app-path <path>] [--task-request <text>]
+  python engine/scripts/router.py [--workspace-id <id>] [--app-path <path>] [--task-request <text>]
 
   # 结果驱动调度（从已完成的 STEP + 结果出发）
-  python3 engine/scripts/router.py --from '["STEP0"]' --on confirmed [--workspace-id <id>] [--app-path <path>]
+  python engine/scripts/router.py --from '["STEP0"]' --on confirmed [--workspace-id <id>] [--app-path <path>]
 """
 import argparse, json, os, re, sys, uuid
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from session_path import resolve_ws_state, resolve_app_path, resolve_workspace_output, get_edge_targets, is_edge_backward
 from state_io import load_state as _io_load, save_state, state_txn
 
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
+
 def output(data):
     print(json.dumps(data, ensure_ascii=False))
     sys.exit(0 if data.get("status") == "success" else 1)
+
+# v9.2: JOIN 检查辅助函数——基于边方向判断前驱是否有效指向 target
+def _source_points_to_target(src_step, src_verdict, target, steps_map):
+    """检查 src_step 的当前 verdict 对应的边是否指向 target。
+
+    核心思路：JOIN 的有效前驱不只是"在 completed 中"，而是
+    "其当前 verdict 对应的边确实指向 JOIN 目标"。
+    如果前驱给了其他 verdict（走了别的边），不算有效前驱。
+    """
+    src_def = steps_map.get(src_step, {})
+    transitions = src_def.get("transitions", {})
+    edge = transitions.get(src_verdict, {})
+    if isinstance(edge, dict):
+        targets = edge.get("targets", [])
+        return target in targets
+    return False
 
 def load_json(path, error_code, error_msg):
     if not os.path.exists(path):
         output({"status": "failure", "error_code": error_code, "message": f"{error_msg}: {path}", "dispatch_instructions": []})
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
     except (json.JSONDecodeError, ValueError) as e:
         output({"status": "failure", "error_code": error_code, "message": f"{error_msg}: {e}", "dispatch_instructions": []})
@@ -61,11 +84,13 @@ def main():
     steps_map = {s["step"]: s for s in steps}
     registry_map = {r["role_name"]: r for r in registry}
     executing = set(state.get("step_status", {}).keys())
-    # v4.1: 读 completed（持久权威源）
-    finished = set(state.get("completed", {}).keys())
+    # v9.2: completed_raw 用于 JOIN 检查时读取 verdict；finished 用于初始调度判断
+    completed_raw = state.get("completed", {})
+    finished = set(completed_raw.keys())
     user_request = state.get("metadata", {}).get("user_request", "") or args.task_request
 
     # ─── 确定候选目标 STEP ───
+    missing_steps = []  # v9.0: 追踪找不到 step_def 的 from_step（用于 route_failed 诊断）
 
     if not args.from_steps:
             # 初始调度：返回入口 STEP
@@ -91,6 +116,7 @@ def main():
         for from_step in from_steps:
             step_def = steps_map.get(from_step)
             if not step_def:
+                missing_steps.append(from_step)  # v9.0: 记录而非静默跳过（Bug 1 修复）
                 continue
             transitions = step_def.get("transitions", {})
             # 精确匹配指定的 on 值
@@ -110,18 +136,57 @@ def main():
                 is_backward = True
                 break
 
-    # ─── 过滤：边级计数检查 + 排除执行中 ───
-    # sync 检查由 orchestrator 的汇集阶段统一处理（router 保持局部视角）
+    # ─── 过滤：边级计数检查 + 排除执行中 + per-target JOIN 检查 ───
+    # v9.1: JOIN 检查从 orchestrator._global_converge 下沉到 router，实现 per-target 检查。
+    # 符合「去 join 化调度范式」：每个 step 只要其所有 forward 来源步骤均出现在
+    # completed 中，即可纳入候选，无需独立 join 机制。
+    # 注：backward 边（fail）跳过 JOIN 检查（回退是强制行为）；初始调度无前置依赖也跳过。
     is_initial_dispatch = not args.from_steps
     from_set = set(from_steps) if args.from_steps else set()
     edge_counts = state.get("edge_counts", {})
     edge_counts_changed = False
+
+    # 构建 role → input_groups 映射（用于 JOIN 检查）
+    role_input_groups = {r["role_name"]: r.get("input_groups", []) for r in registry}
 
     dispatchable = []
     for target in candidates:
         # 排除正在执行的
         if target in executing:
             continue
+
+        # v9.2 per-target JOIN 检查（基于边方向）：
+        # 非 backward、非初始调度时，检查目标的前置依赖是否全部"有效指向" target。
+        # 有效 = 在 completed 中 + 不在 executing 中 + 当前 verdict 的边指向 target。
+        # 这解决了"并行角色给出不同 verdict"场景：走了其他边的 step 不算 JOIN 有效前驱。
+        # 注：JOIN 检查放在 max_executions 递增之前，避免 JOIN 未满足时重复递增计数。
+        if not is_backward and not is_initial_dispatch:
+            target_def = steps_map.get(target, {})
+            target_role = target_def.get("role", "")
+            groups = role_input_groups.get(target_role, [])
+            if groups:
+                satisfied = False
+                for group in groups:
+                    all_valid = True
+                    for src in group:
+                        # 不在 completed → 无效
+                        if src not in completed_raw:
+                            all_valid = False
+                            break
+                        # 正在 executing（重新执行中）→ 无效
+                        if src in executing:
+                            all_valid = False
+                            break
+                        # 当前 verdict 的边不指向 target → 无效（走了别的边）
+                        src_verdict = completed_raw[src].get("verdict", "confirmed")
+                        if not _source_points_to_target(src, src_verdict, target, steps_map):
+                            all_valid = False
+                            break
+                    if all_valid:
+                        satisfied = True
+                        break
+                if not satisfied:
+                    continue  # JOIN 不满足，等待（不递增 edge_counts）
 
         # 边级 max_executions 检查 + 递增（normal 和 backward 边均检查）
         if not is_initial_dispatch:
@@ -164,12 +229,12 @@ def main():
         inputs = []
         explicit_inputs = reg.get("inputs", [])
         for inp in explicit_inputs:
-            inp_type = inp.get("type", "deliverable")
-            resolved = resolve_workspace_output(args.workspace_id, inp["path"], app_path, inp_type)
+            # v9.2: 删除 inp_type（resolve_workspace_output 不再需要 type）
+            resolved = resolve_workspace_output(args.workspace_id, inp["path"], app_path)
             if resolved not in inputs:
                 inputs.append(resolved)
 
-        # 统一注入边声明的 carries（编译期确定，无论 forward/backward/custom）
+        # 统一注入边声明的 carries（v8.4：app.yaml 显式声明，未写 carries 的边返回 [] → 零物料）
         if args.from_steps:
             for fs in from_steps:
                 fs_def = steps_map.get(fs, {})
@@ -177,18 +242,16 @@ def main():
                 edge = fs_trans.get(args.on, {})
                 if isinstance(edge, dict):
                     for c in edge.get("carries", []):
-                        c_type = c.get("type", "feedback")
-                        resolved = resolve_workspace_output(args.workspace_id, c["path"], app_path, c_type)
+                        c_path = c if isinstance(c, str) else c["path"]
+                        resolved = resolve_workspace_output(args.workspace_id, c_path, app_path)
                         if resolved not in inputs:
                             inputs.append(resolved)
 
-        # 合并 output_targets（文档类）和 expected_outputs（schema）
-        # outputs 路径按 type 分流：deliverable → workspace，runtime → ws process 目录
+        # output_targets（v9.2: 删除 type 路径分流，统一解析）
         output_targets = []
         for o in reg.get("outputs", []):
             o_copy = dict(o)
-            output_type = o.get("type", "deliverable")
-            o_copy["path"] = resolve_workspace_output(args.workspace_id, o["path"], app_path, output_type)
+            o_copy["path"] = resolve_workspace_output(args.workspace_id, o["path"], app_path)
             output_targets.append(o_copy)
         expected_outputs = []
         checkpoint_id = f"ckpt_{uuid.uuid4().hex[:12]}"
@@ -200,7 +263,7 @@ def main():
         schema_file_path = os.path.join(app_path, "roles", schema_dir_name, "schema.json")
         if os.path.exists(schema_file_path):
             try:
-                with open(schema_file_path, "r", encoding="utf-8") as f:
+                with open(schema_file_path, "r", encoding="utf-8-sig") as f:
                     role_schema = json.load(f)
                 req_top = role_schema.get("required", [])
                 props = role_schema.get("properties", {})
@@ -264,11 +327,49 @@ def main():
         })
 
     if not dispatchable:
-        # 无可调度：检查是否全部完成
-        if not executing:
+        # v9.2 可达集闭合检查：从 entry 出发 BFS 沿已完成 step 的 verdict 边遍历。
+        # 条件路由 DAG 中未选择的分支（如回退路径、循环者）不影响完成判定。
+        # 替代原 v9.0 "全 step 完成" 检查（all_steps.issubset(finished)）。
+        entry = router.get("entry", "")
+        visited = set()
+        bfs_queue = [entry] if entry else []
+        while bfs_queue:
+            cur = bfs_queue.pop(0)
+            if cur in visited:
+                continue
+            visited.add(cur)
+            if cur not in finished:
+                continue
+            cur_verdict = completed_raw.get(cur, {}).get("verdict", "confirmed")
+            cur_def = steps_map.get(cur, {})
+            cur_trans = cur_def.get("transitions", {})
+            cur_edge = cur_trans.get(cur_verdict, {})
+            if isinstance(cur_edge, dict):
+                for t in cur_edge.get("targets", []):
+                    if t not in visited:
+                        bfs_queue.append(t)
+        reachable_unfinished = visited - finished
+        if not reachable_unfinished and not executing:
             output({"status": "success", "error_code": None, "message": "all_complete", "dispatch_instructions": []})
-        else:
-            output({"status": "success", "error_code": None, "message": "no_dispatchable_steps", "dispatch_instructions": []})
+
+        # 路由失败：有 from_steps 但找不到目标（STATE 漂移 / verdict 无匹配边）
+        if args.from_steps:
+            if missing_steps:
+                reason = f"from_step 不存在于 ROUTER.json: {missing_steps}（STATE 与 ROUTER 可能版本不一致）"
+            elif not candidates:
+                reason = f"verdict '{args.on}' 在 from_steps {from_steps} 的 transitions 中无匹配边"
+            else:
+                reason = f"候选目标 {candidates} 全部被过滤（executing/max_executions）"
+            output({
+                "status": "success",
+                "error_code": None,
+                "message": "route_failed",
+                "reason": reason,
+                "dispatch_instructions": []
+            })
+
+        # 初始调度无可调度（正常：所有 step 已完成或执行中）
+        output({"status": "success", "error_code": None, "message": "no_dispatchable_steps", "dispatch_instructions": []})
 
     output({"status": "success", "error_code": None, "dispatch_instructions": dispatch_instructions})
 

@@ -102,7 +102,6 @@ edges:               # 路由编排（唯一权威源）
 
 | 字段 | 必填 | 取值 | 说明 |
 |---|---|---|---|
-| `type` | 否 | `producer` / `standard` | producer 自动展开为 执行+校验 两个步骤 |
 | `confirm` | 否 | `manual` / `auto` | manual 需用户确认后推进；auto 自动推进。默认 manual |
 | `inputs` | 否 | `[名称: 路径]` | 角色正常执行所需的输入物料 |
 | `outputs` | 必填 | `[名称: 路径]` | 角色的产出物料 |
@@ -111,7 +110,31 @@ edges:               # 路由编排（唯一权威源）
 > - `deliverable`（默认）：正式交付物，路径解析为 `{WORKSPACE_ROOT}/{path}`。
 > - `process`：运行时临时产出，路径解析为 `{WORKSPACE_ROOT}/process/{path}`，存放在 process 子目录中，用于分离正式交付物与运行时中间产物。
 
-**不再包含的字段**：`verdicts`（只从 edges when: 提取）、`loop`（边级 max_executions）、`gate`（统一 PASS/FAIL）。
+**已删除字段**：`type`（原 producer/standard 已废弃，所有角色平等，靠 edges 连接）、`verdicts`（从 edges when: 提取）、`loop`（边级 max_executions）、`gate`（统一 PASS/FAIL）。
+
+### 3.2.1 校验角色显式定义（替代原 producer 自动展开）
+
+原 `type: producer` 自动展开校验角色的机制已删除。需要校验的角色必须由开发者在 app.yaml 中**显式定义**：
+
+```yaml
+roles:
+  需求分析师:                    # 被校验角色
+    confirm: manual
+    outputs:
+      - L2需求规格文档: outputs/需求规格文档.md
+
+  需求分析师校验:                # 校验角色（显式定义，名称自定义）
+    confirm: auto
+    inputs:
+      - L2需求规格文档: outputs/需求规格文档.md
+    outputs:
+      - 需求分析师校验报告: outputs/需求分析师-validation.json, type=process
+
+edges:
+  - 需求分析师 → 需求分析师校验
+  - 需求分析师校验 → 下游角色 when: result.verdict == "confirmed"
+  - 需求分析师校验 → 需求分析师 when: result.verdict == "loop"    # 业务校验失败回退
+```
 
 ### 3.3 edges 四种原子模式
 
@@ -134,7 +157,6 @@ edges:               # 路由编排（唯一权威源）
 | **fail 边生成** | 所有角色 | 自动生成 backward 边回到角色自身（Gate 格式错误只需修正重做），不设 max_executions |
 | **carries 推导** | 所有边 | normal confirmed→gate result；normal custom-verdict→gate result + 源角色 process 产出物；backward→源产出+gate+用户反馈+target自身产出 |
 | **input_groups 计算** | 所有 edges | `[A,B,C]→D` 记录为 AND 组；独立边各自为 OR 组 |
-| **producer 展开** | `type: producer` | 自动创建校验角色 + 校验 step |
 | **verdicts 提取** | edges 的 `when:` | 自动提取 verdict 值，同步到 schema.json enum + registry verdicts |
 | **knowledge 注入** | 顶层 `knowledge:` | 按 `inject_to` 选择性合并到目标角色 inputs（缺省 `inject_to` 则不注入） |
 | **骨架生成** | 所有角色 | 生成 skill.md / schema.json 骨架 |

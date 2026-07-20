@@ -1,0 +1,206 @@
+app_name: engine-test
+
+# --------------------------------------------------------------------
+# 引擎能力测试 app (v9.2)
+# 全面覆盖：FORK-JOIN / 条件路由 / restrict_verdict / carries / max_executions
+#           manual 阻塞 / 串行子链 / verdict_context 聚合 / 信封校验
+#
+# DAG 结构：
+#   发起者 → [分支A Manual, 分支B Auto, 分支C Step1 → 分支C Step2]
+#          → JOIN(3路) → 汇聚者
+#          → 路由者(条件) → 正路径/回退路径(循环 max:2)
+#          → 判定者(多来源 verdict_context)
+#          → 物料生产者(carries) → 物料消费者
+#          → 循环者(max:2) → 终态报告者 → 完成
+# --------------------------------------------------------------------
+
+# ═══════════════════════════════════════════════════════════
+# knowledge：知识文档注入（inject_to 选择性注入到指定角色）
+# 参考：knowledge 文件存于 app/knowledge/ 目录，dispatch 时自动注入
+# ═══════════════════════════════════════════════════════════
+
+knowledge:
+  - v9.2引擎机制速查: knowledge/v9.2引擎机制速查.md
+    inject_to: [发起者, 路由者, 正路径, 回退路径, 物料消费者, 循环者, 终态报告者]
+
+# ═══════════════════════════════════════════════════════════
+
+roles:
+
+  # ═══════════════════════════════════════════════════════
+  # 测试段 1: FORK 并行 + manual 阻塞 + 串行子链
+  # ═══════════════════════════════════════════════════════
+
+  发起者:
+    confirm: auto
+    outputs:
+      - 启动信号: outputs/启动信号.json
+
+  分支A_Manual:
+    confirm: manual
+    outputs:
+      - 分支A报告: outputs/分支A报告.json
+
+  分支B_Auto:
+    confirm: auto
+    outputs:
+      - 分支B报告: outputs/分支B报告.json
+
+  分支C_Step1:
+    confirm: auto
+    outputs:
+      - 步骤1报告: outputs/分支C步骤1报告.json
+
+  分支C_Step2:
+    confirm: auto
+    inputs:
+      - 步骤1报告: outputs/分支C步骤1报告.json
+    outputs:
+      - 步骤2报告: outputs/分支C步骤2报告.json
+
+  # ═══════════════════════════════════════════════════════
+  # 测试段 2: JOIN 同步汇入
+  # ═══════════════════════════════════════════════════════
+
+  汇聚者:
+    confirm: auto
+    inputs:
+      - 分支A报告: outputs/分支A报告.json
+      - 分支B报告: outputs/分支B报告.json
+      - 步骤2报告: outputs/分支C步骤2报告.json
+    outputs:
+      - 汇聚报告: outputs/汇聚报告.json
+
+  # ═══════════════════════════════════════════════════════
+  # 测试段 3: 条件路由 + restrict_verdict + 循环
+  # ═══════════════════════════════════════════════════════
+
+  路由者:
+    confirm: auto
+    inputs:
+      - 汇聚报告: outputs/汇聚报告.json
+    outputs:
+      - 路由决策: outputs/路由决策.json
+
+  正路径:
+    confirm: auto
+    inputs:
+      - 路由决策: outputs/路由决策.json
+    outputs:
+      - 正路径结果: outputs/正路径结果.json
+
+  回退路径:
+    confirm: auto
+    inputs:
+      - 路由决策: outputs/路由决策.json
+    outputs:
+      - 回退路径结果: outputs/回退路径结果.json
+
+  # ═══════════════════════════════════════════════════════
+  # 测试段 4: verdict_context 聚合(多来源到达)
+  # ═══════════════════════════════════════════════════════
+
+  判定者:
+    confirm: auto
+    inputs:
+      - 正路径结果: outputs/正路径结果.json
+      - 回退路径结果: outputs/回退路径结果.json
+    outputs:
+      - 判定报告: outputs/判定报告.json
+
+  # ═══════════════════════════════════════════════════════
+  # 测试段 5: carries 物料传递
+  # ═══════════════════════════════════════════════════════
+
+  物料生产者:
+    confirm: auto
+    inputs:
+      - 判定报告: outputs/判定报告.json
+    outputs:
+      - 测试报告: outputs/测试报告.json
+
+  物料消费者:
+    confirm: auto
+    outputs:
+      - 消费报告: outputs/消费报告.json
+
+  # ═══════════════════════════════════════════════════════
+  # 测试段 6: max_executions 循环退出
+  # ═══════════════════════════════════════════════════════
+
+  循环者:
+    confirm: auto
+    outputs:
+      - 循环报告: outputs/循环报告.json
+
+  终态报告者:
+    confirm: auto
+    inputs:
+      - 循环报告: outputs/循环报告.json
+    outputs:
+      - 最终报告: outputs/最终报告.json
+
+# ═══════════════════════════════════════════════════════════
+# edges：路由编排
+# ═══════════════════════════════════════════════════════════
+
+edges:
+
+  # ── 测试段 1: FORK 3 路并行 ──
+  - 发起者 → [分支A_Manual, 分支B_Auto, 分支C_Step1]
+
+  # ── 分支C 串行子链 ──
+  - 分支C_Step1 → 分支C_Step2
+
+  # ── 测试段 2: JOIN 同步汇入(3 路全到才执行) ──
+  - [分支A_Manual, 分支B_Auto, 分支C_Step2] → 汇聚者
+
+  # ── 测试段 3: 条件路由 + restrict_verdict ──
+  - 汇聚者 → 路由者
+
+  - 路由者 → 正路径 when: result.verdict == "pass"
+    restrict_verdict: [approved, rejected]
+    carries: [outputs/路由决策.json]
+
+  - 路由者 → 回退路径 when: result.verdict == "revise"
+    restrict_verdict: [retry, give_up]
+    carries: [outputs/路由决策.json]
+    max_executions: 2
+
+  # ── 回退路径循环回路由者 ──
+  - 回退路径 → 路由者 when: result.verdict == "retry"
+    max_executions: 2
+
+  # ── 回退路径重试耗尽后走 give_up 到判定者 ──
+  - 回退路径 → 判定者 when: result.verdict == "give_up"
+    carries: [outputs/回退路径结果.json]
+
+  # ── 正路径到判定者(approved 正常路径 + rejected 异常路径，验证多 verdict 出边) ──
+  - 正路径 → 判定者 when: result.verdict == "approved"
+    carries: [outputs/正路径结果.json]
+
+  - 正路径 → 判定者 when: result.verdict == "rejected"
+    carries: [outputs/正路径结果.json]
+
+  # ── 测试段 5: carries 物料传递 ──
+  - 判定者 → 物料生产者
+    carries: [outputs/判定报告.json]
+
+  - 物料生产者 → 物料消费者
+    carries: [outputs/测试报告.json]
+
+  # ── 测试段 6: max_executions 循环 ──
+  - 物料消费者 → 循环者 when: result.verdict == "redo"
+    max_executions: 2
+
+  - 物料消费者 → 终态报告者 when: result.verdict == "done"
+
+  # 循环者回到自身（测试自循环 max_executions）
+  - 循环者 → 循环者 when: result.verdict == "redo"
+    max_executions: 2
+
+  - 循环者 → 终态报告者 when: result.verdict == "done"
+    carries: [outputs/循环报告.json]
+
+  # ── 终态 ──
+  - 终态报告者 → 完成

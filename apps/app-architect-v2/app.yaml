@@ -503,14 +503,19 @@ edges:
   # ═══════════════════════════════════════════════════════════════
 
   - 需求接收者 → 需求接收者（校验）
+    carries: [outputs/需求接收者-gate-result.json]
   - 需求接收者（校验）→ 需求红队 when: result.verdict == "confirmed"
+    carries: [outputs/需求接收者-validate-gate-result.json]
   - 需求接收者（校验）→ 需求接收者 when: result.verdict == "loop"
+    carries: [outputs/需求接收者-validate-gate-result.json]
 
   # ── 需求红队分支（F1：challenged 经审计者复核）──
   # passed → 架构执行者（正向裁决直接通过，无需审计）
   - 需求红队 → 架构执行者 when: result.verdict == "confirmed"
+    carries: [outputs/需求红队-gate-result.json]
   # challenged → 裁决审计者（对抗性裁决复核，保护 manual-confirm 节点）
   - 需求红队 → 裁决审计者 when: result.verdict == "challenged"
+    carries: [outputs/需求红队-gate-result.json, outputs/需求红队-对抗分析报告.json]
 
   # ═══════════════════════════════════════════════════════════════
   # 架构设计层（F3：模拟验证前置 + §9 双段并行）
@@ -518,33 +523,47 @@ edges:
 
   # 架构执行者 confirmed → 端到端模拟验证者（F3，运行时正确性验证）
   - 架构执行者 → 端到端模拟验证者 when: result.verdict == "confirmed"
+    carries: [outputs/架构执行者-gate-result.json]
 
   # ── 端到端模拟验证者分支（F3）──
   # validated → [FORK-1] 并行扇出到版本管理者和红队
   - 端到端模拟验证者 → 架构版本管理者 when: result.verdict == "validated"
+    carries: [outputs/端到端模拟验证者-gate-result.json, outputs/模拟验证报告.json]
   - 端到端模拟验证者 → 架构红队 when: result.verdict == "validated"
+    carries: [outputs/端到端模拟验证者-gate-result.json, outputs/模拟验证报告.json]
   # defects_detected → 回退执行者（携带模拟验证报告）
   - 端到端模拟验证者 → 架构执行者 when: result.verdict == "defects_detected"
+    carries: [outputs/端到端模拟验证者-gate-result.json, outputs/模拟验证报告.json]
 
   # ── 架构版本管理者分支（F4：新增振荡检测）──
   # snapshot_saved → [JOIN-1/FORK-2] 流入 3 专审角色
   - 架构版本管理者 → 结构演化审阅者 when: result.verdict == "snapshot_saved"
+    carries: [outputs/架构版本管理者-gate-result.json, outputs/versions/app-v{iteration}.yaml, outputs/版本管理者-diff报告.json, outputs/振荡诊断报告.json]
   - 架构版本管理者 → 对抗闭环审阅者 when: result.verdict == "snapshot_saved"
+    carries: [outputs/架构版本管理者-gate-result.json, outputs/versions/app-v{iteration}.yaml, outputs/版本管理者-diff报告.json, outputs/振荡诊断报告.json]
   - 架构版本管理者 → 生长空间审阅者 when: result.verdict == "snapshot_saved"
+    carries: [outputs/架构版本管理者-gate-result.json, outputs/versions/app-v{iteration}.yaml, outputs/版本管理者-diff报告.json, outputs/振荡诊断报告.json]
   # regression_detected → 回退执行者（携带 diff 报告）
   - 架构版本管理者 → 架构执行者 when: result.verdict == "regression_detected"
+    carries: [outputs/架构版本管理者-gate-result.json, outputs/versions/app-v{iteration}.yaml, outputs/版本管理者-diff报告.json, outputs/振荡诊断报告.json]
   # oscillation_detected → 回退执行者（携带振荡诊断报告，冲突协调模式，F4）
   - 架构版本管理者 → 架构执行者 when: result.verdict == "oscillation_detected"
+    carries: [outputs/架构版本管理者-gate-result.json, outputs/versions/app-v{iteration}.yaml, outputs/版本管理者-diff报告.json, outputs/振荡诊断报告.json]
 
   # ── 架构红队分支（F1：对抗性裁决经审计者复核）──
   # passed → [JOIN-1/FORK-2] 流入 3 专审角色（正向裁决直接通过）
   - 架构红队 → 结构演化审阅者 when: result.verdict == "confirmed"
+    carries: [outputs/架构红队-gate-result.json]
   - 架构红队 → 对抗闭环审阅者 when: result.verdict == "confirmed"
+    carries: [outputs/架构红队-gate-result.json]
   - 架构红队 → 生长空间审阅者 when: result.verdict == "confirmed"
+    carries: [outputs/架构红队-gate-result.json]
   # breached → 裁决审计者复核（F1：假阳性保护）
   - 架构红队 → 裁决审计者 when: result.verdict == "breached"
+    carries: [outputs/架构红队-gate-result.json, outputs/架构红队-压力测试报告.json]
   # requirement_root_cause → 裁决审计者复核（F1：跨层回退保护）
   - 架构红队 → 裁决审计者 when: result.verdict == "requirement_root_cause"
+    carries: [outputs/架构红队-gate-result.json, outputs/架构红队-压力测试报告.json]
 
   # ═══════════════════════════════════════════════════════════════
   # 审阅层（F2：3 专审 → [JOIN-2] → 综合裁决者 → 审计者）
@@ -552,14 +571,21 @@ edges:
 
   # 3 专审 → 综合裁决者 [JOIN-2]（三路并行收敛，barrier 同步）
   - 结构演化审阅者 → 综合裁决者
+    carries: [outputs/结构演化审阅者-gate-result.json]
   - 对抗闭环审阅者 → 综合裁决者
+    carries: [outputs/对抗闭环审阅者-gate-result.json]
   - 生长空间审阅者 → 综合裁决者
+    carries: [outputs/生长空间审阅者-gate-result.json]
 
   # 综合裁决者 → 裁决审计者（所有裁决均经审计，每个 verdict 对应一条条件边）
   - 综合裁决者 → 裁决审计者 when: result.verdict == "confirmed"
+    carries: [outputs/综合裁决者-gate-result.json]
   - 综合裁决者 → 裁决审计者 when: result.verdict == "conditional_pass"
+    carries: [outputs/综合裁决者-gate-result.json, outputs/审阅报告.json]
   - 综合裁决者 → 裁决审计者 when: result.verdict == "loop"
+    carries: [outputs/综合裁决者-gate-result.json, outputs/审阅报告.json]
   - 综合裁决者 → 裁决审计者 when: result.verdict == "requirement_defect"
+    carries: [outputs/综合裁决者-gate-result.json, outputs/审阅报告.json]
 
   # ═══════════════════════════════════════════════════════════════
   # 裁决审计层（F1：三路径路由）
@@ -567,28 +593,38 @@ edges:
 
   # ── 综合裁决者路径（审阅者审计）──
   - 裁决审计者 → 知识管理者 when: result.verdict == "confirmed"
+    carries: [outputs/裁决审计者-gate-result.json]
   - 裁决审计者 → 架构执行者 when: result.verdict == "conditional_pass"
+    carries: [outputs/裁决审计者-gate-result.json, outputs/裁决审计报告.json]
   - 裁决审计者 → 架构执行者 when: result.verdict == "loop"
+    carries: [outputs/裁决审计者-gate-result.json, outputs/裁决审计报告.json]
   - 裁决审计者 → 需求接收者 when: result.verdict == "requirement_defect"
+    carries: [outputs/裁决审计者-gate-result.json, outputs/裁决审计报告.json]
 
   # ── 需求红队路径（challenged 审计，F1）──
   # 挑战成立 → 回退需求接收者（§1 注入对抗分析报告+审计报告）
   - 裁决审计者 → 需求接收者 when: result.verdict == "req_challenge_upheld"
+    carries: [outputs/裁决审计者-gate-result.json, outputs/裁决审计报告.json]
   # 假阳性翻转 → 架构执行者（继续架构设计）
   - 裁决审计者 → 架构执行者 when: result.verdict == "req_challenge_overturned"
+    carries: [outputs/裁决审计者-gate-result.json, outputs/裁决审计报告.json]
 
   # ── 架构红队路径（breached 审计，F1）──
   # 缺陷成立 → 回退执行者（修复架构）
   - 裁决审计者 → 架构执行者 when: result.verdict == "arch_breach_upheld"
+    carries: [outputs/裁决审计者-gate-result.json, outputs/裁决审计报告.json]
   # 假阳性翻转 → 综合裁决者（进入审阅层，翻转模式下综合裁决者基于
   # 审计报告+可用证据产出裁决，替代缺失的 3 专审 findings）
   - 裁决审计者 → 综合裁决者 when: result.verdict == "arch_breach_overturned"
+    carries: [outputs/裁决审计者-gate-result.json, outputs/裁决审计报告.json]
 
   # ── 架构红队路径（requirement_root_cause 审计，F1）──
   # 根因确认 → 跨层回退需求接收者（§1 注入压力测试报告+审计报告）
   - 裁决审计者 → 需求接收者 when: result.verdict == "arch_rootcause_upheld"
+    carries: [outputs/裁决审计者-gate-result.json, outputs/裁决审计报告.json]
   # 假阳性翻转 → 综合裁决者（进入审阅层）
   - 裁决审计者 → 综合裁决者 when: result.verdict == "arch_rootcause_overturned"
+    carries: [outputs/裁决审计者-gate-result.json, outputs/裁决审计报告.json]
 
   # ═══════════════════════════════════════════════════════════════
   # 知识管理层（§13）+ 全局迭代循环
@@ -598,7 +634,10 @@ edges:
   # 当 edge_counts 达到 max_executions 时，router 自动从 verdict_enum 中移除 tracked
   # 角色只能输出 completed → 走到完成
   - 知识管理者 → 需求接收者 when: result.verdict == "tracked" max_executions: 3
+    carries: [outputs/知识管理者-gate-result.json]
   # completed：正常完成
   - 知识管理者 → 完成 when: result.verdict == "completed"
+    carries: [outputs/知识管理者-gate-result.json]
   # proposal_ready：直接完成
   - 知识管理者 → 完成 when: result.verdict == "proposal_ready"
+    carries: [outputs/知识管理者-gate-result.json]

@@ -56,7 +56,7 @@ def _load():
     """加载 index.json，不存在则返回空结构。"""
     if os.path.exists(_INDEX_PATH):
         try:
-            with open(_INDEX_PATH, "r", encoding="utf-8") as f:
+            with open(_INDEX_PATH, "r", encoding="utf-8-sig") as f:
                 return json.load(f)
         except (json.JSONDecodeError, ValueError):
             pass
@@ -180,7 +180,7 @@ def rebuild_index():
         app = ""
         if os.path.exists(app_ref_path):
             try:
-                with open(app_ref_path, "r") as f:
+                with open(app_ref_path, "r", encoding="utf-8-sig") as f:
                     app = f.read().strip()
             except Exception:
                 pass
@@ -188,7 +188,7 @@ def rebuild_index():
         # 读 STATE
         if os.path.exists(state_path):
             try:
-                with open(state_path, "r", encoding="utf-8") as f:
+                with open(state_path, "r", encoding="utf-8-sig") as f:
                     st = json.load(f)
                 terminal = st.get("terminal_state")
                 completed_count = len(st.get("completed", {}))

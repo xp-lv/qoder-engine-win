@@ -34,7 +34,7 @@
     {
       "name": "需求文档",
       "path": "00-需求描述.md",
-      "type": "process"
+      "type": "deliverable"
     }
   ]
 }

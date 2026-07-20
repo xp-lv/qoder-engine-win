@@ -36,7 +36,7 @@
     {
       "name": "压力测试报告",
       "path": "outputs/架构红队-压力测试报告.json",
-      "type": "process"
+      "type": "deliverable"
     }
   ]
 }

@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "_required_files": [
+    {
+      "name": "终审裁决书",
+      "path": "outputs/终审裁决书.json"
+    },
+    {
+      "name": "REQ-ID增补审批",
+      "path": "process/outputs/REQ-ID增补审批.json"
+    }
+  ]
+}

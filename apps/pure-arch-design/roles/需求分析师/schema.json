@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "_required_files": [
+    {
+      "name": "L2需求规格文档",
+      "path": "outputs/需求规格文档.md"
+    },
+    {
+      "name": "需求澄清请求",
+      "path": "process/outputs/需求澄清请求.md"
+    }
+  ]
+}

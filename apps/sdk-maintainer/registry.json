@@ -101,11 +101,15 @@
         "变更分析师"
       ],
       [
+        "变更分析师"
+      ],
+      [
         "变更分析师-validate"
       ]
     ],
     "verdicts": [
-      "confirmed"
+      "confirmed",
+      "loop"
     ]
   },
   {

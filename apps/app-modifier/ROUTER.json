@@ -1,57 +1,7 @@
 {
   "schema_version": "2.0",
-  "entry": "改造需求接收者-validate",
+  "entry": "改造需求接收者",
   "steps": [
-    {
-      "step": "改造需求接收者-validate",
-      "role": "改造需求接收者（校验）",
-      "transitions": {
-        "confirmed": {
-          "targets": [
-            "改造分析师"
-          ],
-          "type": "normal",
-          "carries": [
-            {
-              "path": "outputs/改造需求接收者-validate-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 改造需求接收者-validate"
-            }
-          ]
-        },
-        "loop": {
-          "targets": [
-            "改造需求接收者"
-          ],
-          "type": "normal",
-          "carries": [
-            {
-              "path": "outputs/改造需求接收者-validate-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 改造需求接收者-validate"
-            }
-          ]
-        },
-        "fail": {
-          "targets": [
-            "改造需求接收者-validate"
-          ],
-          "type": "backward",
-          "carries": [
-            {
-              "path": "outputs/改造需求接收者-validation.json",
-              "type": "feedback",
-              "name": "[反馈] 改造需求接收者校验报告"
-            },
-            {
-              "path": "outputs/改造需求接收者-validate-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 改造需求接收者-validate Gate校验结果"
-            }
-          ]
-        }
-      }
-    },
     {
       "step": "改造需求接收者",
       "role": "改造需求接收者",
@@ -561,6 +511,56 @@
               "path": "outputs/改造报告生成者-gate-result.json",
               "type": "feedback",
               "name": "[反馈] 改造报告生成者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "改造需求接收者-validate",
+      "role": "改造需求接收者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "改造分析师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/改造需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 改造需求接收者-validate"
+            }
+          ]
+        },
+        "loop": {
+          "targets": [
+            "改造需求接收者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/改造需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 改造需求接收者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "改造需求接收者-validate"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/改造需求接收者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 改造需求接收者校验报告"
+            },
+            {
+              "path": "outputs/改造需求接收者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 改造需求接收者-validate Gate校验结果"
             }
           ]
         }

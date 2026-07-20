@@ -218,7 +218,7 @@
     },
     "compilation_result": {
       "status": "SUCCESS",
-      "command": "python3 engine/scripts/compiler.py --app-path <app_path> --force",
+      "command": "python engine/scripts/compiler.py --app-path <app_path> --force",
       "products": [
         {"file": "ROUTER.json", "steps": 9, "description": "路由表，含 transitions + carries"},
         {"file": "registry.json", "roles": 9, "description": "角色注册表，含 inputs/outputs/gate_rules/input_groups/knowledge injection"},

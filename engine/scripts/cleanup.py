@@ -2,8 +2,8 @@
 """cleanup.py — 清理 workspace 运行数据
 
 用法：
-  python3 engine/scripts/cleanup.py                  # 预览（dry-run）
-  python3 engine/scripts/cleanup.py --execute        # 实际执行清理
+  python engine/scripts/cleanup.py                  # 预览（dry-run）
+  python engine/scripts/cleanup.py --execute        # 实际执行清理
 
 清理规则：
   1. WORKSPACE_ROOT 指向的目录不存在 → 删整个 ws 目录
@@ -46,14 +46,14 @@ def main():
         # 读 WORKSPACE_ROOT
         ws_root = ""
         if os.path.exists(ws_root_f):
-            with open(ws_root_f) as f:
+            with open(ws_root_f, "r", encoding="utf-8-sig") as f:
                 ws_root = f.read().strip()
 
         # 读 STATE.json
         terminal = None
         if os.path.exists(state_f):
             try:
-                with open(state_f, "r", encoding="utf-8") as f:
+                with open(state_f, "r", encoding="utf-8-sig") as f:
                     st = json.load(f)
                 terminal = st.get("terminal_state")
             except Exception:

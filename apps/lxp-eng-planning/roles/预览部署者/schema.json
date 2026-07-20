@@ -37,9 +37,9 @@
       "type": "process"
     },
     {
-      "name": "预览截图",
-      "path": "outputs/preview-screenshot.png",
-      "type": "process"
+      "name": "组件状态目录页",
+      "path": "outputs/src/frontend/src/_preview/StatesShowcase.tsx",
+      "type": "deliverable"
     }
   ]
 }

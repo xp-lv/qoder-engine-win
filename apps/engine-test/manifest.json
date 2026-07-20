@@ -1,0 +1,21 @@
+{
+  "schema_version": "2.0",
+  "app_name": "engine-test",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "knowledge",
+      "outputs"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/v9.2引擎机制速查.md",
+        "to": "knowledge/v9.2引擎机制速查.md"
+      }
+    ]
+  }
+}

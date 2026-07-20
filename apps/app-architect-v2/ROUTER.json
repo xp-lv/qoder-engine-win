@@ -8,14 +8,12 @@
       "transitions": {
         "confirmed": {
           "targets": [
-            "需求接收者-validate"
+            "需求接收者_校验_"
           ],
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/需求接收者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 需求接收者"
+              "path": "outputs/需求接收者-gate-result.json"
             }
           ]
         },
@@ -24,28 +22,23 @@
             "需求接收者"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "00-需求描述.md",
-              "type": "feedback",
-              "name": "[反馈] 需求文档"
+              "path": "00-需求描述.md"
             },
             {
-              "path": "outputs/需求接收者-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 需求接收者 Gate校验结果"
+              "path": "outputs/需求接收者-gate-result.json"
             },
             {
-              "path": "outputs/需求接收者-feedback.json",
-              "type": "feedback",
-              "name": "[反馈] 需求接收者 用户反馈"
+              "path": "outputs/需求接收者-feedback.json"
             }
           ]
         }
       }
     },
     {
-      "step": "需求接收者-validate",
+      "step": "需求接收者_校验_",
       "role": "需求接收者（校验）",
       "transitions": {
         "confirmed": {
@@ -55,9 +48,7 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/需求接收者-validate-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 需求接收者-validate"
+              "path": "outputs/需求接收者-validate-gate-result.json"
             }
           ]
         },
@@ -68,27 +59,22 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/需求接收者-validate-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 需求接收者-validate"
+              "path": "outputs/需求接收者-validate-gate-result.json"
             }
           ]
         },
         "fail": {
           "targets": [
-            "需求接收者-validate"
+            "需求接收者_校验_"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/需求接收者-validation.json",
-              "type": "feedback",
-              "name": "[反馈] 需求接收者校验报告"
+              "path": "outputs/需求接收者-validation.json"
             },
             {
-              "path": "outputs/需求接收者-validate-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 需求接收者-validate Gate校验结果"
+              "path": "outputs/需求接收者_校验_-gate-result.json"
             }
           ]
         }
@@ -105,9 +91,7 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/需求红队-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 需求红队"
+              "path": "outputs/需求红队-gate-result.json"
             }
           ]
         },
@@ -118,14 +102,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/需求红队-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 需求红队"
+              "path": "outputs/需求红队-gate-result.json"
             },
             {
-              "path": "outputs/需求红队-对抗分析报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 对抗分析报告"
+              "path": "outputs/需求红队-对抗分析报告.json"
             }
           ]
         },
@@ -134,16 +114,13 @@
             "需求红队"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/需求红队-对抗分析报告.json",
-              "type": "feedback",
-              "name": "[反馈] 对抗分析报告"
+              "path": "outputs/需求红队-对抗分析报告.json"
             },
             {
-              "path": "outputs/需求红队-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 需求红队 Gate校验结果"
+              "path": "outputs/需求红队-gate-result.json"
             }
           ]
         }
@@ -160,9 +137,7 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/架构执行者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 架构执行者"
+              "path": "outputs/架构执行者-gate-result.json"
             }
           ]
         },
@@ -171,16 +146,13 @@
             "架构执行者"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "app.yaml",
-              "type": "feedback",
-              "name": "[反馈] App架构文件"
+              "path": "app.yaml"
             },
             {
-              "path": "outputs/架构执行者-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 架构执行者 Gate校验结果"
+              "path": "outputs/架构执行者-gate-result.json"
             }
           ]
         }
@@ -198,14 +170,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/端到端模拟验证者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 端到端模拟验证者"
+              "path": "outputs/端到端模拟验证者-gate-result.json"
             },
             {
-              "path": "outputs/模拟验证报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 模拟验证报告"
+              "path": "outputs/模拟验证报告.json"
             }
           ]
         },
@@ -216,14 +184,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/端到端模拟验证者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 端到端模拟验证者"
+              "path": "outputs/端到端模拟验证者-gate-result.json"
             },
             {
-              "path": "outputs/模拟验证报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 模拟验证报告"
+              "path": "outputs/模拟验证报告.json"
             }
           ]
         },
@@ -232,16 +196,13 @@
             "端到端模拟验证者"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/模拟验证报告.json",
-              "type": "feedback",
-              "name": "[反馈] 模拟验证报告"
+              "path": "outputs/模拟验证报告.json"
             },
             {
-              "path": "outputs/端到端模拟验证者-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 端到端模拟验证者 Gate校验结果"
+              "path": "outputs/端到端模拟验证者-gate-result.json"
             }
           ]
         }
@@ -260,24 +221,16 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/架构版本管理者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 架构版本管理者"
+              "path": "outputs/架构版本管理者-gate-result.json"
             },
             {
-              "path": "outputs/versions/app-v{iteration}.yaml",
-              "type": "deliverable",
-              "name": "[上游分析] 版本快照"
+              "path": "outputs/versions/app-v{iteration}.yaml"
             },
             {
-              "path": "outputs/版本管理者-diff报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 版本Diff报告"
+              "path": "outputs/版本管理者-diff报告.json"
             },
             {
-              "path": "outputs/振荡诊断报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 振荡诊断报告"
+              "path": "outputs/振荡诊断报告.json"
             }
           ]
         },
@@ -288,24 +241,16 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/架构版本管理者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 架构版本管理者"
+              "path": "outputs/架构版本管理者-gate-result.json"
             },
             {
-              "path": "outputs/versions/app-v{iteration}.yaml",
-              "type": "deliverable",
-              "name": "[上游分析] 版本快照"
+              "path": "outputs/versions/app-v{iteration}.yaml"
             },
             {
-              "path": "outputs/版本管理者-diff报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 版本Diff报告"
+              "path": "outputs/版本管理者-diff报告.json"
             },
             {
-              "path": "outputs/振荡诊断报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 振荡诊断报告"
+              "path": "outputs/振荡诊断报告.json"
             }
           ]
         },
@@ -316,24 +261,16 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/架构版本管理者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 架构版本管理者"
+              "path": "outputs/架构版本管理者-gate-result.json"
             },
             {
-              "path": "outputs/versions/app-v{iteration}.yaml",
-              "type": "deliverable",
-              "name": "[上游分析] 版本快照"
+              "path": "outputs/versions/app-v{iteration}.yaml"
             },
             {
-              "path": "outputs/版本管理者-diff报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 版本Diff报告"
+              "path": "outputs/版本管理者-diff报告.json"
             },
             {
-              "path": "outputs/振荡诊断报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 振荡诊断报告"
+              "path": "outputs/振荡诊断报告.json"
             }
           ]
         },
@@ -342,26 +279,19 @@
             "架构版本管理者"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/versions/app-v{iteration}.yaml",
-              "type": "feedback",
-              "name": "[反馈] 版本快照"
+              "path": "outputs/versions/app-v{iteration}.yaml"
             },
             {
-              "path": "outputs/版本管理者-diff报告.json",
-              "type": "feedback",
-              "name": "[反馈] 版本Diff报告"
+              "path": "outputs/版本管理者-diff报告.json"
             },
             {
-              "path": "outputs/振荡诊断报告.json",
-              "type": "feedback",
-              "name": "[反馈] 振荡诊断报告"
+              "path": "outputs/振荡诊断报告.json"
             },
             {
-              "path": "outputs/架构版本管理者-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 架构版本管理者 Gate校验结果"
+              "path": "outputs/架构版本管理者-gate-result.json"
             }
           ]
         }
@@ -380,9 +310,7 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/架构红队-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 架构红队"
+              "path": "outputs/架构红队-gate-result.json"
             }
           ]
         },
@@ -393,14 +321,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/架构红队-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 架构红队"
+              "path": "outputs/架构红队-gate-result.json"
             },
             {
-              "path": "outputs/架构红队-压力测试报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 压力测试报告"
+              "path": "outputs/架构红队-压力测试报告.json"
             }
           ]
         },
@@ -411,14 +335,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/架构红队-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 架构红队"
+              "path": "outputs/架构红队-gate-result.json"
             },
             {
-              "path": "outputs/架构红队-压力测试报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 压力测试报告"
+              "path": "outputs/架构红队-压力测试报告.json"
             }
           ]
         },
@@ -427,16 +347,13 @@
             "架构红队"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/架构红队-压力测试报告.json",
-              "type": "feedback",
-              "name": "[反馈] 压力测试报告"
+              "path": "outputs/架构红队-压力测试报告.json"
             },
             {
-              "path": "outputs/架构红队-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 架构红队 Gate校验结果"
+              "path": "outputs/架构红队-gate-result.json"
             }
           ]
         }
@@ -453,9 +370,7 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/结构演化审阅者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 结构演化审阅者"
+              "path": "outputs/结构演化审阅者-gate-result.json"
             }
           ]
         },
@@ -464,16 +379,13 @@
             "结构演化审阅者"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/结构演化审阅报告.json",
-              "type": "feedback",
-              "name": "[反馈] 结构演化审阅报告"
+              "path": "outputs/结构演化审阅报告.json"
             },
             {
-              "path": "outputs/结构演化审阅者-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 结构演化审阅者 Gate校验结果"
+              "path": "outputs/结构演化审阅者-gate-result.json"
             }
           ]
         }
@@ -490,9 +402,7 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/对抗闭环审阅者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 对抗闭环审阅者"
+              "path": "outputs/对抗闭环审阅者-gate-result.json"
             }
           ]
         },
@@ -501,16 +411,13 @@
             "对抗闭环审阅者"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/对抗闭环审阅报告.json",
-              "type": "feedback",
-              "name": "[反馈] 对抗闭环审阅报告"
+              "path": "outputs/对抗闭环审阅报告.json"
             },
             {
-              "path": "outputs/对抗闭环审阅者-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 对抗闭环审阅者 Gate校验结果"
+              "path": "outputs/对抗闭环审阅者-gate-result.json"
             }
           ]
         }
@@ -527,9 +434,7 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/生长空间审阅者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 生长空间审阅者"
+              "path": "outputs/生长空间审阅者-gate-result.json"
             }
           ]
         },
@@ -538,16 +443,13 @@
             "生长空间审阅者"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/生长空间审阅报告.json",
-              "type": "feedback",
-              "name": "[反馈] 生长空间审阅报告"
+              "path": "outputs/生长空间审阅报告.json"
             },
             {
-              "path": "outputs/生长空间审阅者-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 生长空间审阅者 Gate校验结果"
+              "path": "outputs/生长空间审阅者-gate-result.json"
             }
           ]
         }
@@ -564,9 +466,7 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/综合裁决者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 综合裁决者"
+              "path": "outputs/综合裁决者-gate-result.json"
             }
           ]
         },
@@ -577,14 +477,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/综合裁决者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 综合裁决者"
+              "path": "outputs/综合裁决者-gate-result.json"
             },
             {
-              "path": "outputs/审阅报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 审阅报告"
+              "path": "outputs/审阅报告.json"
             }
           ]
         },
@@ -595,14 +491,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/综合裁决者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 综合裁决者"
+              "path": "outputs/综合裁决者-gate-result.json"
             },
             {
-              "path": "outputs/审阅报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 审阅报告"
+              "path": "outputs/审阅报告.json"
             }
           ]
         },
@@ -613,14 +505,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/综合裁决者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 综合裁决者"
+              "path": "outputs/综合裁决者-gate-result.json"
             },
             {
-              "path": "outputs/审阅报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 审阅报告"
+              "path": "outputs/审阅报告.json"
             }
           ]
         },
@@ -629,16 +517,13 @@
             "综合裁决者"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/审阅报告.json",
-              "type": "feedback",
-              "name": "[反馈] 审阅报告"
+              "path": "outputs/审阅报告.json"
             },
             {
-              "path": "outputs/综合裁决者-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 综合裁决者 Gate校验结果"
+              "path": "outputs/综合裁决者-gate-result.json"
             }
           ]
         }
@@ -655,9 +540,7 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/裁决审计者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 裁决审计者"
+              "path": "outputs/裁决审计者-gate-result.json"
             }
           ]
         },
@@ -668,14 +551,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/裁决审计者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 裁决审计者"
+              "path": "outputs/裁决审计者-gate-result.json"
             },
             {
-              "path": "outputs/裁决审计报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 裁决审计报告"
+              "path": "outputs/裁决审计报告.json"
             }
           ]
         },
@@ -686,14 +565,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/裁决审计者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 裁决审计者"
+              "path": "outputs/裁决审计者-gate-result.json"
             },
             {
-              "path": "outputs/裁决审计报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 裁决审计报告"
+              "path": "outputs/裁决审计报告.json"
             }
           ]
         },
@@ -704,14 +579,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/裁决审计者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 裁决审计者"
+              "path": "outputs/裁决审计者-gate-result.json"
             },
             {
-              "path": "outputs/裁决审计报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 裁决审计报告"
+              "path": "outputs/裁决审计报告.json"
             }
           ]
         },
@@ -722,14 +593,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/裁决审计者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 裁决审计者"
+              "path": "outputs/裁决审计者-gate-result.json"
             },
             {
-              "path": "outputs/裁决审计报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 裁决审计报告"
+              "path": "outputs/裁决审计报告.json"
             }
           ]
         },
@@ -740,14 +607,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/裁决审计者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 裁决审计者"
+              "path": "outputs/裁决审计者-gate-result.json"
             },
             {
-              "path": "outputs/裁决审计报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 裁决审计报告"
+              "path": "outputs/裁决审计报告.json"
             }
           ]
         },
@@ -758,14 +621,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/裁决审计者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 裁决审计者"
+              "path": "outputs/裁决审计者-gate-result.json"
             },
             {
-              "path": "outputs/裁决审计报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 裁决审计报告"
+              "path": "outputs/裁决审计报告.json"
             }
           ]
         },
@@ -776,14 +635,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/裁决审计者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 裁决审计者"
+              "path": "outputs/裁决审计者-gate-result.json"
             },
             {
-              "path": "outputs/裁决审计报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 裁决审计报告"
+              "path": "outputs/裁决审计报告.json"
             }
           ]
         },
@@ -794,14 +649,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/裁决审计者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 裁决审计者"
+              "path": "outputs/裁决审计者-gate-result.json"
             },
             {
-              "path": "outputs/裁决审计报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 裁决审计报告"
+              "path": "outputs/裁决审计报告.json"
             }
           ]
         },
@@ -812,14 +663,10 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/裁决审计者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 裁决审计者"
+              "path": "outputs/裁决审计者-gate-result.json"
             },
             {
-              "path": "outputs/裁决审计报告.json",
-              "type": "deliverable",
-              "name": "[上游分析] 裁决审计报告"
+              "path": "outputs/裁决审计报告.json"
             }
           ]
         },
@@ -828,16 +675,13 @@
             "裁决审计者"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/裁决审计报告.json",
-              "type": "feedback",
-              "name": "[反馈] 裁决审计报告"
+              "path": "outputs/裁决审计报告.json"
             },
             {
-              "path": "outputs/裁决审计者-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 裁决审计者 Gate校验结果"
+              "path": "outputs/裁决审计者-gate-result.json"
             }
           ]
         }
@@ -855,9 +699,7 @@
           "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/知识管理者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 知识管理者"
+              "path": "outputs/知识管理者-gate-result.json"
             }
           ]
         },
@@ -866,9 +708,7 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/知识管理者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 知识管理者"
+              "path": "outputs/知识管理者-gate-result.json"
             }
           ]
         },
@@ -877,9 +717,7 @@
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/知识管理者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 知识管理者"
+              "path": "outputs/知识管理者-gate-result.json"
             }
           ]
         },
@@ -888,16 +726,13 @@
             "知识管理者"
           ],
           "type": "backward",
+          "max_executions": 3,
           "carries": [
             {
-              "path": "outputs/知识演进追踪表.json",
-              "type": "feedback",
-              "name": "[反馈] 知识演进追踪表"
+              "path": "outputs/知识演进追踪表.json"
             },
             {
-              "path": "outputs/知识管理者-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 知识管理者 Gate校验结果"
+              "path": "outputs/知识管理者-gate-result.json"
             }
           ]
         }

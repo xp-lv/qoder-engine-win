@@ -3,25 +3,19 @@
     "role_name": "代码准备者",
     "skill_path": "roles/代码准备者/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "前端代码",
-        "path": "outputs/src/frontend/",
-        "type": "deliverable"
+        "path": "outputs/src/frontend/"
       },
       {
         "name": "后端代码",
-        "path": "outputs/src/backend/",
-        "type": "deliverable"
+        "path": "outputs/src/backend/"
       }
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -43,25 +37,19 @@
     "role_name": "代码修改者",
     "skill_path": "roles/代码修改者/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "前端代码",
-        "path": "outputs/src/frontend/",
-        "type": "deliverable"
+        "path": "outputs/src/frontend/"
       },
       {
         "name": "后端代码",
-        "path": "outputs/src/backend/",
-        "type": "deliverable"
+        "path": "outputs/src/backend/"
       }
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -73,18 +61,15 @@
     "inputs": [
       {
         "name": "前端代码",
-        "path": "outputs/src/frontend/",
-        "type": "deliverable"
+        "path": "outputs/src/frontend/"
       },
       {
         "name": "后端代码",
-        "path": "outputs/src/backend/",
-        "type": "deliverable"
+        "path": "outputs/src/backend/"
       },
       {
         "name": "预览确认报告",
-        "path": "outputs/预览确认报告.json",
-        "type": "process"
+        "path": "outputs/预览确认报告.json"
       }
     ],
     "input_groups": [
@@ -93,9 +78,6 @@
       ],
       [
         "代码修改者"
-      ],
-      [
-        "前端预览-review"
       ]
     ],
     "verdicts": [
@@ -106,11 +88,15 @@
     "role_name": "前端预览",
     "skill_path": "roles/前端预览/skill.md",
     "blocking_mode": "auto",
-    "role_type": "preview",
-    "outputs": [],
+    "outputs": [
+      {
+        "name": "预览确认报告",
+        "path": "outputs/预览确认报告.json"
+      }
+    ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": false
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -122,13 +108,19 @@
     "inputs": [
       {
         "name": "前端代码",
-        "path": "outputs/src/frontend/",
-        "type": "deliverable"
+        "path": "outputs/src/frontend/"
       },
       {
         "name": "后端代码",
-        "path": "outputs/src/backend/",
-        "type": "deliverable"
+        "path": "outputs/src/backend/"
+      },
+      {
+        "name": "name",
+        "path": "后端API服务"
+      },
+      {
+        "name": "name",
+        "path": "前端Dev服务"
       }
     ],
     "input_groups": [
@@ -145,108 +137,6 @@
     "verdicts": [
       "confirmed",
       "needs_revision"
-    ]
-  },
-  {
-    "role_name": "前端预览（守护）",
-    "skill_path": "roles/前端预览_守护_/skill.md",
-    "blocking_mode": "auto",
-    "role_type": "daemon",
-    "outputs": [
-      {
-        "name": "前端预览服务状态",
-        "path": "outputs/前端预览-daemon-status.json",
-        "type": "process"
-      }
-    ],
-    "daemon_config": [
-      {
-        "name": "后端API服务",
-        "command": "npm run dev",
-        "cwd": "outputs/src/backend",
-        "port": "3001",
-        "health_check": "GET /api/health"
-      },
-      {
-        "name": "前端Dev服务",
-        "command": "npx vite --host 127.0.0.1 --port 5173",
-        "cwd": "outputs/src/frontend",
-        "port": "5173",
-        "health_check": "GET /"
-      }
-    ],
-    "gate_rules": {
-      "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 10
-        }
-      },
-      "phase2_schema_comparison": {
-        "enabled": false
-      },
-      "phase3_anomaly_detection": {
-        "enabled": false
-      }
-    },
-    "input_groups": [
-      [
-        "前端预览-daemon"
-      ],
-      [
-        "前端预览"
-      ]
-    ]
-  },
-  {
-    "role_name": "前端预览（审查）",
-    "skill_path": "roles/前端预览_审查_/skill.md",
-    "blocking_mode": "auto",
-    "role_type": "standard",
-    "outputs": [
-      {
-        "name": "预览确认报告",
-        "path": "outputs/预览确认报告.json",
-        "type": "process"
-      }
-    ],
-    "reviewer_config": {
-      "url": "http://127.0.0.1:5173",
-      "screenshot": "true"
-    },
-    "gate_rules": {
-      "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
-      },
-      "phase2_schema_comparison": {
-        "enabled": false
-      },
-      "phase3_anomaly_detection": {
-        "enabled": false
-      }
-    },
-    "inputs": [
-      {
-        "name": "前端代码",
-        "path": "outputs/src/frontend/",
-        "type": "deliverable"
-      },
-      {
-        "name": "后端代码",
-        "path": "outputs/src/backend/",
-        "type": "deliverable"
-      }
-    ],
-    "input_groups": [
-      [
-        "前端预览-review"
-      ],
-      [
-        "前端预览-daemon"
-      ]
     ]
   }
 ]

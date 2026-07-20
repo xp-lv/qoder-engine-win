@@ -28,7 +28,7 @@ from filelock import acquire_lock, release_lock
 def load_state(state_path):
     """安全读取 STATE.json，返回 dict。文件不存在或解析失败返回 None。"""
     try:
-        with open(state_path, "r", encoding="utf-8") as f:
+        with open(state_path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
     except Exception:
         return None
@@ -39,6 +39,17 @@ def _write_unlocked(state_path, state):
 
     调用者必须已持有 lock_path 文件锁。
     """
+    # v9.2 诊断日志：记录每次写入的调用者和 step_status 状态
+    import traceback as _tb, time as _time
+    _ws = os.path.basename(os.path.dirname(state_path))
+    _ss_keys = list((state.get("step_status") or {}).keys())
+    _completed_keys = list((state.get("completed") or {}).keys())
+    _caller = _tb.extract_stack()[-3] if len(_tb.extract_stack()) >= 3 else _tb.extract_stack()[-2]
+    _caller_info = f"{_caller.filename.split('/')[-1]}:{_caller.lineno} {_caller.name}"
+    _diag_line = f"[{_time.strftime('%H:%M:%S')}] WRITE_STATE ws={_ws} caller={_caller_info} step_status={_ss_keys} completed={_completed_keys}"
+    with open(state_path.replace("STATE.json", "_state_write.log"), "a", encoding="utf-8") as _lf:
+        _lf.write(_diag_line + "\n")
+
     d = os.path.dirname(state_path)
     if d:
         os.makedirs(d, exist_ok=True)
@@ -71,7 +82,7 @@ def save_state(state_path, state, validate=True):
     if d:
         os.makedirs(d, exist_ok=True)
     lock_path = state_path + ".lock"
-    with open(lock_path, "w") as lock_file:
+    with open(lock_path, "w", encoding="utf-8") as lock_file:
         if not acquire_lock(lock_file):
             raise RuntimeError("获取 STATE.json 文件锁失败")
         try:
@@ -106,7 +117,7 @@ def state_txn(state_path, timeout=60):
     if d:
         os.makedirs(d, exist_ok=True)
     lock_path = state_path + ".lock"
-    with open(lock_path, "w") as lock_file:
+    with open(lock_path, "w", encoding="utf-8") as lock_file:
         if not acquire_lock(lock_file, timeout):
             raise RuntimeError("获取 STATE.json 文件锁失败")
         try:
@@ -119,6 +130,13 @@ def state_txn(state_path, timeout=60):
         finally:
             # 异常路径：跳过 _write_unlocked，磁盘状态保持不变
             release_lock(lock_file)
+            # v9.2: 删除锁文件，避免残留文件导致后续 state_txn 误判
+            # （fcntl.flock 是进程级锁，进程退出自动释放，但锁文件残留会
+            # 让 open(lock_path, "w", encoding="utf-8") 截断时与其他进程产生竞争）
+            try:
+                os.unlink(lock_path)
+            except OSError:
+                pass
 
 
 def modify_state_locked(state_path, modifier_fn, timeout=60):

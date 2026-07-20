@@ -1,45 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "properties": {
-    "result": {
-      "type": "object",
-      "required": [
-        "verdict",
-        "summary"
-      ],
-      "properties": {
-        "verdict": {
-          "type": "string",
-          "enum": [
-            "confirmed"
-          ]
-        },
-        "summary": {
-          "type": "string"
-        },
-        "findings": {
-          "type": "array"
-        },
-        "errors": {
-          "type": "array"
-        }
-      }
-    }
-  },
-  "required": [
-    "result"
-  ],
+  "properties": {},
+  "required": [],
   "_required_files": [
     {
       "name": "前端代码",
-      "path": "outputs/src/frontend/",
-      "type": "deliverable"
+      "path": "outputs/src/frontend/"
     },
     {
       "name": "后端代码",
-      "path": "outputs/src/backend/",
-      "type": "deliverable"
+      "path": "outputs/src/backend/"
     }
   ]
 }

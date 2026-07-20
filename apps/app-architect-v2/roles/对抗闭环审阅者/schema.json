@@ -34,7 +34,7 @@
     {
       "name": "对抗闭环审阅报告",
       "path": "outputs/对抗闭环审阅报告.json",
-      "type": "process"
+      "type": "deliverable"
     }
   ]
 }

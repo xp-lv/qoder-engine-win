@@ -45,7 +45,7 @@ def get_app_schema_version(router_path):
     if not os.path.exists(router_path):
         return SDK_VERSION  # 文件不存在时假定当前版本（编译器会生成）
     try:
-        with open(router_path, "r", encoding="utf-8") as f:
+        with open(router_path, "r", encoding="utf-8-sig") as f:
             router = json.load(f)
         return router.get("schema_version", "1.0")
     except (json.JSONDecodeError, OSError):

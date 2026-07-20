@@ -79,6 +79,9 @@
     "principles": "roles/改造需求接收者/principles.md",
     "input_groups": [
       [
+        "改造需求接收者"
+      ],
+      [
         "改造需求接收者-validate"
       ]
     ],

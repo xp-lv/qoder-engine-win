@@ -1,52 +1,44 @@
 {
   "schema_version": "2.0",
-  "entry": "需求接收者-validate",
+  "entry": "需求接收者",
   "steps": [
     {
-      "step": "需求接收者-validate",
-      "role": "需求接收者（校验）",
+      "step": "需求接收者",
+      "role": "需求接收者",
       "transitions": {
         "confirmed": {
           "targets": [
-            "需求红队"
+            "需求接收者-validate"
           ],
           "type": "normal",
           "carries": [
             {
-              "path": "outputs/需求接收者-validate-gate-result.json",
+              "path": "outputs/需求接收者-gate-result.json",
               "type": "deliverable",
-              "name": "[上游Gate结果] 需求接收者-validate"
-            }
-          ]
-        },
-        "loop": {
-          "targets": [
-            "需求接收者"
-          ],
-          "type": "normal",
-          "carries": [
-            {
-              "path": "outputs/需求接收者-validate-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 需求接收者-validate"
+              "name": "[上游Gate结果] 需求接收者"
             }
           ]
         },
         "fail": {
           "targets": [
-            "需求接收者-validate"
+            "需求接收者"
           ],
           "type": "backward",
           "carries": [
             {
-              "path": "outputs/需求接收者-validation.json",
+              "path": "00-需求描述.md",
               "type": "feedback",
-              "name": "[反馈] 需求接收者校验报告"
+              "name": "[反馈] 需求文档"
             },
             {
-              "path": "outputs/需求接收者-validate-gate-result.json",
+              "path": "outputs/需求接收者-gate-result.json",
               "type": "feedback",
-              "name": "[反馈] 需求接收者-validate Gate校验结果"
+              "name": "[反馈] 需求接收者 Gate校验结果"
+            },
+            {
+              "path": "outputs/需求接收者-feedback.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者 用户反馈"
             }
           ]
         }
@@ -102,48 +94,6 @@
               "path": "outputs/需求红队-gate-result.json",
               "type": "feedback",
               "name": "[反馈] 需求红队 Gate校验结果"
-            }
-          ]
-        }
-      }
-    },
-    {
-      "step": "需求接收者",
-      "role": "需求接收者",
-      "transitions": {
-        "confirmed": {
-          "targets": [
-            "需求接收者-validate"
-          ],
-          "type": "normal",
-          "carries": [
-            {
-              "path": "outputs/需求接收者-gate-result.json",
-              "type": "deliverable",
-              "name": "[上游Gate结果] 需求接收者"
-            }
-          ]
-        },
-        "fail": {
-          "targets": [
-            "需求接收者"
-          ],
-          "type": "backward",
-          "carries": [
-            {
-              "path": "00-需求描述.md",
-              "type": "feedback",
-              "name": "[反馈] 需求文档"
-            },
-            {
-              "path": "outputs/需求接收者-gate-result.json",
-              "type": "feedback",
-              "name": "[反馈] 需求接收者 Gate校验结果"
-            },
-            {
-              "path": "outputs/需求接收者-feedback.json",
-              "type": "feedback",
-              "name": "[反馈] 需求接收者 用户反馈"
             }
           ]
         }
@@ -777,6 +727,56 @@
               "path": "outputs/知识管理者-gate-result.json",
               "type": "feedback",
               "name": "[反馈] 知识管理者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "需求接收者-validate",
+      "role": "需求接收者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "需求红队"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者-validate"
+            }
+          ]
+        },
+        "loop": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "需求接收者-validate"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者校验报告"
+            },
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者-validate Gate校验结果"
             }
           ]
         }

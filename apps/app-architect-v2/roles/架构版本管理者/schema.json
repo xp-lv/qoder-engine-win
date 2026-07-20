@@ -36,17 +36,17 @@
     {
       "name": "版本快照",
       "path": "outputs/versions/app-v{iteration}.yaml",
-      "type": "process"
+      "type": "deliverable"
     },
     {
       "name": "版本Diff报告",
       "path": "outputs/版本管理者-diff报告.json",
-      "type": "process"
+      "type": "deliverable"
     },
     {
       "name": "振荡诊断报告",
       "path": "outputs/振荡诊断报告.json",
-      "type": "process"
+      "type": "deliverable"
     }
   ]
 }

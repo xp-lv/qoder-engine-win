@@ -1,0 +1,389 @@
+{
+  "schema_version": "2.0",
+  "entry": "需求分析师",
+  "steps": [
+    {
+      "step": "需求分析师",
+      "role": "需求分析师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "需求分析师校验"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "需求分析师"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/需求规格文档.md"
+            },
+            {
+              "path": "process/outputs/需求澄清请求.md"
+            },
+            {
+              "path": "outputs/需求分析师-gate-result.json"
+            },
+            {
+              "path": "outputs/需求分析师-feedback.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "需求分析师校验",
+      "role": "需求分析师校验",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "架构设计师"
+          ],
+          "type": "normal"
+        },
+        "loop": {
+          "targets": [
+            "需求分析师"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "需求分析师校验"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/需求分析师-validation.json"
+            },
+            {
+              "path": "outputs/需求分析师校验-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "架构设计师",
+      "role": "架构设计师",
+      "transitions": {
+        "blueprint_v1_ready": {
+          "targets": [
+            "架构设计师校验"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "架构设计师"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/架构蓝图.md"
+            },
+            {
+              "path": "outputs/架构设计师-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "架构设计师校验",
+      "role": "架构设计师校验",
+      "transitions": {
+        "loop": {
+          "targets": [
+            "架构设计师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "process/outputs/架构设计师-validation.json"
+            },
+            {
+              "path": "outputs/架构设计师校验-gate-result.json"
+            }
+          ]
+        },
+        "blueprint_v1_ready": {
+          "targets": [
+            "结构红队",
+            "边界红队",
+            "极限红队",
+            "质量红队"
+          ],
+          "type": "normal"
+        },
+        "unregistered_requirement": {
+          "targets": [
+            "终审裁决者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "架构设计师校验"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/架构设计师-validation.json"
+            },
+            {
+              "path": "outputs/架构设计师校验-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "结构红队",
+      "role": "结构红队",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "红队校验角色"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "结构红队"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/R1-问题清单.json"
+            },
+            {
+              "path": "outputs/结构红队-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "边界红队",
+      "role": "边界红队",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "红队校验角色"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "边界红队"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/R2-问题清单.json"
+            },
+            {
+              "path": "outputs/边界红队-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "极限红队",
+      "role": "极限红队",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "红队校验角色"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "极限红队"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/R3-问题清单.json"
+            },
+            {
+              "path": "outputs/极限红队-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "质量红队",
+      "role": "质量红队",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "红队校验角色"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "质量红队"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/R4-问题清单.json"
+            },
+            {
+              "path": "outputs/质量红队-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "红队校验角色",
+      "role": "红队校验角色",
+      "transitions": {
+        "all_passed": {
+          "targets": [
+            "终审裁决者"
+          ],
+          "type": "normal"
+        },
+        "issues_found": {
+          "targets": [
+            "架构设计师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "process/outputs/R1-问题清单.json"
+            },
+            {
+              "path": "process/outputs/R2-问题清单.json"
+            },
+            {
+              "path": "process/outputs/R3-问题清单.json"
+            },
+            {
+              "path": "process/outputs/R4-问题清单.json"
+            },
+            {
+              "path": "outputs/红队校验角色-gate-result.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "红队校验角色"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/红队综合裁决.json"
+            },
+            {
+              "path": "outputs/红队校验角色-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "终审裁决者",
+      "role": "终审裁决者",
+      "transitions": {
+        "passed": {
+          "targets": [],
+          "type": "normal"
+        },
+        "consistency_defect": {
+          "targets": [
+            "架构设计师"
+          ],
+          "type": "normal",
+          "max_executions": 2,
+          "carries": [
+            {
+              "path": "outputs/终审裁决书.json"
+            },
+            {
+              "path": "outputs/终审裁决者-gate-result.json"
+            }
+          ]
+        },
+        "terminated": {
+          "targets": [],
+          "type": "normal"
+        },
+        "reqid_approved": {
+          "targets": [
+            "需求分析师"
+          ],
+          "type": "normal",
+          "max_executions": 2,
+          "carries": [
+            {
+              "path": "process/outputs/REQ-ID增补审批.json"
+            },
+            {
+              "path": "outputs/终审裁决者-gate-result.json"
+            }
+          ]
+        },
+        "reqid_rejected": {
+          "targets": [
+            "架构设计师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "process/outputs/REQ-ID增补审批.json"
+            },
+            {
+              "path": "outputs/终审裁决者-gate-result.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "终审裁决者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/终审裁决书.json"
+            },
+            {
+              "path": "process/outputs/REQ-ID增补审批.json"
+            },
+            {
+              "path": "outputs/终审裁决者-gate-result.json"
+            }
+          ]
+        }
+      },
+      "verdict_context": {
+        "架构设计师校验": [
+          "reqid_approved",
+          "reqid_rejected"
+        ]
+      }
+    }
+  ]
+}

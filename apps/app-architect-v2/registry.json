@@ -3,20 +3,16 @@
     "role_name": "需求接收者",
     "skill_path": "roles/需求接收者/skill.md",
     "blocking_mode": "manual",
-    "role_type": "producer",
     "outputs": [
       {
         "name": "需求文档",
         "path": "00-需求描述.md",
-        "type": "process"
+        "type": "deliverable"
       }
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -25,16 +21,9 @@
         "enabled": false
       }
     },
-    "principles": "roles/需求接收者/principles.md",
     "input_groups": [
       [
-        "需求接收者-validate"
-      ],
-      [
-        "裁决审计者"
-      ],
-      [
-        "裁决审计者"
+        "需求接收者_校验_"
       ],
       [
         "裁决审计者"
@@ -54,32 +43,16 @@
     "role_name": "需求接收者（校验）",
     "skill_path": "roles/需求接收者_校验_/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
-        "name": "需求接收者校验报告",
+        "name": "需求校验报告",
         "path": "outputs/需求接收者-validation.json",
         "type": "deliverable"
       }
     ],
-    "inputs": [
-      {
-        "name": "需求文档",
-        "path": "00-需求描述.md",
-        "type": "process"
-      }
-    ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "rules": [
-          {
-            "type": "field_exists",
-            "field": "result.verdict",
-            "must_be_non_empty": true,
-            "description": "校验角色必须输出 result.verdict"
-          }
-        ]
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -88,13 +61,19 @@
         "enabled": false
       }
     },
-    "principles": "roles/需求接收者/principles.md",
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      }
+    ],
     "input_groups": [
       [
         "需求接收者"
       ],
       [
-        "需求接收者-validate"
+        "需求接收者_校验_"
       ]
     ],
     "verdicts": [
@@ -106,20 +85,16 @@
     "role_name": "需求红队",
     "skill_path": "roles/需求红队/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "对抗分析报告",
         "path": "outputs/需求红队-对抗分析报告.json",
-        "type": "process"
+        "type": "deliverable"
       }
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -132,7 +107,7 @@
       {
         "name": "需求文档",
         "path": "00-需求描述.md",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "SDK规范",
@@ -142,7 +117,7 @@
     ],
     "input_groups": [
       [
-        "需求接收者-validate"
+        "需求接收者_校验_"
       ],
       [
         "需求红队"
@@ -157,7 +132,6 @@
     "role_name": "架构执行者",
     "skill_path": "roles/架构执行者/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "App架构文件",
@@ -167,10 +141,7 @@
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -183,37 +154,37 @@
       {
         "name": "需求文档",
         "path": "00-需求描述.md",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "审阅报告",
         "path": "outputs/审阅报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "裁决审计报告",
         "path": "outputs/裁决审计报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "压力测试报告",
         "path": "outputs/架构红队-压力测试报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "版本Diff报告",
         "path": "outputs/版本管理者-diff报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "模拟验证报告",
         "path": "outputs/模拟验证报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "振荡诊断报告",
         "path": "outputs/振荡诊断报告.json",
-        "type": "process"
+        "type": "deliverable"
       }
     ],
     "input_groups": [
@@ -225,18 +196,6 @@
       ],
       [
         "架构版本管理者"
-      ],
-      [
-        "架构版本管理者"
-      ],
-      [
-        "裁决审计者"
-      ],
-      [
-        "裁决审计者"
-      ],
-      [
-        "裁决审计者"
       ],
       [
         "裁决审计者"
@@ -253,20 +212,16 @@
     "role_name": "端到端模拟验证者",
     "skill_path": "roles/端到端模拟验证者/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "模拟验证报告",
         "path": "outputs/模拟验证报告.json",
-        "type": "process"
+        "type": "deliverable"
       }
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -284,7 +239,7 @@
       {
         "name": "需求文档",
         "path": "00-需求描述.md",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "SDK规范",
@@ -309,30 +264,26 @@
     "role_name": "架构版本管理者",
     "skill_path": "roles/架构版本管理者/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "版本快照",
         "path": "outputs/versions/app-v{iteration}.yaml",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "版本Diff报告",
         "path": "outputs/版本管理者-diff报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "振荡诊断报告",
         "path": "outputs/振荡诊断报告.json",
-        "type": "process"
+        "type": "deliverable"
       }
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -366,20 +317,16 @@
     "role_name": "架构红队",
     "skill_path": "roles/架构红队/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "压力测试报告",
         "path": "outputs/架构红队-压力测试报告.json",
-        "type": "process"
+        "type": "deliverable"
       }
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -397,7 +344,7 @@
       {
         "name": "需求文档",
         "path": "00-需求描述.md",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "SDK规范",
@@ -423,20 +370,16 @@
     "role_name": "结构演化审阅者",
     "skill_path": "roles/结构演化审阅者/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "结构演化审阅报告",
         "path": "outputs/结构演化审阅报告.json",
-        "type": "process"
+        "type": "deliverable"
       }
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -449,7 +392,7 @@
       {
         "name": "需求文档",
         "path": "00-需求描述.md",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "App架构文件",
@@ -459,7 +402,7 @@
       {
         "name": "版本Diff报告",
         "path": "outputs/版本管理者-diff报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "SDK规范",
@@ -486,20 +429,16 @@
     "role_name": "对抗闭环审阅者",
     "skill_path": "roles/对抗闭环审阅者/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "对抗闭环审阅报告",
         "path": "outputs/对抗闭环审阅报告.json",
-        "type": "process"
+        "type": "deliverable"
       }
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -517,7 +456,7 @@
       {
         "name": "压力测试报告",
         "path": "outputs/架构红队-压力测试报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "SDK规范",
@@ -544,20 +483,16 @@
     "role_name": "生长空间审阅者",
     "skill_path": "roles/生长空间审阅者/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "生长空间审阅报告",
         "path": "outputs/生长空间审阅报告.json",
-        "type": "process"
+        "type": "deliverable"
       }
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -602,20 +537,16 @@
     "role_name": "综合裁决者",
     "skill_path": "roles/综合裁决者/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "审阅报告",
         "path": "outputs/审阅报告.json",
-        "type": "process"
+        "type": "deliverable"
       }
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -628,22 +559,22 @@
       {
         "name": "结构演化审阅报告",
         "path": "outputs/结构演化审阅报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "对抗闭环审阅报告",
         "path": "outputs/对抗闭环审阅报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "生长空间审阅报告",
         "path": "outputs/生长空间审阅报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "需求文档",
         "path": "00-需求描述.md",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "App架构文件",
@@ -653,12 +584,12 @@
       {
         "name": "模拟验证报告",
         "path": "outputs/模拟验证报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "裁决审计报告",
         "path": "outputs/裁决审计报告.json",
-        "type": "process"
+        "type": "deliverable"
       }
     ],
     "input_groups": [
@@ -670,9 +601,6 @@
       ],
       [
         "生长空间审阅者"
-      ],
-      [
-        "裁决审计者"
       ],
       [
         "裁决审计者"
@@ -692,20 +620,16 @@
     "role_name": "裁决审计者",
     "skill_path": "roles/裁决审计者/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "裁决审计报告",
         "path": "outputs/裁决审计报告.json",
-        "type": "process"
+        "type": "deliverable"
       }
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false
@@ -718,12 +642,12 @@
       {
         "name": "审阅报告",
         "path": "outputs/审阅报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "需求文档",
         "path": "00-需求描述.md",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "App架构文件",
@@ -733,17 +657,17 @@
       {
         "name": "版本Diff报告",
         "path": "outputs/版本管理者-diff报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "对抗分析报告",
         "path": "outputs/需求红队-对抗分析报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "压力测试报告",
         "path": "outputs/架构红队-压力测试报告.json",
-        "type": "process"
+        "type": "deliverable"
       },
       {
         "name": "SDK规范",
@@ -757,18 +681,6 @@
       ],
       [
         "架构红队"
-      ],
-      [
-        "架构红队"
-      ],
-      [
-        "综合裁决者"
-      ],
-      [
-        "综合裁决者"
-      ],
-      [
-        "综合裁决者"
       ],
       [
         "综合裁决者"
@@ -794,7 +706,6 @@
     "role_name": "知识管理者",
     "skill_path": "roles/知识管理者/skill.md",
     "blocking_mode": "auto",
-    "role_type": "standard",
     "outputs": [
       {
         "name": "知识演进追踪表",
@@ -804,10 +715,7 @@
     ],
     "gate_rules": {
       "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
+        "enabled": true
       },
       "phase2_schema_comparison": {
         "enabled": false

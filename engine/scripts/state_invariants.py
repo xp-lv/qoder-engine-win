@@ -13,8 +13,8 @@ v7.0 变更：
   Layer D (check_parallel):   需 ROUTER + registry（并行专属检查）
 
 CLI:
-  python3 state_invariants.py --state-path <path> [--router-path <path>] [--registry-path <path>]
-  python3 state_invariants.py --workspace-id <ws_id>
+  python state_invariants.py --state-path <path> [--router-path <path>] [--registry-path <path>]
+  python state_invariants.py --workspace-id <ws_id>
 """
 import argparse, json, os, sys
 from dataclasses import dataclass, field
@@ -27,6 +27,13 @@ from session_path import resolve_ws_state, resolve_app_path
 # ═══════════════════════════════════════════════════════════════
 # Violation 数据结构
 # ═══════════════════════════════════════════════════════════════
+
+# Windows: 全局 stdout UTF-8（防止 print 中文时 GBK 崩溃）
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 
 @dataclass
 class Violation:
@@ -415,8 +422,7 @@ def _d2_branch_recoverability(state, router_steps, violations):
             continue
         # step 在 SS 但不在 CP → 正常的活跃执行，不是违规
         # D2 不产生 violation，只做信息记录
-        # 真正的僵尸清理由 Hook② 的 _clear_zombie_executing 负责
-        # （在 role-executor 返回异常时触发，而非在 health_check 时盲猜）
+        # 僵尸 executing 的清理由用户通过 jump 显式触发（Hook② 不再自动清理）
 
 
 def _d3_join_liveness(state, router_steps, join_map, violations):
@@ -540,7 +546,7 @@ def summarize(violations: List[Violation]) -> dict:
 
 def _load_json(path):
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
     except Exception:
         return None

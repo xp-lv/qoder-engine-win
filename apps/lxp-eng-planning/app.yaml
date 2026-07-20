@@ -191,16 +191,16 @@ roles:
       - 数据库Schema: outputs/prisma/schema.prisma
       - 部署配置: outputs/docker-compose.yml
 
-  # === 前端部署阶段 ===
+  # === 前端UI状态预览阶段（纯前端+mock数据，manual确认UI设计）===
 
   预览部署者:
     type: standard
-    confirm: auto
+    confirm: manual
     inputs:
       - 前端代码: outputs/src/frontend/
     outputs:
       - 预览部署报告: outputs/预览部署报告.json, type=process
-      - 预览截图: outputs/preview-screenshot.png, type=process
+      - 组件状态目录页: outputs/src/frontend/src/_preview/StatesShowcase.tsx
 
   # === 运行时验证阶段 ===
 
@@ -320,13 +320,13 @@ edges:
   # Phase 6: 后端设计组 → 后端实现（同步汇入）
   - [后端架构设计师, 数据模型设计师, API契约设计师] → 后端实现者
 
-  # Phase 5.5: 前端校验 → 预览部署
+  # Phase 5.5: 前端校验 → UI状态预览（纯前端+mock数据，展示所有组件状态）
   - 前端实现者（校验） → 预览部署者
 
   # Phase 7a: 后端校验 → 后端启动验证
   - 后端实现者（校验） → 后端启动验证者 when: result.verdict == "confirmed"
 
-  # Phase 7b: 预览部署 + 后端启动 → 全栈联调（独立OR边）
+  # Phase 7b: UI状态预览 + 后端启动 → 全栈联调（独立OR边）
   - 预览部署者 → 全栈联调验证者 when: result.verdict == "confirmed"
   - 后端启动验证者 → 全栈联调验证者 when: result.verdict == "confirmed"
 

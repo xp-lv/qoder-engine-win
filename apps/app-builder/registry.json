@@ -1,51 +1,5 @@
 [
   {
-    "role_name": "需求红队",
-    "skill_path": "roles/需求红队/skill.md",
-    "blocking_mode": "auto",
-    "role_type": "standard",
-    "outputs": [
-      {
-        "name": "对抗分析报告",
-        "path": "outputs/需求红队-对抗分析报告.json",
-        "type": "process"
-      }
-    ],
-    "gate_rules": {
-      "phase1_cross_validation": {
-        "enabled": true,
-        "text_validation": {
-          "min_size": 50
-        }
-      },
-      "phase2_schema_comparison": {
-        "enabled": false
-      },
-      "phase3_anomaly_detection": {
-        "enabled": false
-      }
-    },
-    "inputs": [
-      {
-        "name": "需求文档",
-        "path": "00-需求描述.md",
-        "type": "deliverable"
-      }
-    ],
-    "input_groups": [
-      [
-        "需求接收者-validate"
-      ],
-      [
-        "需求红队"
-      ]
-    ],
-    "verdicts": [
-      "challenged",
-      "confirmed"
-    ]
-  },
-  {
     "role_name": "需求接收者",
     "skill_path": "roles/需求接收者/skill.md",
     "blocking_mode": "manual",
@@ -138,12 +92,61 @@
     "principles": "roles/需求接收者/principles.md",
     "input_groups": [
       [
+        "需求接收者"
+      ],
+      [
         "需求接收者-validate"
       ]
     ],
     "verdicts": [
       "confirmed",
       "loop"
+    ]
+  },
+  {
+    "role_name": "需求红队",
+    "skill_path": "roles/需求红队/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "对抗分析报告",
+        "path": "outputs/需求红队-对抗分析报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      }
+    ],
+    "input_groups": [
+      [
+        "需求接收者-validate"
+      ],
+      [
+        "需求红队"
+      ]
+    ],
+    "verdicts": [
+      "challenged",
+      "confirmed"
     ]
   },
   {

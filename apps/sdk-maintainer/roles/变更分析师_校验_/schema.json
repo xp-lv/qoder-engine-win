@@ -15,7 +15,8 @@
         "verdict": {
           "type": "string",
           "enum": [
-            "confirmed"
+            "confirmed",
+            "loop"
           ]
         },
         "summary": {
