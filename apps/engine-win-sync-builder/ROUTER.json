@@ -1,0 +1,362 @@
+{
+  "schema_version": "2.0",
+  "entry": "需求接收者",
+  "steps": [
+    {
+      "step": "需求接收者",
+      "role": "需求接收者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "需求接收者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "00-需求描述.md",
+              "type": "feedback",
+              "name": "[反馈] 需求文档"
+            },
+            {
+              "path": "outputs/需求接收者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者 Gate校验结果"
+            },
+            {
+              "path": "outputs/需求接收者-feedback.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者 用户反馈"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "需求接收者-validate",
+      "role": "需求接收者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "迁移执行者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者-validate"
+            }
+          ]
+        },
+        "loop": {
+          "targets": [
+            "需求接收者"
+          ],
+          "type": "normal",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 需求接收者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "需求接收者-validate"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/需求接收者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者校验报告"
+            },
+            {
+              "path": "outputs/需求接收者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 需求接收者-validate Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "迁移执行者",
+      "role": "迁移执行者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "收尾修正者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/迁移执行者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 迁移执行者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "迁移执行者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/迁移执行报告.json",
+              "type": "feedback",
+              "name": "[反馈] 迁移执行报告"
+            },
+            {
+              "path": "outputs/迁移执行者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 迁移执行者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "收尾修正者",
+      "role": "收尾修正者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "增量差异检查者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/收尾修正者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 收尾修正者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "收尾修正者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/收尾修正报告.json",
+              "type": "feedback",
+              "name": "[反馈] 收尾修正报告"
+            },
+            {
+              "path": "outputs/收尾修正者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 收尾修正者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "增量差异检查者",
+      "role": "增量差异检查者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "运行验证者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/增量差异检查者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 增量差异检查者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "增量差异检查者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/增量差异报告.json",
+              "type": "feedback",
+              "name": "[反馈] 增量差异报告"
+            },
+            {
+              "path": "outputs/增量差异检查者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 增量差异检查者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "运行验证者",
+      "role": "运行验证者",
+      "transitions": {
+        "pass": {
+          "targets": [
+            "漏洞排查者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/运行验证者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 运行验证者"
+            },
+            {
+              "path": "outputs/运行验证报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 运行验证报告"
+            }
+          ]
+        },
+        "defects_detected": {
+          "targets": [
+            "收尾修正者"
+          ],
+          "type": "normal",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/运行验证者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 运行验证者"
+            },
+            {
+              "path": "outputs/运行验证报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 运行验证报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "运行验证者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/运行验证报告.json",
+              "type": "feedback",
+              "name": "[反馈] 运行验证报告"
+            },
+            {
+              "path": "outputs/运行验证者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 运行验证者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "漏洞排查者",
+      "role": "漏洞排查者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "Git推送者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/漏洞排查者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 漏洞排查者"
+            }
+          ]
+        },
+        "issues_found": {
+          "targets": [
+            "收尾修正者"
+          ],
+          "type": "normal",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/漏洞排查者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 漏洞排查者"
+            },
+            {
+              "path": "outputs/漏洞排查报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 漏洞排查报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "漏洞排查者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/漏洞排查报告.json",
+              "type": "feedback",
+              "name": "[反馈] 漏洞排查报告"
+            },
+            {
+              "path": "outputs/漏洞排查者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 漏洞排查者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "Git推送者",
+      "role": "Git推送者",
+      "transitions": {
+        "confirmed": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/Git推送者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] Git推送者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "Git推送者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "推送报告.md",
+              "type": "feedback",
+              "name": "[反馈] 推送报告"
+            },
+            {
+              "path": "outputs/Git推送者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] Git推送者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

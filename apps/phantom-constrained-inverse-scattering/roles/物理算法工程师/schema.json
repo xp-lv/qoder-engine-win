@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "object",
+      "required": [
+        "verdict",
+        "summary"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "confirmed"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array"
+        },
+        "errors": {
+          "type": "array"
+        }
+      }
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "_required_files": [
+    {
+      "name": "J_obs计算脚本",
+      "path": "scripts/compute_jobs.m",
+      "type": "deliverable"
+    },
+    {
+      "name": "V5a校验脚本",
+      "path": "scripts/v5a_check.m",
+      "type": "deliverable"
+    },
+    {
+      "name": "结果保存脚本",
+      "path": "scripts/save_results.m",
+      "type": "deliverable"
+    }
+  ]
+}

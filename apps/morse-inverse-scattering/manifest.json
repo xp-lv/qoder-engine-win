@@ -1,0 +1,37 @@
+{
+  "schema_version": "2.0",
+  "app_name": "morse-inverse-scattering",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "knowledge",
+      "outputs"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/Morse理论方法.md",
+        "to": "knowledge/Morse理论方法.md"
+      },
+      {
+        "from": "knowledge/逆散射物理原理.md",
+        "to": "knowledge/逆散射物理原理.md"
+      },
+      {
+        "from": "knowledge/Morse理论文献综述.md",
+        "to": "knowledge/Morse理论文献综述.md"
+      },
+      {
+        "from": "knowledge/逆散射适定性理论.md",
+        "to": "knowledge/逆散射适定性理论.md"
+      },
+      {
+        "from": "knowledge/工程可行性分析框架.md",
+        "to": "knowledge/工程可行性分析框架.md"
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "A12_pass": "5/7",
+  "C01_pass": "4/6",
+  "cos_theta": 0.9929,
+  "F_cheb": 0.091,
+  "source": "pipline README 2026-07-03 verify_forward_pipeline 验证",
+  "physics_params": {
+    "r": 0.13,
+    "R": 0.26,
+    "f": 1e9,
+    "lambda": 0.3,
+    "ka": 2.72,
+    "n_dirs": 64,
+    "n_voxels": 19268
+  }
+}

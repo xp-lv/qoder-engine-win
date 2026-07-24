@@ -1,0 +1,38 @@
+{
+  "schema_version": "2.0",
+  "app_name": "phantom-inv-scattering",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "baseline",
+      "experiment",
+      "knowledge"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/逆散射科研闭环规范.md",
+        "to": "knowledge/逆散射科研闭环规范.md"
+      },
+      {
+        "from": "knowledge/基线资产参考.md",
+        "to": "knowledge/基线资产参考.md"
+      },
+      {
+        "from": "knowledge/高质量APP产出原则.md",
+        "to": "knowledge/高质量APP产出原则.md"
+      },
+      {
+        "from": "knowledge/pipline接口映射.md",
+        "to": "knowledge/pipline接口映射.md"
+      },
+      {
+        "from": "knowledge/实验执行手册.md",
+        "to": "knowledge/实验执行手册.md"
+      }
+    ]
+  }
+}

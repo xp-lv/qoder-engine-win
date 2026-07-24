@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "_required_files": [
+    {
+      "name": "正演数据集",
+      "path": "outputs/正演数据集.json",
+      "type": "process"
+    },
+    {
+      "name": "J_obs数据",
+      "path": "outputs/J_obs_data.mat",
+      "type": "process"
+    }
+  ]
+}

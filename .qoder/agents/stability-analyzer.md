@@ -2,7 +2,7 @@
 name: stability-analyzer
 description: 扰动分析器。读运行数据，LLM 分类意图，返回 JSON。不调任何脚本。
 tools: Read, Bash
-model: "[5.2非思考](custom:model_1783442342861_fs8y4m0)"
+model: "[GLM-5.2](custom:model_1782650425453_391g0rb)"
 ---
 
 # 扰动分析器

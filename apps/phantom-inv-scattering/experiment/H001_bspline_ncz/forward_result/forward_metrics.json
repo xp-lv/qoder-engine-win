@@ -1,0 +1,18 @@
+{
+  "stage": "forward_verification",
+  "status": "PASS",
+  "cos_theta_mean": 0.995568,
+  "cos_theta_min": 0.931554,
+  "cos_theta_max": 0.999986,
+  "ratio_Jobs_Jhyp": 0.9844,
+  "max_F_k": 0.02239,
+  "mean_F_k": 0.002606,
+  "n_voxels": 19268,
+  "n_inner_voxels": 673,
+  "n_gauss_points": 2692,
+  "ka": 2.7246,
+  "eps_r_true": 3.0,
+  "freq": 1000000000,
+  "N_k": 64,
+  "note": "eps_r=3.0 verify; V5a WARN (Born approx inherent bias for strong scatterer)"
+}

@@ -1,0 +1,492 @@
+{
+  "schema_version": "2.0",
+  "entry": "方向把控者",
+  "steps": [
+    {
+      "step": "方向把控者",
+      "role": "方向把控者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "方向质疑者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "方向把控者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "direction/方向声明.json"
+            },
+            {
+              "path": "direction/方向演变史.json"
+            },
+            {
+              "path": "direction/方向认知.md"
+            },
+            {
+              "path": "outputs/方向把控者-gate-result.json"
+            },
+            {
+              "path": "outputs/方向把控者-feedback.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "方向质疑者",
+      "role": "方向质疑者",
+      "transitions": {
+        "direction_challenged": {
+          "targets": [
+            "方向把控者"
+          ],
+          "type": "normal"
+        },
+        "direction_confirmed": {
+          "targets": [
+            "研究者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "方向质疑者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "direction/方向质疑报告.json"
+            },
+            {
+              "path": "outputs/方向质疑者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "研究者",
+      "role": "研究者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "对抗评审者",
+            "算法可行性检查者",
+            "管线匹配者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "研究者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "hypothesis_chain.json"
+            },
+            {
+              "path": "research/研究笔记.md"
+            },
+            {
+              "path": "research/已否决假设.json"
+            },
+            {
+              "path": "outputs/研究者-gate-result.json"
+            },
+            {
+              "path": "outputs/研究者-feedback.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "对抗评审者",
+      "role": "对抗评审者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "汇聚裁决者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "汇聚裁决者"
+          ],
+          "type": "backward",
+          "max_executions": 3
+        }
+      }
+    },
+    {
+      "step": "算法可行性检查者",
+      "role": "算法可行性检查者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "汇聚裁决者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "汇聚裁决者"
+          ],
+          "type": "backward",
+          "max_executions": 3
+        }
+      }
+    },
+    {
+      "step": "管线匹配者",
+      "role": "管线匹配者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "汇聚裁决者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "汇聚裁决者"
+          ],
+          "type": "backward",
+          "max_executions": 3
+        }
+      }
+    },
+    {
+      "step": "汇聚裁决者",
+      "role": "汇聚裁决者",
+      "transitions": {
+        "all_pass": {
+          "targets": [
+            "算法实现者"
+          ],
+          "type": "normal"
+        },
+        "needs_pipeline": {
+          "targets": [
+            "管线重构者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/汇聚裁决报告.json"
+            }
+          ]
+        },
+        "challenged": {
+          "targets": [
+            "研究者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/汇聚裁决报告.json"
+            }
+          ]
+        },
+        "algorithm_fail": {
+          "targets": [
+            "研究者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/汇聚裁决报告.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "汇聚裁决者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/汇聚裁决报告.json"
+            },
+            {
+              "path": "outputs/汇聚裁决者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "管线重构者",
+      "role": "管线重构者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "研究者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/管线重构报告.json"
+            },
+            {
+              "path": "d:\\\\ZJU\\\\PROJECT\\\\2026-07-02-qoder-engine\\\\COMSOL\\\\pipeline_registry.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "管线重构者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/管线重构报告.json"
+            },
+            {
+              "path": "outputs/管线重构者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "算法实现者",
+      "role": "算法实现者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "实验执行者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "算法实现者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "modification_log.md"
+            },
+            {
+              "path": "outputs/执行指令.json"
+            },
+            {
+              "path": "outputs/算法实现者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "实验执行者",
+      "role": "实验执行者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "基线评估者"
+          ],
+          "type": "normal"
+        },
+        "needs_optimization": {
+          "targets": [
+            "管线维护者",
+            "基线评估者2号"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "实验执行者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "experiments/"
+            },
+            {
+              "path": "experiments_index.json"
+            },
+            {
+              "path": "outputs/管线优化建议.md"
+            },
+            {
+              "path": "outputs/算法效率优化建议.md"
+            },
+            {
+              "path": "outputs/实验执行者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "基线评估者",
+      "role": "基线评估者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "知识提炼者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "基线评估者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/delta_report.md"
+            },
+            {
+              "path": "outputs/基线评估者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "基线评估者2号",
+      "role": "基线评估者2号",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "知识提炼者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/delta_report_2.md"
+            },
+            {
+              "path": "modification_log.md"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "基线评估者2号"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/delta_report_2.md"
+            },
+            {
+              "path": "outputs/基线评估者2号-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "知识提炼者",
+      "role": "知识提炼者",
+      "transitions": {
+        "fail_new_hypothesis": {
+          "targets": [
+            "研究者"
+          ],
+          "type": "backward",
+          "max_executions": 999,
+          "carries": [
+            {
+              "path": "outputs/delta_report.md"
+            }
+          ]
+        },
+        "direction_reassess": {
+          "targets": [
+            "方向把控者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/delta_report.md"
+            },
+            {
+              "path": "outputs/direction_assessment.json"
+            }
+          ]
+        },
+        "confirmed": {
+          "targets": [],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "知识提炼者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "knowledge/演进知识库.json"
+            },
+            {
+              "path": "outputs/direction_assessment.json"
+            },
+            {
+              "path": "outputs/知识提炼者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "管线维护者",
+      "role": "管线维护者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "知识提炼者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/delta_report_2.md"
+            },
+            {
+              "path": "modification_log.md"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "管线维护者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "modification_log.md"
+            },
+            {
+              "path": "outputs/管线维护者-gate-result.json"
+            },
+            {
+              "path": "outputs/管线维护者-feedback.json"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

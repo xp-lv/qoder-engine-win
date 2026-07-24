@@ -230,7 +230,6 @@ def _build_task_prompt(dispatch, workspace_id, state_path, app_path=None):
     inputs = dispatch.get("inputs", [])
     task_ctx = dispatch.get("task_context", {})
     user_request = task_ctx.get("user_request", "")
-    principles_path = dispatch.get("principles", "")
 
     lines = []
     lines.append(f"## 执行指令 (dispatch_instruction)")
@@ -247,16 +246,10 @@ def _build_task_prompt(dispatch, workspace_id, state_path, app_path=None):
     for ot in output_targets:
         lines.append(f"- {ot.get('name', '')}: {ot.get('path', '')}")
     lines.append(f"")
-    # 注入产出物 schema 约束（从 dispatch 的 schema_constraints 读取，与 inputs 同源）
+    # 注入产出物 schema 约束（从 dispatch 的 schema_constraints 读取）
     schema_constraints = dispatch.get("schema_constraints", {})
     if schema_constraints:
         lines.append(f"## 产出物格式约束（必须遵守，Gate 会校验）")
-        req_top = schema_constraints.get("required_top", [])
-        if req_top:
-            lines.append(f"- 顶层必填字段: {', '.join(req_top)}")
-        result_req = schema_constraints.get("result_required", [])
-        if result_req:
-            lines.append(f"- result 必填字段: {', '.join(result_req)}")
         verdict_enum = schema_constraints.get("verdict_enum")
         if verdict_enum:
             lines.append(f"- result.verdict 允许值: {', '.join(verdict_enum)}")
@@ -266,19 +259,8 @@ def _build_task_prompt(dispatch, workspace_id, state_path, app_path=None):
         for inp in inputs:
             lines.append(f"- {inp}")
         lines.append(f"")
-    # 注入原则指导文档（如果 registry 中声明了 principles）
-    if principles_path and app_path:
-        principles_full = os.path.join(app_path, principles_path)
-        if os.path.exists(principles_full):
-            try:
-                with open(principles_full, "r", encoding="utf-8-sig") as f:
-                    principles_content = f.read().strip()
-                if principles_content:
-                    lines.append(f"## 原则指导")
-                    lines.append(principles_content)
-                    lines.append(f"")
-            except Exception:
-                pass
+    # v9.2: principles 内联注入机制已删除（compiler 从不生成 principles 字段，导致 dead code）。
+    # 如果需要原则指导，使用 knowledge inject_to 机制注入到角色 inputs。
     # 反馈物料由边 carries 自动注入，无需 step.py 处理。
     if user_request:
         lines.append(f"## 用户需求")
@@ -410,39 +392,20 @@ def cmd_submit(args):
             reg_entry = next((r for r in registry_data if r.get("role_name") == role_name), None)
             if reg_entry:
                 for o in reg_entry.get("outputs", []):
-                    # v9.2: 删除 o_type 传递（resolve_workspace_output 已不接受 type 参数）
-                    resolved = resolve_workspace_output(ws_id, o["path"], app_path)
+                    is_abs = bool(o.get("abs_path"))
+                    raw_path = o.get("abs_path") or o["path"]
+                    resolved = resolve_workspace_output(ws_id, raw_path, app_path, is_absolute=is_abs)
                     authoritative_outputs.append({
                         "name": o.get("name", ""),
                         "path": resolved,
                     })
-    except Exception:
-        pass  # 读取失败时回退到 role-executor 返回值
+    except Exception as e:
+        _print_error(f"读取权威产出物路径失败（registry/ROUTER）: {e}")
 
-    # 如果成功获取权威 outputs，使用它；否则回退到 role-executor 返回值
-    if authoritative_outputs:
-        outputs = authoritative_outputs
-    else:
-        # 回退：解析 role-executor 返回的 outputs（相对路径自动解析为绝对路径）
-        try:
-            outputs = json.loads(args.outputs) if isinstance(args.outputs, str) else args.outputs
-        except (json.JSONDecodeError, ValueError):
-            _print_error("--outputs 不是有效 JSON")
+    if not authoritative_outputs:
+        _print_error("无法从 registry.json/ROUTER.json 解析产出物路径，拒绝回退到 role-executor 自报路径")
 
-        from session_path import resolve_ws_base
-        ws_base = resolve_ws_base(args.workspace_id) if args.workspace_id else os.path.dirname(state_path)
-        ws_root = ws_base
-        wr_file = os.path.join(ws_base, "WORKSPACE_ROOT") if ws_base else None
-        if wr_file and os.path.exists(wr_file):
-            with open(wr_file, "r", encoding="utf-8-sig") as f:
-                ws_root = f.read().strip()
-        for i, o in enumerate(outputs):
-            if isinstance(o, str):
-                o = {"path": o}
-                outputs[i] = o
-            p = o.get("path", "")
-            if p and not os.path.isabs(p):
-                o["path"] = os.path.join(ws_root, p)
+    outputs = authoritative_outputs
 
     # ── 加载 STATE.json ──
     try:

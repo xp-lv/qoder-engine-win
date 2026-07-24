@@ -1,0 +1,182 @@
+{
+  "schema_version": "2.0",
+  "entry": "体检入口",
+  "steps": [
+    {
+      "step": "体检入口",
+      "role": "体检入口",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "结构一致性体检者",
+            "机制兼容性体检者",
+            "内容质量体检者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "process/outputs/体检范围声明.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "体检入口"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/体检范围声明.json"
+            },
+            {
+              "path": "outputs/体检入口-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "结构一致性体检者",
+      "role": "结构一致性体检者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "体检报告生成者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "process/outputs/结构一致性体检报告.json"
+            },
+            {
+              "path": "process/outputs/机制兼容性体检报告.json"
+            },
+            {
+              "path": "process/outputs/内容质量体检报告.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "结构一致性体检者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/结构一致性体检报告.json"
+            },
+            {
+              "path": "outputs/结构一致性体检者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "机制兼容性体检者",
+      "role": "机制兼容性体检者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "体检报告生成者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "process/outputs/结构一致性体检报告.json"
+            },
+            {
+              "path": "process/outputs/机制兼容性体检报告.json"
+            },
+            {
+              "path": "process/outputs/内容质量体检报告.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "机制兼容性体检者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/机制兼容性体检报告.json"
+            },
+            {
+              "path": "outputs/机制兼容性体检者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "内容质量体检者",
+      "role": "内容质量体检者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "体检报告生成者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "process/outputs/结构一致性体检报告.json"
+            },
+            {
+              "path": "process/outputs/机制兼容性体检报告.json"
+            },
+            {
+              "path": "process/outputs/内容质量体检报告.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "内容质量体检者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/内容质量体检报告.json"
+            },
+            {
+              "path": "outputs/内容质量体检者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "体检报告生成者",
+      "role": "体检报告生成者",
+      "transitions": {
+        "confirmed": {
+          "targets": [],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "体检报告生成者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/体检报告.json"
+            },
+            {
+              "path": "outputs/体检报告生成者-gate-result.json"
+            },
+            {
+              "path": "outputs/体检报告生成者-feedback.json"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

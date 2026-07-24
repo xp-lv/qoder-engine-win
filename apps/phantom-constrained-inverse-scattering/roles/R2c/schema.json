@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "object",
+      "required": [
+        "verdict",
+        "summary"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "confirmed"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array"
+        },
+        "errors": {
+          "type": "array"
+        }
+      }
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "_required_files": [
+    {
+      "name": "eps_real配置",
+      "path": "config/eps_real.csv",
+      "type": "deliverable"
+    },
+    {
+      "name": "eps_imag配置",
+      "path": "config/eps_imag.csv",
+      "type": "deliverable"
+    },
+    {
+      "name": "运行参数配置",
+      "path": "config/run_params.json",
+      "type": "deliverable"
+    }
+  ]
+}

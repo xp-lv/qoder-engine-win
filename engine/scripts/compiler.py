@@ -126,12 +126,14 @@ def validate_app_yaml(roles, edges):
         for key in ('inputs', 'outputs'):
             for item in data.get(key, []):
                 path = item.get('path', '')
+                abs_path = item.get('abs_path', '')
                 item_name = item.get('name', '')
-                # outputs 路径不能为空
-                if key == 'outputs' and not path:
-                    errors.append(f"角色 '{name}': outputs 项 '{item_name}' 路径为空")
+                # outputs 必须有 path 或 abs_path
+                if key == 'outputs' and not path and not abs_path:
+                    errors.append(f"角色 '{name}': outputs 项 '{item_name}' 路径为空（需提供 path 或 abs_path）")
                 # 路径不能含 ..
-                if '..' in path:
+                check_path = abs_path or path
+                if '..' in check_path:
                     errors.append(f"角色 '{name}': {key} 项 '{item_name}' 路径含 '..'（不允许路径穿越）")
 
     # ── 4. edges 中引用的角色是否存在 ──
@@ -196,6 +198,7 @@ def compile_app(app_path, force=False):
 
     # 简易 YAML 解析（不依赖 PyYAML）
     app_name = os.path.basename(app_path)
+    entry_role = None  # app.yaml 的 entry 指令（优先于拓扑排序首节点）
     roles = {}
     edges_lines = []
     app_knowledge = []  # app 级公共知识文档 [{name, path, type}]
@@ -220,6 +223,9 @@ def compile_app(app_path, force=False):
             key = stripped.split(':')[0].strip()
             if key == 'app_name':
                 app_name = stripped.split(':', 1)[1].strip()
+                section = None
+            elif key == 'entry':
+                entry_role = stripped.split(':', 1)[1].strip()
                 section = None
             elif key == 'knowledge':
                 section = 'knowledge'
@@ -285,6 +291,10 @@ def compile_app(app_path, force=False):
                 if ':' in stripped and not stripped.startswith('- '):
                     k = stripped.split(':', 1)[0].strip()
                     v = stripped.split(':', 1)[1].strip()
+                    # 多行 dict 格式子属性: name/path/abs_path 续写
+                    if current_list_key and k in ('name', 'path', 'abs_path') and roles[current_role].get(current_list_key):
+                        roles[current_role][current_list_key][-1][k] = v.strip().strip("\"'")
+                        continue
                     if k == 'type':
                         # 向后兼容：静默忽略原 type 字段（producer/standard 已删除）
                         current_list_key = None
@@ -307,16 +317,17 @@ def compile_app(app_path, force=False):
                     # 列表项: - 名称: 路径 或 - name: 名称\n  path: 路径\n  type: process
                     item_str = stripped[2:].strip()
                     if current_list_key and ':' in item_str:
-                        # 简单格式: - 名称: 路径
-                        nm = item_str.split(':', 1)[0].strip().strip('"\'')
+                        nm = item_str.split(':', 1)[0].strip().strip("\"'")
                         rest = item_str.split(':', 1)[1].strip().strip("\'")
-                        # v9.2: 删除 type 推断，路径原样保留（type 字段已废弃）
-                        # 向后兼容：忽略逗号后的旧式 type=xxx
-                        if ',' in rest:
+                        # 多行 dict 格式: - name: xxx（后续行提供 path/abs_path）
+                        if nm == 'name':
+                            roles[current_role][current_list_key].append({"name": rest.strip().strip("\"'")})
+                        # 简单格式: - 名称: 路径
+                        elif ',' in rest:
                             pt = rest.split(',', 1)[0].strip().strip("\'")
+                            roles[current_role][current_list_key].append({"name": nm, "path": pt})
                         else:
-                            pt = rest
-                        roles[current_role][current_list_key].append({"name": nm, "path": pt})
+                            roles[current_role][current_list_key].append({"name": nm, "path": rest})
                     elif current_list_key:
                         roles[current_role][current_list_key].append({"name": item_str.strip("\'"), "path": item_str.strip("\'")})
 
@@ -537,7 +548,9 @@ def compile_app(app_path, force=False):
     except ImportError:
         _schema_version = "2.0"  # fallback
 
-    router = {"schema_version": _schema_version, "entry": step_map[role_order[0]], "steps": router_steps}
+    # 优先使用 app.yaml 的 entry 指令，fallback 到拓扑排序首节点
+    entry_step = step_map.get(entry_role, step_map[role_order[0]]) if entry_role else step_map[role_order[0]]
+    router = {"schema_version": _schema_version, "entry": entry_step, "steps": router_steps}
 
     # ── registry.json ──
     registry = []
@@ -643,13 +656,18 @@ def compile_app(app_path, force=False):
     auto_dirs = set()
     for entry in registry:
         for o in entry.get("outputs", []):
-            d = os.path.dirname(o["path"])
-            if d:
-                auto_dirs.add(d)
+            # abs_path 指向工作区外部，不纳入工作区目录创建
+            p = o.get("path", "")
+            if p:
+                d = os.path.dirname(p)
+                if d:
+                    auto_dirs.add(d)
         for i in entry.get("inputs", []):
-            d = os.path.dirname(i["path"])
-            if d:
-                auto_dirs.add(d)
+            p = i.get("path", "")
+            if p:
+                d = os.path.dirname(p)
+                if d:
+                    auto_dirs.add(d)
 
     manifest = {"schema_version": _schema_version, "app_name": app_name, "paths": {"router": "ROUTER.json", "registry": "registry.json"}, "workspace_template": {"dirs": sorted(auto_dirs), "init_files": {}}}
     # app 级公共知识文件注册到 knowledge_sources（init 时从 app 包拷贝到 workspace）
@@ -778,6 +796,9 @@ def compile_app(app_path, force=False):
                     "name": name,
                     "path": o.get("path", ""),
                 }
+                # abs_path 指向工作区外部，写入 schema 供 Gate 校验
+                if o.get("abs_path"):
+                    rf_entry["abs_path"] = o["abs_path"]
                 # P1: 保留已有 contract 字段（手写的深度校验规则）
                 existing = existing_rf_map.get(name, {})
                 if "contract" in existing:

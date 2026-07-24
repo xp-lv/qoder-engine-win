@@ -1,0 +1,341 @@
+app_name: inverse-v3-test
+entry: 方向把控者
+
+# ═══════════════════════════════════════════════════════════════
+# 设计约定（V5 — 管线代际化 + 双层对抗 + 演进知识库）
+# ═══════════════════════════════════════════════════════════════
+#
+# 版本: v5 — 逆散射算法研究 App
+# 设计目标: 通过双层对抗+三方并行验证+管线代际化实现高效科研闭环
+#
+# §1  核心原则
+#     a) 双层对抗：大方向对抗（文献驱动）+ 方案对抗（假设最优性）
+#     b) 三方并行评估：对抗评审 + 算法可行性 + 管线可行性 同时进行
+#     c) 汇聚裁决：三方结果汇入裁决者，由裁决者决定下一步
+#     d) 管线代际化：pipeline_registry.json 为权威注册表，支持多代管线并存
+#     e) 演进知识库：跨迭代持久化积累，双向流动（注入研究者 + 评估方向健康度）
+#     f) 一次性执行：验证通过后才跑昂贵的 COMSOL 计算
+#     g) 所有循环无 max_executions 上限 — 主 Agent 自主控制循环终止
+#
+# §2  管线代际化
+#     工作区注册表: pipeline_registry.json（工作区内，app.yaml 显式声明）
+#     每代管线自描述: <管线目录>/pipeline.json（含 usage 使用指南）
+#     每代管线使用手册: <管线目录>/PLUGIN_GUIDE.md（插件架构+命令模板）
+#     当前代际: gen1_comsol (COMSOL FEM + MATLAB LiveLink)
+#     未来代际: gen2_hybrid (COMSOL+PyTorch), gen3_pure_ml (纯深度学习)
+#     算法不关心跑在哪代管线上，只要能力契约匹配
+#     管线物理文件通过注册表中的 abs_path 运行时寻址（compiler 禁止 .. 路径）
+#
+# §3  角色总览（13个角色）
+#     L0 大方向对抗层:
+#       方向把控者 (producer, manual) — 审视研究方向，定义能力需求
+#       方向质疑者 (standard, auto) — 文献驱动的方向对抗
+#     L1 研究决策层:
+#       研究者 (producer, manual) — 提出假设+方法+管线能力需求
+#     L2 三方并行评估层:
+#       对抗评审者 (standard, auto) — 方案最优性质疑
+#       算法可行性检查者 (standard, auto) — 算法工程可行性
+#       管线匹配者 (standard, auto) — 查注册表匹配管线能力契约
+#     L3 汇聚裁决层:
+#       汇聚裁决者 (standard, auto) — 综合三方结果，决定下一步
+#       管线重构者 (producer, auto) — fork副本或新建代际
+#     L4 执行层:
+#       算法实现者 (producer, auto) — 在匹配管线上写算法diff
+#       实验执行者 (producer, auto) — 跑管线正演+反演
+#       基线评估者 (standard, auto) — Δ对比+改进信号
+#     L5 知识层:
+#       知识提炼者 (producer, auto) — 更新演进知识库+评估方向健康度
+#     独立角色:
+#       管线维护者 (producer, manual) — 代际内管线优化，手动触发
+#
+# §4  三个闭环回路（均无上限，主 Agent 自主决策）
+#     回路①（核心）：研究-验证循环 — 三方任一出问题 → 回研究者
+#     回路②（快）：方案级 — fail_new_hypothesis → 研究者
+#     回路③（慢）：方向级 — direction_reassess → 方向把控者
+#     子循环：管线重构 → 回研究者 → 重新三方并行
+#
+# §5  verdict 命名约定
+#     · confirmed             — 正向通过
+#     · direction_confirmed   — 方向通过（方向质疑者 → 研究者）
+#     · direction_challenged  — 方向被打回（方向质疑者 → 方向把控者）
+#     · all_pass              — 三方全通过（汇聚裁决者 → 执行）
+#     · needs_pipeline        — 管线需优化（汇聚裁决者 → 管线重构者）
+#     · challenged            — 对抗有问题（汇聚裁决者 → 研究者）
+#     · algorithm_fail        — 算法有问题（汇聚裁决者 → 研究者）
+#     · fail_new_hypothesis   — 方案级闭环（知识提炼者 → 研究者）
+#     · direction_reassess    — 方向级闭环（知识提炼者 → 方向把控者）
+#     注：带_前缀的 verdict 由编译器识别为 backward 回退边
+# ═══════════════════════════════════════════════════════════════
+
+knowledge:
+  - 逆散射科研闭环规范: knowledge/逆散射科研闭环规范.md
+    inject_to: [方向把控者, 研究者, 算法实现者, 实验执行者, 基线评估者, 知识提炼者]
+  - 管线能力契约规范: knowledge/管线能力契约规范.md
+    inject_to: [研究者, 管线匹配者, 管线重构者, 算法实现者]
+  - 基线资产参考: knowledge/基线资产参考.md
+    inject_to: [基线评估者, 知识提炼者]
+  - 演进知识库: knowledge/演进知识库.json
+    inject_to: [方向把控者, 方向质疑者, 研究者, 知识提炼者]
+    # 运行时动态文件：知识提炼者写入，方向把控者/方向质疑者/研究者读取
+
+roles:
+  # ═══════════════════════════════════════════════════════════════
+  # L0 大方向对抗层
+  # ═══════════════════════════════════════════════════════════════
+
+  # 审视当前研究方向是否仍值得继续，定义能力需求大方向
+  # 人工审核Gate：方向决策需人工确认
+  # 持久空间：direction/ 目录（跨迭代保留）
+  # 演进知识库通过 knowledge 段注入（非 inputs/outputs）
+  方向把控者:
+    type: producer
+    confirm: manual
+    inputs:
+      - 需求文档: 00-需求描述.md
+      - 方向健康度评估: outputs/direction_assessment.json, type=process
+      - 方向演变史: direction/方向演变史.json
+      - 方向认知: direction/方向认知.md
+    outputs:
+      - 方向声明: direction/方向声明.json
+      - 方向演变史: direction/方向演变史.json
+      - 方向认知: direction/方向认知.md
+      - 方向声明传递件: outputs/方向声明.json, type=process
+
+  # 文献/经验驱动的大方向对抗
+  # 可推翻整个研究方向（如"伴随梯度在高对比度场景已不是最优"）
+  # 演进知识库通过 knowledge 段注入
+  方向质疑者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 方向声明: direction/方向声明.json
+      - 方向演变史: direction/方向演变史.json
+    outputs:
+      - 方向质疑报告: outputs/方向质疑报告.json, type=process
+
+  # ═══════════════════════════════════════════════════════════════
+  # L1 研究决策层
+  # ═══════════════════════════════════════════════════════════════
+
+  # 提出具体假设+方法+管线能力需求
+  # 演进知识库通过 knowledge 段注入（上次迭代的经验教训）
+  # 人工审核Gate：研究方案需人工确认
+  # 持久空间：research/ 目录（研究笔记+已否决假设，跨迭代保留）
+  研究者:
+    type: producer
+    confirm: manual
+    inputs:
+      - 方向声明: direction/方向声明.json
+      - 改进信号: outputs/delta_report.md
+      - 汇聚裁决结果: outputs/汇聚裁决报告.json, type=process
+      - 研究笔记: research/研究笔记.md
+      - 已否决假设: research/已否决假设.json
+    outputs:
+      - 假设链: hypothesis_chain.json
+      - 研究笔记: research/研究笔记.md
+      - 已否决假设: research/已否决假设.json
+
+  # ═══════════════════════════════════════════════════════════════
+  # L2 三方并行评估层
+  # ═══════════════════════════════════════════════════════════════
+
+  # 方案层面对抗：质疑具体假设是否最优
+  对抗评审者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 假设链: hypothesis_chain.json
+    outputs:
+      - 评审报告: outputs/对抗评审报告.json, type=process
+
+  # 算法工程可行性：假设在工程上能否实现
+  算法可行性检查者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 假设链: hypothesis_chain.json
+    outputs:
+      - 算法可行性报告: outputs/算法可行性报告.json, type=process
+
+  # 管线可行性：查工作区内注册表匹配管线能力契约
+  # pipeline_registry.json 在工作区内，含各管线的物理位置映射（abs_path）
+  管线匹配者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 假设链: hypothesis_chain.json
+      - 管线注册表: pipeline_registry.json
+    outputs:
+      - 管线匹配报告: outputs/管线匹配报告.json, type=process
+
+  # ═══════════════════════════════════════════════════════════════
+  # L3 汇聚裁决层
+  # ═══════════════════════════════════════════════════════════════
+
+  # 综合三方结果，决定下一步
+  # 三条出路：all_pass→执行 / needs_pipeline→管线重构→回研究者 / challenged|algorithm_fail→回研究者
+  汇聚裁决者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 评审报告: outputs/对抗评审报告.json, type=process
+      - 算法可行性报告: outputs/算法可行性报告.json, type=process
+      - 管线匹配报告: outputs/管线匹配报告.json, type=process
+    outputs:
+      - 汇聚裁决报告: outputs/汇聚裁决报告.json, type=process
+
+  # 管线重构：fork副本（同代增量修改）或新建代际（跨代方法论升级）
+  # 更新工作区内的 pipeline_registry.json（含物理位置映射）
+  管线重构者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 汇聚裁决报告: outputs/汇聚裁决报告.json, type=process
+      - 管线注册表: pipeline_registry.json
+    outputs:
+      - 管线重构报告: outputs/管线重构报告.json, type=process
+      - 管线注册表: pipeline_registry.json
+
+  # ═══════════════════════════════════════════════════════════════
+  # L4 执行层
+  # ═══════════════════════════════════════════════════════════════
+
+  # 在匹配的管线上写算法diff + 组装可执行命令
+  # 读取 PLUGIN_GUIDE.md 获取管线使用方法（运行时绝对路径读取）
+  # 产出执行指令.json（实验执行者的唯一输入）
+  # 需要 input 研究者的假设链
+  算法实现者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 假设链: hypothesis_chain.json
+      - 管线匹配报告: outputs/管线匹配报告.json, type=process
+    outputs:
+      - 修改日志: modification_log.md
+      - 执行指令: outputs/执行指令.json, type=process
+
+  # 执行算法实现者产出的命令，收集结果
+  # 不直接读取管线文件——只读 outputs/执行指令.json
+  # 实验数据按 exp_id 存入 experiments/{exp_id}/ 子目录
+  实验执行者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 执行指令: outputs/执行指令.json, type=process
+      - 假设链: hypothesis_chain.json
+    outputs:
+      - 实验子目录: experiments/
+      - 实验索引: experiments_index.json
+
+  # Δ对比 + 改进信号
+  # 读取最新实验目录下的三件套数据
+  基线评估者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 实验子目录: experiments/
+      - 三件套基线: baseline/metrics_baseline.json
+    outputs:
+      - 基线对比报告: outputs/delta_report.md
+
+  # ═══════════════════════════════════════════════════════════════
+  # L5 知识层
+  # ═══════════════════════════════════════════════════════════════
+
+  # 从实验中提炼经验，更新演进知识库，评估方向健康度
+  # 演进知识库路径: knowledge/演进知识库.json（跨迭代持久化）
+  知识提炼者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 基线对比报告: outputs/delta_report.md
+      - 方向声明: direction/方向声明.json
+    outputs:
+      - 知识更新: knowledge/演进知识库.json
+      - 方向健康度评估: outputs/direction_assessment.json, type=process
+
+  # ═══════════════════════════════════════════════════════════════
+  # 独立角色
+  # ═══════════════════════════════════════════════════════════════
+
+  # 代际内管线优化/bug修复，手动触发
+  # 不在主线流程中
+  管线维护者:
+    type: producer
+    confirm: manual
+    inputs:
+      - 管线重构报告: outputs/管线重构报告.json, type=process
+      - 管线注册表: pipeline_registry.json
+    outputs:
+      - 修改日志: modification_log.md
+
+edges:
+  # ═══════════════════════════════════════════════════════════════
+  # L0 大方向对抗
+  # ═══════════════════════════════════════════════════════════════
+
+  - 方向把控者 → 方向质疑者
+  - 方向质疑者 → 方向把控者 when: result.verdict == "direction_challenged"
+  - 方向质疑者 → 研究者 when: result.verdict == "direction_confirmed"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L1 研究者启动三方并行（FORK）
+  # ═══════════════════════════════════════════════════════════════
+
+  - 研究者 → 对抗评审者 when: result.verdict == "confirmed"
+  - 研究者 → 算法可行性检查者 when: result.verdict == "confirmed"
+  - 研究者 → 管线匹配者 when: result.verdict == "confirmed"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L2 三方汇入汇聚裁决者（JOIN）
+  # 4/5/6 只有 confirmed 和 fail，去向由汇聚裁决者根据三方产出判断
+  # ═══════════════════════════════════════════════════════════════
+
+  - [对抗评审者, 算法可行性检查者, 管线匹配者] → 汇聚裁决者 when: result.verdict == "confirmed"
+  - [对抗评审者, 算法可行性检查者, 管线匹配者] → 汇聚裁决者 when: result.verdict == "fail"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L3 汇聚裁决者的三条出路
+  # 裁决者综合三方报告判断：直接回研究者 / 经管线重构回研究者 / 放行执行
+  # ═══════════════════════════════════════════════════════════════
+
+  # 出路A：三方全通过 → 执行
+  - 汇聚裁决者 → 算法实现者 when: result.verdict == "all_pass"
+  # 出路B：管线需重构 → 管线重构者 → 回研究者
+  - 汇聚裁决者 → 管线重构者 when: result.verdict == "needs_pipeline"
+    carries: [outputs/汇聚裁决报告.json]
+  - 管线重构者 → 研究者 when: result.verdict == "confirmed"
+    carries: [outputs/管线重构报告.json, pipeline_registry.json]
+  # 出路C：对抗/算法有问题 → 直接回研究者
+  - 汇聚裁决者 → 研究者 when: result.verdict == "challenged"
+    carries: [outputs/汇聚裁决报告.json]
+  - 汇聚裁决者 → 研究者 when: result.verdict == "algorithm_fail"
+    carries: [outputs/汇聚裁决报告.json]
+
+  # ═══════════════════════════════════════════════════════════════
+  # L4 执行链
+  # ═══════════════════════════════════════════════════════════════
+
+  - 算法实现者 → 实验执行者
+  - 实验执行者 → 基线评估者
+
+  # ═══════════════════════════════════════════════════════════════
+  # L5 知识层 + 三回路（无上限，主 Agent 自主决策）
+  # ═══════════════════════════════════════════════════════════════
+
+  - 基线评估者 → 知识提炼者
+
+  # 回路①（快）：方案级闭环
+  - 知识提炼者 → 研究者 when: result.verdict == "fail_new_hypothesis"
+    carries: [outputs/delta_report.md]
+  # 回路②（慢）：方向级闭环
+  - 知识提炼者 → 方向把控者 when: result.verdict == "direction_reassess"
+    carries: [outputs/delta_report.md, outputs/direction_assessment.json]
+  # 研究终态
+  - 知识提炼者 → 完成 when: result.verdict == "confirmed"
+
+  # ═══════════════════════════════════════════════════════════════
+  # 独立触发
+  # ═══════════════════════════════════════════════════════════════
+
+  - 管线维护者 → 完成

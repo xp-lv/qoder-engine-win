@@ -1,0 +1,185 @@
+{
+  "schema_version": "2.0",
+  "entry": "假设提出者",
+  "steps": [
+    {
+      "step": "管线优化者",
+      "role": "管线优化者",
+      "transitions": {
+        "confirmed": {
+          "targets": [],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "管线优化者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "modification_log.md"
+            },
+            {
+              "path": "outputs/管线优化者-gate-result.json"
+            },
+            {
+              "path": "outputs/管线优化者-feedback.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "假设提出者",
+      "role": "假设提出者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "算法实现者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "假设提出者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "hypothesis_chain.json"
+            },
+            {
+              "path": "outputs/假设提出者-gate-result.json"
+            },
+            {
+              "path": "outputs/假设提出者-feedback.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "算法实现者",
+      "role": "算法实现者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "实验执行者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "算法实现者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "modification_log.md"
+            },
+            {
+              "path": "outputs/算法实现者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "实验执行者",
+      "role": "实验执行者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "结果分析者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "实验执行者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "experiment/"
+            },
+            {
+              "path": "outputs/实验执行者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "结果分析者",
+      "role": "结果分析者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "基线评估者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "结果分析者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "experiment/"
+            },
+            {
+              "path": "outputs/结果分析者-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "基线评估者",
+      "role": "基线评估者",
+      "transitions": {
+        "fail_new_hypothesis": {
+          "targets": [
+            "假设提出者"
+          ],
+          "type": "backward",
+          "max_executions": 10,
+          "carries": [
+            {
+              "path": "experiment/"
+            },
+            {
+              "path": "outputs/基线评估者-gate-result.json"
+            }
+          ]
+        },
+        "confirmed": {
+          "targets": [],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "基线评估者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "experiment/"
+            },
+            {
+              "path": "outputs/基线评估者-gate-result.json"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

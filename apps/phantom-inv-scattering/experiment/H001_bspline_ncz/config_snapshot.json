@@ -1,0 +1,26 @@
+{
+  "exp_id": "H001_bspline_ncz",
+  "hypothesis_id": "H001",
+  "physics_params": {
+    "r": 0.13,
+    "R": 0.26,
+    "f": 1000000000,
+    "lambda": 0.299792458,
+    "ka": 2.7271,
+    "n_dirs": 64,
+    "n_voxels": 19268
+  },
+  "algorithm_params": {
+    "inversion_plugin": "plugin_a12",
+    "n_cx": 10,
+    "n_cy": 10,
+    "n_cz": 5,
+    "bspline_order": 3,
+    "lambda_tv": 0.0001,
+    "max_iter": 10,
+    "freqs": [1000000000, 2000000000, 3000000000]
+  },
+  "git_commit_hash": "7269fedfa9c14be00167f4a40061947c4bf526f3",
+  "git_tag": "exp_H001_bspline_ncz",
+  "hypothesis_statement": "将 plugin_a12 的 B-spline z 方向控制点数从 n_cz=2 提升至 n_cz=5（总控制点 10×10×2=200 → 10×10×5=500），预期 A12 PASS ≥6/7、F_cheb ≤0.080"
+}

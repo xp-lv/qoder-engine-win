@@ -9,6 +9,7 @@
   2. role-executor 返回 → 调 step.py --submit → 读结果 → 调 step.py --next → 注入 directive
 """
 import json, os, re, subprocess, sys
+from datetime import datetime
 
 _HOOK_DIR = os.path.dirname(os.path.abspath(__file__))
 _ENGINE_SCRIPTS = os.path.normpath(os.path.join(_HOOK_DIR, "..", "..", "engine", "scripts"))
@@ -26,6 +27,23 @@ default_workspace_base = os.path.join(_PROJECT_ROOT, "z-workspace")
 def default_workspace_path(app_path, ws_id):
     """推导默认 workspace_path：z-workspace/{ws_id}"""
     return os.path.join(default_workspace_base, ws_id)
+
+
+def generate_timebased_ws_id(app_path):
+    """生成时间戳 ws_id：YY_MM_DD/app-name。
+
+    同一天同一 app 多次运行时加序号：YY_MM_DD/app-name-2
+    """
+    app_name = os.path.basename(app_path.rstrip("/"))
+    today = datetime.now().strftime("%y_%m_%d")
+    base_id = f"{today}/{app_name}"
+    # 检查是否已存在，加序号
+    ws_id = base_id
+    counter = 2
+    while os.path.exists(resolve_ws_state(ws_id)):
+        ws_id = f"{today}/{app_name}-{counter}"
+        counter += 1
+    return ws_id
 
 
 def load_json_file(path):
@@ -118,9 +136,46 @@ def format_directive(step_result):
     if action == "confirm":
         pending = step_result.get("pending", [])
         steps_desc = ", ".join(p.get("step", "?") for p in pending)
-        return (f"【主Agent指令】向用户展示确认请求：{steps_desc}。"
+
+        # 从 STATE.json 读取产物路径，展示给用户
+        artifact_lines = []
+        try:
+            state = load_json_file(state_path) or {}
+            ws_base = os.path.dirname(state_path)
+            wr_file = os.path.join(ws_base, "WORKSPACE_ROOT")
+            ws_root = ""
+            if os.path.exists(wr_file):
+                with open(wr_file, "r") as f:
+                    ws_root = f.read().strip()
+            active_dispatches = state.get("active_dispatches", {})
+            for step_name, dispatch in active_dispatches.items():
+                # 只展示 awaiting_confirmation 的步骤的产物
+                step_info = state.get("step_status", {}).get(step_name, {})
+                if step_info.get("status") != "awaiting_confirmation":
+                    continue
+                output_targets = dispatch.get("output_targets", [])
+                for ot in output_targets:
+                    name = ot.get("name", "?")
+                    rel_path = ot.get("path", "?")
+                    # 构造绝对路径
+                    if ws_root and not os.path.isabs(rel_path):
+                        abs_path = os.path.join(ws_root, rel_path)
+                    else:
+                        abs_path = rel_path
+                    artifact_lines.append(f"  - {name}: {abs_path}")
+        except Exception:
+            pass
+
+        artifact_section = ""
+        if artifact_lines:
+            artifact_section = "\n\n请查看以下产物文件：\n" + "\n".join(artifact_lines) + "\n"
+
+        # confirm 注入中显式携带 workspace_id，防止主 Agent → stability-analyzer → Hook② 流转中丢失
+        ws_id = step_result.get("workspace_id", "")
+        ws_id_hint = f"（workspace_id: {ws_id}）" if ws_id else ""
+        return (f"【主Agent指令】向用户展示确认请求：{steps_desc}{ws_id_hint}。{artifact_section}"
                 f"等待用户回复 confirmed 或 fail，"
-                f"然后将用户回复原样传递给 Task(stability-analyzer)。")
+                f"然后将用户回复原样传递给 Task(stability-analyzer)。" )
     if action == "wait":
         reason = step_result.get("reason", "等待中")
         return f"【主Agent指令】BLOCKING：{reason}。向用户报告当前状态并等待介入。"
@@ -295,7 +350,8 @@ def handle_analyzer_return(tool_output, workspace_id):
     # ── 3. switch_app ──
     if intent == "switch_app":
         target_app = data.get("target_app", "")
-        ws_id = data.get("workspace_id", sid or "default")
+        # 生成时间戳 ws_id（首次运行时）
+        ws_id = data.get("workspace_id") or generate_timebased_ws_id(target_app)
         target_state = resolve_ws_state(ws_id)
         if os.path.exists(target_state):
             # 已有运行数据 → 检查 terminal_state，决定 switch 还是 force reinit
@@ -522,7 +578,7 @@ def handle_role_executor_return(tool_output, workspace_id):
             all_pending.extend(r.get("pending", []))
         all_gate_errors = _collect_all_gate_errors(all_results)
         steps_desc = ", ".join(p.get("step", "?") for p in all_pending) if all_pending else "未知步骤"
-        lines = [f"向用户展示确认请求：{steps_desc}。"]
+        lines = [f"向用户展示确认请求：{steps_desc}（workspace_id: {sid}）。"]
         if all_gate_errors:
             lines.append(f"Gate 详情：{all_gate_errors}")
         lines.append("等待用户回复 confirmed 或 fail 后，将用户回复原样传递给 Task(stability-analyzer)。")

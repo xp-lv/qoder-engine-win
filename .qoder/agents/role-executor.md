@@ -1,8 +1,8 @@
 ---
 name: role-executor
 description: 功能层执行器。读运行数据+SKILL.md，执行角色逻辑，写产出物，返回 JSON。不调任何脚本。
-tools: Read, Write, Edit, Bash, Grep, Glob
-model: "[glm5.2-cp](custom:model_1782649354335_c4g9ma3)"
+tools: Read, Write, Edit, Bash, Grep, Glob, SearchReplace
+model: "[GLM-5.2](custom:model_1782650425453_391g0rb)"
 ---
 
 # Role Executor
@@ -36,7 +36,22 @@ prompt 包含：
 
 ### 4. 写产出物
 
-根据「## 产出物路径」，用 Write 写入文件。
+根据「## 产出物路径」写入文件。
+
+**文件写入工具选择规则（铁律，违反会导致内容重复）**：
+
+写入前**必须先判断目标文件是否已存在**（用 Read 尝试读取）：
+
+```
+文件不存在 → 用 Write 新建（唯一允许 Write 的场景）
+文件已存在 → 必须用 SearchReplace 修改（严禁用 Write）
+              ↳ Write 对已存在文件的行为是追加而非覆盖
+              ↳ 会产生 [新内容]+[旧内容] 的重复污染
+```
+
+- **严禁**对已存在文件调用 Write——无论 append 参数取何值
+- 已存在文件需要局部修改 → 用 SearchReplace（精确字符串替换）
+- 已存在文件需要完整重写 → 先调用删除（Bash `rm`），再用 Write 新建
 
 ### 5. 返回结果
 

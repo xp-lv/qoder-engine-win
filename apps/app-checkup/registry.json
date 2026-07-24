@@ -1,0 +1,237 @@
+[
+  {
+    "role_name": "体检入口",
+    "skill_path": "roles/体检入口/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "体检范围声明",
+        "path": "process/outputs/体检范围声明.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "input_groups": [
+      [
+        "体检入口"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "结构一致性体检者",
+    "skill_path": "roles/结构一致性体检者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "结构一致性报告",
+        "path": "process/outputs/结构一致性体检报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "体检范围声明",
+        "path": "process/outputs/体检范围声明.json"
+      },
+      {
+        "name": "约束分层规范",
+        "path": "knowledge/约束分层规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "角色评审方法论",
+        "path": "knowledge/角色评审方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "体检入口"
+      ],
+      [
+        "结构一致性体检者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "机制兼容性体检者",
+    "skill_path": "roles/机制兼容性体检者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "机制兼容性报告",
+        "path": "process/outputs/机制兼容性体检报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "体检范围声明",
+        "path": "process/outputs/体检范围声明.json"
+      },
+      {
+        "name": "dispatch-skill分工规范",
+        "path": "knowledge/dispatch-skill分工规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "skill编写规范",
+        "path": "knowledge/skill编写规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "角色评审方法论",
+        "path": "knowledge/角色评审方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "体检入口"
+      ],
+      [
+        "机制兼容性体检者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "内容质量体检者",
+    "skill_path": "roles/内容质量体检者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "内容质量报告",
+        "path": "process/outputs/内容质量体检报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "体检范围声明",
+        "path": "process/outputs/体检范围声明.json"
+      },
+      {
+        "name": "skill编写规范",
+        "path": "knowledge/skill编写规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "角色评审方法论",
+        "path": "knowledge/角色评审方法论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "体检入口"
+      ],
+      [
+        "内容质量体检者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "体检报告生成者",
+    "skill_path": "roles/体检报告生成者/skill.md",
+    "blocking_mode": "manual",
+    "outputs": [
+      {
+        "name": "体检报告",
+        "path": "outputs/体检报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "体检范围声明",
+        "path": "process/outputs/体检范围声明.json"
+      },
+      {
+        "name": "结构一致性报告",
+        "path": "process/outputs/结构一致性体检报告.json"
+      },
+      {
+        "name": "机制兼容性报告",
+        "path": "process/outputs/机制兼容性体检报告.json"
+      },
+      {
+        "name": "内容质量报告",
+        "path": "process/outputs/内容质量体检报告.json"
+      }
+    ],
+    "input_groups": [
+      [
+        "结构一致性体检者",
+        "机制兼容性体检者",
+        "内容质量体检者"
+      ],
+      [
+        "体检报告生成者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  }
+]

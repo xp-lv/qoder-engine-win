@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "object",
+      "required": [
+        "verdict",
+        "summary"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "confirmed"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array"
+        },
+        "errors": {
+          "type": "array"
+        }
+      }
+    }
+  },
+  "required": [
+    "result"
+  ],
+  "_required_files": [
+    {
+      "name": "COMSOL正演脚本",
+      "path": "scripts/forward_solve.m",
+      "type": "deliverable"
+    },
+    {
+      "name": "COMSOL伴随脚本",
+      "path": "scripts/adjoint_solve.m",
+      "type": "deliverable"
+    },
+    {
+      "name": "正演管线入口脚本",
+      "path": "scripts/run_forward_pipeline.m",
+      "type": "deliverable"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "schema_version": "2.0",
+  "app_name": "PhantomConstrainedInverseScattering",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "config",
+      "knowledge",
+      "outputs",
+      "scripts"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/逆散射物理原理.md",
+        "to": "knowledge/逆散射物理原理.md"
+      },
+      {
+        "from": "knowledge/仿体约束正则化方法.md",
+        "to": "knowledge/仿体约束正则化方法.md"
+      },
+      {
+        "from": "knowledge/COMSOL正演管线指南.md",
+        "to": "knowledge/COMSOL正演管线指南.md"
+      },
+      {
+        "from": "knowledge/伴随梯度反演算法.md",
+        "to": "knowledge/伴随梯度反演算法.md"
+      },
+      {
+        "from": "knowledge/评估指标定义.md",
+        "to": "knowledge/评估指标定义.md"
+      },
+      {
+        "from": "knowledge/MCP工具使用指南.md",
+        "to": "knowledge/MCP工具使用指南.md"
+      }
+    ]
+  }
+}

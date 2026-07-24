@@ -1,0 +1,41 @@
+{
+  "exp_id": "H001_TV_lambda",
+  "hypothesis_id": "H001",
+  "hypothesis_scope": "regularization.TV_lambda (0.001 -> 1e-4)",
+  "physics_params": {
+    "r": 0.13,
+    "R": 0.26,
+    "f": 1e9,
+    "lambda": 0.299792458,
+    "ka": 2.7245990720,
+    "n_dirs": 64,
+    "n_voxels": 19268
+  },
+  "config_source": {
+    "r": "config.m:p.a_scatter",
+    "R": "config.m:p.R_sphere",
+    "f": "config.m:p.freq",
+    "lambda": "config.m:p.c / p.freq",
+    "ka": "config.m:p.k0 * p.a_scatter",
+    "n_dirs": "config.m:p.N_k",
+    "n_voxels": "fem_mesh_utils baseline (knowledge/pipline接口映射.md)"
+  },
+  "git_commit_hash": "7269fedfa9c14be00167f4a40061947c4bf526f3",
+  "git_commit_short": "7269fed",
+  "git_tag": "exp_H001_TV_lambda",
+  "plugin": "plugin_a12",
+  "plugin_lambda_tv": 1e-4,
+  "baseline_lambda_tv": 0.001,
+  "rerun_reason": "阶段二崩溃后修复（dir_result_A12/max_iter/eps_tol 基础设施补全，commit 7269fed）并重跑",
+  "prev_run_commit": "f3b8bc3 (阶段一 PASS，阶段二崩溃 dir_result_A12)",
+  "rerun2_outcome": "阶段一 PASS (cos θ=0.995568)；阶段二 mphstart Connection refused — mphserver 在阶段一执行后崩溃，3 次重连 (5s 间隔) 全部失败。verdict=fail (mphserver 不可达且重连耗尽)。可恢复：重启 mphserver 后再次 dispatch 即可。",
+  "uncommitted_changes": [
+    " M data/results/A12/A12_inversion_log.csv (历史 artifact，非算法)",
+    " M data/results/verify_forward_pipeline_model.mph (阶段一本次产出)"
+  ],
+  "comsol_mphserver": "localhost:2036 (dispatch 时可达；阶段一执行后崩溃)",
+  "matlab_exe": "D:\\LenovoSoftstore\\Install\\MATLAB\\bin\\matlab.exe",
+  "timestamp": "2026-07-22T22:59:00+08:00 (首次)",
+  "rerun_timestamp": "2026-07-23T00:00:00+08:00 (commit 7269fed 重跑)",
+  "rerun2_timestamp": "2026-07-22T23:50:00+08:00 (commit 7269fed 实测；mphserver 死亡)"
+}

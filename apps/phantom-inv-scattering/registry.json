@@ -1,0 +1,345 @@
+[
+  {
+    "role_name": "管线优化者",
+    "skill_path": "roles/管线优化者/skill.md",
+    "blocking_mode": "manual",
+    "outputs": [
+      {
+        "name": "修改日志",
+        "path": "modification_log.md"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "修改日志",
+        "path": "modification_log.md"
+      },
+      {
+        "name": "pipline根目录",
+        "path": "../../COMSOL/pipline/"
+      },
+      {
+        "name": "逆散射科研闭环规范",
+        "path": "knowledge/逆散射科研闭环规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "pipline接口映射",
+        "path": "knowledge/pipline接口映射.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "实验执行手册",
+        "path": "knowledge/实验执行手册.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "管线优化者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "假设提出者",
+    "skill_path": "roles/假设提出者/skill.md",
+    "blocking_mode": "manual",
+    "outputs": [
+      {
+        "name": "假设链",
+        "path": "hypothesis_chain.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "假设链",
+        "path": "hypothesis_chain.json"
+      },
+      {
+        "name": "逆散射科研闭环规范",
+        "path": "knowledge/逆散射科研闭环规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "基线评估者"
+      ],
+      [
+        "假设提出者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "算法实现者",
+    "skill_path": "roles/算法实现者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "修改日志",
+        "path": "modification_log.md"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "假设链",
+        "path": "hypothesis_chain.json"
+      },
+      {
+        "name": "pipline算法目录",
+        "path": "../../COMSOL/pipline/"
+      },
+      {
+        "name": "逆散射科研闭环规范",
+        "path": "knowledge/逆散射科研闭环规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "pipline接口映射",
+        "path": "knowledge/pipline接口映射.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "假设提出者"
+      ],
+      [
+        "算法实现者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "实验执行者",
+    "skill_path": "roles/实验执行者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "实验子目录",
+        "path": "experiment/"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "修改日志",
+        "path": "modification_log.md"
+      },
+      {
+        "name": "pipline根目录",
+        "path": "../../COMSOL/pipline/"
+      },
+      {
+        "name": "逆散射科研闭环规范",
+        "path": "knowledge/逆散射科研闭环规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "pipline接口映射",
+        "path": "knowledge/pipline接口映射.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "实验执行手册",
+        "path": "knowledge/实验执行手册.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "算法实现者"
+      ],
+      [
+        "实验执行者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "结果分析者",
+    "skill_path": "roles/结果分析者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "分析报告",
+        "path": "experiment/"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "实验子目录",
+        "path": "experiment/"
+      },
+      {
+        "name": "逆散射科研闭环规范",
+        "path": "knowledge/逆散射科研闭环规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "基线资产参考",
+        "path": "knowledge/基线资产参考.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "实验执行者"
+      ],
+      [
+        "结果分析者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "基线评估者",
+    "skill_path": "roles/基线评估者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "基线对比报告",
+        "path": "experiment/"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "实验子目录",
+        "path": "experiment/"
+      },
+      {
+        "name": "三件套基线",
+        "path": "baseline/metrics_baseline.json"
+      },
+      {
+        "name": "逆散射科研闭环规范",
+        "path": "knowledge/逆散射科研闭环规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "基线资产参考",
+        "path": "knowledge/基线资产参考.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "结果分析者"
+      ],
+      [
+        "基线评估者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "fail_new_hypothesis"
+    ]
+  }
+]

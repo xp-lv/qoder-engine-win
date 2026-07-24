@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "app_name": "app-builder-v2",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "knowledge",
+      "outputs",
+      "process/outputs",
+      "roles"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/高质量APP产出原则.md",
+        "to": "knowledge/高质量APP产出原则.md"
+      },
+      {
+        "from": "knowledge/蓝图解析规范.md",
+        "to": "knowledge/蓝图解析规范.md"
+      },
+      {
+        "from": "knowledge/APP包结构规范.md",
+        "to": "knowledge/APP包结构规范.md"
+      },
+      {
+        "from": "knowledge/skill编写指南.md",
+        "to": "knowledge/skill编写指南.md"
+      },
+      {
+        "from": "knowledge/knowledge编写指南.md",
+        "to": "knowledge/knowledge编写指南.md"
+      },
+      {
+        "from": "knowledge/对抗校验准则.md",
+        "to": "knowledge/对抗校验准则.md"
+      },
+      {
+        "from": "knowledge/SDK_SPEC.md",
+        "to": "knowledge/SDK_SPEC.md"
+      }
+    ]
+  }
+}

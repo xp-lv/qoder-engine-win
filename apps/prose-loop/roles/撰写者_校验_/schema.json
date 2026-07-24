@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "result",
+    "summary"
+  ],
+  "properties": {
+    "result": {
+      "type": "object",
+      "required": [
+        "verdict",
+        "summary"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "confirmed",
+            "fail"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array"
+        },
+        "errors": {
+          "type": "array"
+        }
+      }
+    },
+    "summary": {
+      "type": "string"
+    }
+  },
+  "_required_files": [
+    {
+      "name": "撰写者校验报告",
+      "path": "outputs/撰写者-validation.json",
+      "type": "deliverable"
+    }
+  ]
+}

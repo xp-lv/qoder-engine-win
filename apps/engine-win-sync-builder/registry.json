@@ -1,0 +1,426 @@
+[
+  {
+    "role_name": "需求接收者",
+    "skill_path": "roles/需求接收者/skill.md",
+    "blocking_mode": "manual",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/需求接收者/principles.md",
+    "input_groups": [
+      [
+        "需求接收者-validate"
+      ],
+      [
+        "需求接收者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "需求接收者（校验）",
+    "skill_path": "roles/需求接收者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "需求接收者校验报告",
+        "path": "outputs/需求接收者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/需求接收者/principles.md",
+    "input_groups": [
+      [
+        "需求接收者"
+      ],
+      [
+        "需求接收者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "loop"
+    ]
+  },
+  {
+    "role_name": "迁移执行者",
+    "skill_path": "roles/迁移执行者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "迁移执行报告",
+        "path": "outputs/迁移执行报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "Windows平台适配知识",
+        "path": "knowledge/Windows平台适配知识.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "需求接收者-validate"
+      ],
+      [
+        "迁移执行者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "收尾修正者",
+    "skill_path": "roles/收尾修正者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "收尾修正报告",
+        "path": "outputs/收尾修正报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "迁移执行报告",
+        "path": "outputs/迁移执行报告.json",
+        "type": "process"
+      },
+      {
+        "name": "Windows平台适配知识",
+        "path": "knowledge/Windows平台适配知识.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "迁移执行者"
+      ],
+      [
+        "运行验证者"
+      ],
+      [
+        "漏洞排查者"
+      ],
+      [
+        "收尾修正者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "增量差异检查者",
+    "skill_path": "roles/增量差异检查者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "增量差异报告",
+        "path": "outputs/增量差异报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "收尾修正报告",
+        "path": "outputs/收尾修正报告.json",
+        "type": "process"
+      }
+    ],
+    "input_groups": [
+      [
+        "收尾修正者"
+      ],
+      [
+        "增量差异检查者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "运行验证者",
+    "skill_path": "roles/运行验证者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "运行验证报告",
+        "path": "outputs/运行验证报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "增量差异报告",
+        "path": "outputs/增量差异报告.json",
+        "type": "process"
+      },
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "编排范式",
+        "path": "knowledge/编排范式.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "SDK规范",
+        "path": "knowledge/SDK_SPEC.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "Windows平台适配知识",
+        "path": "knowledge/Windows平台适配知识.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "增量差异检查者"
+      ],
+      [
+        "运行验证者"
+      ]
+    ],
+    "verdicts": [
+      "defects_detected",
+      "pass"
+    ]
+  },
+  {
+    "role_name": "漏洞排查者",
+    "skill_path": "roles/漏洞排查者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "漏洞排查报告",
+        "path": "outputs/漏洞排查报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "运行验证报告",
+        "path": "outputs/运行验证报告.json",
+        "type": "process"
+      },
+      {
+        "name": "Windows平台适配知识",
+        "path": "knowledge/Windows平台适配知识.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "运行验证者"
+      ],
+      [
+        "漏洞排查者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "issues_found"
+    ]
+  },
+  {
+    "role_name": "Git推送者",
+    "skill_path": "roles/Git推送者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "推送报告",
+        "path": "推送报告.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "迁移执行报告",
+        "path": "outputs/迁移执行报告.json",
+        "type": "process"
+      },
+      {
+        "name": "收尾修正报告",
+        "path": "outputs/收尾修正报告.json",
+        "type": "process"
+      },
+      {
+        "name": "增量差异报告",
+        "path": "outputs/增量差异报告.json",
+        "type": "process"
+      },
+      {
+        "name": "运行验证报告",
+        "path": "outputs/运行验证报告.json",
+        "type": "process"
+      },
+      {
+        "name": "漏洞排查报告",
+        "path": "outputs/漏洞排查报告.json",
+        "type": "process"
+      }
+    ],
+    "input_groups": [
+      [
+        "漏洞排查者"
+      ],
+      [
+        "Git推送者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  }
+]

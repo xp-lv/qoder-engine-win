@@ -48,20 +48,32 @@ def resolve_app_path(ws_id=None, explicit=None):
     raise ValueError("需要 ws_id 或 explicit app_path")
 
 
-def resolve_workspace_output(ws_id, relative_path, app_path=None, output_type=None):
-    """将 app.yaml 中的相对路径 resolve 为 workspace 绝对路径。
+def resolve_workspace_output(ws_id, path, app_path=None, output_type=None, is_absolute=False):
+    """将 app.yaml 中的路径 resolve 为绝对路径。
 
-    v9.2: 删除 type 前缀魔法与 output_type 参数语义。
-    产出物路径 = WORKSPACE_ROOT + app.yaml 声明的原路径。
-    参数 output_type 仅为向后兼容保留，不影响路径。
-    knowledge 类型仍需特殊路由到 app_path（app 内置资源）。
+    三种路径模式：
+    1. knowledge 类型（output_type="knowledge"）→ app_path + path（app 内置资产）
+    2. abs_path（is_absolute=True）→ 直接返回（工作区外部路径）
+    3. path（相对路径）→ WORKSPACE_ROOT + path（工作区内产物）
+
+    参数 output_type 用于区分 knowledge 资产（路由到 app 包）与普通产物（路由到工作区）。
     """
+    # knowledge 类型路由到 app 包（app 内置资产，不跟随工作区）
     if output_type == "knowledge" and app_path:
-        return os.path.join(app_path, relative_path)
+        return os.path.join(app_path, path)
+
+    # 显式声明的绝对路径，直接返回
+    if is_absolute:
+        return path
+
+    # 相对路径：以 WORKSPACE_ROOT 为基准
     ws_root = read_workspace_root(ws_id)
-    if ws_root:
-        return os.path.join(ws_root, relative_path)
-    return os.path.join(resolve_ws_base(ws_id), relative_path)
+    if not ws_root:
+        raise FileNotFoundError(
+            f"WORKSPACE_ROOT 不存在（ws_id={ws_id}）。"
+            f"工作区可能未正确初始化，请检查 init.py 是否执行。"
+        )
+    return os.path.join(ws_root, path)
 
 
 def get_edge_targets(transitions, key):

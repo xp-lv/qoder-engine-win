@@ -448,16 +448,16 @@ def _check_required_files(app_path, role_name, workspace_id, state_path=None):
 
     from session_path import resolve_workspace_output
     for rf in required_files:
-        rf_path = rf.get("path", "")
+        # 支持 abs_path 绝对路径
+        is_abs = bool(rf.get("abs_path"))
+        rf_path = rf.get("abs_path") or rf.get("path", "")
         if not rf_path:
             continue
         # 跳过模板路径（如 app-v{iteration}.yaml）
         if "{" in rf_path:
             continue
-        # v9.2: 删除 type=process 跳过逻辑
-        # 所有 _required_files 统一校验存在性（信封字段由 Gate Layer 0 校验）
         try:
-            resolved = resolve_workspace_output(ws_id, rf_path, app_path)
+            resolved = resolve_workspace_output(ws_id, rf_path, app_path, is_absolute=is_abs)
         except (FileNotFoundError, TypeError):
             continue
         if not os.path.exists(resolved):

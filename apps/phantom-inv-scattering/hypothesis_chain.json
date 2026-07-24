@@ -1,0 +1,9 @@
+[
+  {
+    "hypothesis_id": "H001",
+    "version": 1,
+    "source": "initial",
+    "statement": "将 plugin_a12 的 B-spline z 方向控制点数从 n_cz=2 提升至 n_cz=5（总控制点 10×10×2=200 → 10×10×5=500），预期通过增加 z 方向空间分辨率使三次 B-spline（bspline_order=3）在轴向获得 ≥5 个控制点（超过最小需求 degree+1=4），从而改善球型散射体三维重建精度，使 A12 PASS 从基线 5/7 提升至 ≥6/7、F_cheb 从 0.091 降至 ≤0.080，关注维度 bspline.n_cz",
+    "verification_status": "FAIL"
+  }
+]

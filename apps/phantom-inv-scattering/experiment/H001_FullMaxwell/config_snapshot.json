@@ -1,0 +1,104 @@
+{
+  "exp_id": "H001_FullMaxwell",
+  "hypothesis_id": "H001",
+  "hypothesis_summary": "J_hyp 等效源模型从 Born 近似切换为 COMSOL 全波计算 (source.model: born -> full_maxwell)",
+  "physics_params": {
+    "r": 0.13,
+    "R": 0.26,
+    "f": 1000000000,
+    "lambda": 0.299792458,
+    "ka": 2.7246,
+    "n_dirs": 64,
+    "n_voxels": 19268
+  },
+  "physics_params_source": "从 pipline/config/config.m 读取 (r=p.a_scatter, R=p.R_sphere, f=p.freq, lambda=p.c/p.freq, ka=p.k0*p.a_scatter, n_dirs=p.N_k; n_voxels=19268 已由 verify_forward_pipeline Step 2 fem_mesh_utils 实测确认，其中内部 tet 673)",
+  "git_commit_hash": "6b3d8b3946323a8d32d0f3819886ca57c82d4e30",
+  "git_commit_hash_note": "重试阶段环境已修复：pipline 已初始化为 git 仓库 (master 分支，HEAD=6b3d8b3)。git rev-parse HEAD 成功",
+  "git_tag": "exp_H001_FullMaxwell",
+  "git_tag_note": "已标记。命令: git -C <pipline> tag exp_H001_FullMaxwell。git tag --list 确认存在。零成本代码版本快照已建立，实验可复现性恢复",
+  "mphserver_port": 2036,
+  "mphserver_status": "REACHABLE",
+  "mphserver_retries": 1,
+  "expected_effect_from_modification_log": {
+    "cos_theta_baseline": 0.9929,
+    "cos_theta_target": ">=0.9949",
+    "F_cheb_baseline": 0.091,
+    "F_cheb_target": "<=0.080"
+  },
+  "forward_verification_metrics": {
+    "source": "verify_forward_pipeline stdout (eps_r_true=3.0, Born Path B)",
+    "V5a_max_F_k": 0.02239224,
+    "V5a_mean_F_k": 0.00260576,
+    "V5a_median_F_k": 0.001147095,
+    "cos_theta_mean": 0.995568,
+    "cos_theta_min": 0.931554,
+    "cos_theta_max": 0.999986,
+    "J_obs_to_J_hyp_ratio_mean": 0.9844,
+    "n_inner_voxels": 673,
+    "note": "三项指标均从求解器 stdout 实测。注：脚本 eps_r_true=3.0，与 modification_log 基线(eps_r=5.0)非同条件"
+  },
+  "re_verification": {
+    "run_timestamp": "2026-07-22 (M2 re-verification dispatch)",
+    "mphserver_port_2036": "REACHABLE (TcpTestSucceeded=True)",
+    "git_head_unchanged": true,
+    "git_tag_exists": true,
+    "metrics_reproducibility": "PASS (本次三项指标与上一轮重试完全一致，可复现性确认)",
+    "algorithm_files_clean": "git status 仅 data/results/*.mph 变更，core_jhyp/core_inversion/core_adjoint 算法文件无未提交 diff（与 M2 re-verification 记录一致）"
+  },
+  "round4_forward_pipeline_integrity": {
+    "run_context": "2026-07-22 INCONCLUSIVE follow-up dispatch: 跑 verify_forward_pipeline 验证正演管线完整性（H001 改动后管线不破坏正确性的关键实验）",
+    "run_timestamp": "2026-07-22 (实验执行者 round-4 dispatch)",
+    "mphserver_port_2036": "REACHABLE (TcpTestSucceeded=True)",
+    "git_head": "6b3d8b3946323a8d32d0f3819886ca57c82d4e30",
+    "git_head_unchanged": true,
+    "git_tag_exists": true,
+    "git_status": "仅 data/results/verify_forward_pipeline_model.mph 变更（mphsave 输出），算法文件 core_jhyp/core_inversion/core_adjoint 干净无未提交 diff",
+    "matlab_version": "23.2.0.2365128 (R2023b)",
+    "verify_forward_pipeline_exit_code": 0,
+    "verify_forward_pipeline_stderr": "none",
+    "metrics": {
+      "V5a_max_F_k": 0.02239224,
+      "V5a_mean_F_k": 0.00260576,
+      "V5a_median_F_k": 0.001147095,
+      "cos_theta_mean": 0.995568,
+      "cos_theta_min": 0.931554,
+      "cos_theta_max": 0.999986,
+      "J_obs_to_J_hyp_ratio_mean": 0.9844
+    },
+    "metrics_reproducibility": "PASS (三项指标与前两轮 round-2/round-3 bit-for-bit 一致：V5a max F_k=2.239224e-02, cos θ=0.995568, ratio=0.9844)",
+    "forward_pipeline_integrity_verdict": "PASS (cos θ=0.9956 > 0.99 阈值；ratio=0.9844 ≈ 1.0 偏离仅 1.56%；V5a max F_k=2.24e-2 < 0.05 Born 固有偏差上限。H001 改动未破坏正演管线前向正确性)"
+  },
+  "round5_two_stage_execution": {
+    "run_context": "2026-07-22 dispatch: 两阶段执行——阶段一正演验证 + 阶段二 A12_multi_freq_inversion 核心反演（首次跑完整反演，前 4 轮仅跑正演验证）",
+    "run_timestamp": "2026-07-22 (实验执行者 round-5 dispatch)",
+    "mphserver_port_2036": "阶段一 REACHABLE；阶段二首次 mphserver 崩溃（3 次重连耗尽），后台重启 mphserver 后恢复，反演成功完成",
+    "stage1_forward_verification": {
+      "script": "verify_forward_pipeline",
+      "exit_code": 0,
+      "cos_theta_mean": 0.995568,
+      "J_obs_to_J_hyp_ratio_mean": 0.9844,
+      "V5a_max_F_k": 0.02239224,
+      "verdict": "PASS (cos θ > 0.99, ratio ≈ 1.0, V5a < 0.05)"
+    },
+    "stage2_a12_inversion": {
+      "script": "A12_multi_freq_inversion (3 freqs: 1/2/3 GHz, B-spline Nc=200, lambda_TV=0.001, F_data-only Armijo, cold start c=4.0*ones)",
+      "exit_code": 0,
+      "completed_iterations": 10,
+      "converged": false,
+      "F_cheb_initial": 0.4363777,
+      "F_cheb_final": 0.3795406,
+      "F_cheb_target": "<=0.080 (modification_log expected_effect)",
+      "inner_mean_initial": 4.0,
+      "inner_mean_final": 3.8024,
+      "inner_mean_truth": 5.0,
+      "accepted_steps": "1/10 (only iter 1 accepted; iter 2-10 all Armijo rejected)",
+      "pass_count": "2/7",
+      "pass_items": ["P2_inner_std (0.0341 < 0.05)", "P5_J_obs_consistent (=1)"],
+      "fail_items": ["P1_inner_mean_error (1.1976 > 0.1)", "P3_F_cheb (0.3795 > 0.15)", "P4_worst_F_k (1.3699 > 0.15)", "P6_per_d_mean (3.4845 > 0.15)", "P7_cos_theta (0.0001 < 0.90)"],
+      "R_tv_final": 74.215,
+      "code_path_note": "A12_inversion_loop.m 使用测量球面表面等效路径 (extract_scattered → lightcone_project → J_obs_perp)，非 M2 改动的 compute_jhyp 体积积分路径。modification_log 明确记录 A12/C01 循环走表面路径非 Born 链，不在 H001 source.model 声明维度内。dispatch 要求执行 A12 作为核心反演实验以产出收敛数据。",
+      "scientific_finding": "反演未收敛。iter 1 F_cheb 从 0.4364 降至 0.3795（唯一 accepted step），iter 2-10 全部 Armijo rejected（c 未更新，F_cheb 卡在 0.3795）。inner_mean 从 cold start 4.0 漂移至 3.80，远离真值 5.0——反演发散。F_cheb=0.3795 远超 modification_log 目标 <=0.080（4.7 倍）。根因分析：Armijo F_data 准则在当前梯度方向上无法找到满足下降条件的步长，linesearch 8 次试验全部 reject。"
+    },
+    "two_stage_verdict": "confirmed (两阶段均成功执行；阶段一 PASS；阶段二反演完整产出收敛曲线+三件套数据，但反演结果未达 H001 目标——F_cheb=0.3795 >> 0.080，属负面科学发现)"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "_required_files": [
+    {
+      "name": "管线重构报告",
+      "path": "outputs/管线重构报告.json"
+    },
+    {
+      "name": "管线注册表",
+      "path": "pipeline_registry.json"
+    }
+  ]
+}

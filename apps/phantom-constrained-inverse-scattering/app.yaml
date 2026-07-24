@@ -1,0 +1,490 @@
+app_name: PhantomConstrainedInverseScattering
+entry: 理论研究调研者
+
+# ═══════════════════════════════════════════════════════════════
+# 设计约定（架构级注释块，供审阅者审查与运行引擎参照）
+# ═══════════════════════════════════════════════════════════════
+#
+# 版本: v8 — L2正演层职责分离（拆分正演管线构建者为代码+执行，明确代码主权，增加code_bug回退）
+# 设计目标: 通过仿体先验几何约束解决逆散射多解性问题（有效独立
+#           约束 约 48 vs 500 B-spline 参数的欠定性），对比无约束
+#           基线反演与仿体约束反演，量化评估约束有效性。
+# 参考项目: INVERSE_SCATTER3.0_package
+#
+# §1  编排总览（七层 x 角色映射，v8 职责分离架构）
+#     L0 理论研究层 — 理论研究调研者(producer) + 理论研究调研者（校验, manual）
+#                     合并文献/算法/正则化调研+理论综合为单一角色
+#     L1 仿真配置层 — 仿真配置者(producer, manual) + 仿真配置者（校验）
+#     L2 正演数据层 — 四组职责分离架构：
+#       环境检查者(一站式检查MCP+COMSOL+MATLAB)
+#       物理算法工程师(物理计算脚本，拥有compute_jobs.m等完全主权) + R2c(数据配置) 并行
+#       正演COMSOL工程师(只写COMSOL脚本forward/adjoint/pipeline，不跑COMSOL)
+#       正演执行者(只跑COMSOL生成实验数据，不写算法脚本，区分fail/code_bug)
+#       正演数据生成者（校验）保持不变
+#     L3 反演执行层 — 反演执行者(producer，双路径:基线+约束) + 反演执行者（校验）
+#                     合并基线反演+约束反演为单一角色
+#     L4 对比评估层 — 对比评估者(producer) + 对比评估者（校验）
+#     L5 结果审计层 — 结果审计者(standard) [对抗终审]
+#     L6 实验报告层 — 实验报告撰写者(producer) + 实验报告撰写者（校验）
+#     L7 知识优化层 — 知识优化者(producer) + 知识优化者（校验）
+#
+#     入口: 理论研究调研者（L0）— entry 字段显式声明
+#     终态: 知识优化者（校验）confirmed — 完成
+#
+# §2  循环回路与 max_executions
+#     a) L0 理论研究回路 — 理论研究调研者（校验） fail — 理论研究调研者 max:3 + fail-safe — 完成
+#     b) 仿真配置回路 — 仿真配置者（校验） fail — 仿真配置者 max:3 + fail-safe — 完成
+#     c) L2 脚本+执行回路:
+#        正演COMSOL工程师 fail — 自身重试 max:5 + fail-safe — 完成
+#        物理算法工程师（校验） fail — 物理算法工程师 max:3 + fail-safe — 完成
+#        R2c（校验） fail — R2c max:3 + fail-safe — 完成
+#        环境检查者 fail — 自身重试 max:3 + fail-safe — 完成
+#     d) 正演执行回路 — 正演执行者 fail — 自身重试 max:3 + fail-safe — 完成
+#     e) 正演数据校验回路 — 正演数据生成者（校验） fail — 正演执行者 max:3 + fail-safe — 完成
+#     f) code_bug 回退回路:
+#        正演执行者 code_bug — 正演COMSOL工程师 max:3（COMSOL脚本问题）
+#        正演执行者 code_bug — 物理算法工程师 max:3（物理计算脚本问题）
+#        反演执行者（校验） code_bug — 正演COMSOL工程师 max:2（上游脚本逻辑错误）
+#        正演执行者（校验） code_bug_exhausted fail-safe — 完成（code_bug max:3 耗尽后由校验角色感知 verdict_enum 缺失主动输出，走独立终态边，绕过 compiler 同 verdict 合并语义）
+#        反演执行者（校验） code_bug_exhausted fail-safe — 完成（code_bug max:2 耗尽后同机制切换）
+#     g) L3 反演回路 — 反演执行者（校验） fail — 反演执行者 max:3 + fail-safe — 对比评估者
+#     h) 评估校验回路 — 对比评估者（校验） fail — 对比评估者 max:3 + fail-safe — 结果审计者
+#     i) 审计质疑回路 — 结果审计者 challenged — 对比评估者 max:2
+#     j) L6-L7 回路 — 实验报告/知识优化 校验 fail — max:3
+#
+# §3  并行拓扑（v8 FORK/JOIN）
+#     [FORK-L2] 仿真配置者（校验）confirmed — 环境检查者 + 物理算法工程师 + R2c（3路扇出）
+#     [JOIN-L2] 环境检查者（校验）+ 物理算法工程师（校验）+ R2c（校验）— 正演COMSOL工程师
+#     [串行]   正演COMSOL工程师 — 正演执行者 — 正演数据生成者（校验）
+#     [FORK-L3] 正演数据生成者（校验）confirmed — 反演执行者
+#     JOIN 语义：全部通过校验后启动下游（AND 同步）
+#
+# §4  对抗性设计
+#     结果审计者是唯一对抗角色，独立审阅对比评估者的结论
+#
+# §5  人工审核 Gate
+#     理论研究调研者（校验）confirm:manual = L0 人工审核
+#     仿真配置者 confirm:manual = L1 人工审核
+#
+# §6  COMSOL/MATLAB 工具链
+#     正演COMSOL工程师编写脚本，正演执行者运行脚本（通过 MATLAB CLI 或 MCP 工具调用 COMSOL）
+#     反演执行者通过 MATLAB CLI 或 MCP 工具调用 COMSOL
+#     LiveLink 端口 2036，MATLAB R2023b + COMSOL 6.2
+#     环境检查者仅检查安装路径，不启动进程
+#
+# §7  V5a 一致性校验
+#     物理算法工程师编写 v5a_check.m，正演执行者运行
+#     |J_hyp(eps_r_true) - J_obs| / |J_obs| < 5%
+#
+# §8  关键物理参数
+#     散射体球半径 R=0.13m，测量球面半径 R=0.26m
+#     频率 0.8-1.0 GHz，64 Fibonacci 球方向
+#     B-spline 参数化 10x10x5 = 500 控制点
+#
+# §9  职责边界（v8）
+#     环境检查者: 检查 MCP/COMSOL/MATLAB 安装路径和状态
+#     物理算法工程师: 编写+维护物理计算脚本（compute_jobs.m/v5a_check.m/save_results.m），拥有完全主权
+#     R2c: 编写数据配置（eps_real.csv/eps_imag.csv/run_params.json）
+#     正演COMSOL工程师: 编写+维护 COMSOL 脚本（forward_solve.m/adjoint_solve.m/run_forward_pipeline.m），不运行 COMSOL
+#     正演执行者: 运行 COMSOL 生成实验数据（正演数据集.json/J_obs_data.mat），不编写算法脚本，区分 fail/code_bug
+#     反演执行者: 编写反演脚本 + 运行 COMSOL + 内部迭代修复 + 双路径(基线/约束)，区分 fail/code_bug
+#
+# §10 固定资产认知（v8 新增）
+#     可复用算法脚本（forward_solve.m/adjoint_solve.m/compute_jobs.m 等）是跨实验固定资产
+#     代码角色（正演COMSOL工程师、物理算法工程师）skill.md 包含:
+#       1. 固定资产声明
+#       2. 步骤0幂等检查（文件存在+接口完整 → 跳过编写）
+#       3. 回退修复约束（增量修复，非从零重写）
+# ═══════════════════════════════════════════════════════════════
+
+knowledge:
+  - 逆散射物理原理: knowledge/逆散射物理原理.md
+    inject_to: [理论研究调研者, 物理算法工程师, 反演执行者, 对比评估者]
+  - 仿体约束正则化方法: knowledge/仿体约束正则化方法.md
+    inject_to: [理论研究调研者, 仿真配置者, 反演执行者, 对比评估者]
+  - COMSOL正演管线指南: knowledge/COMSOL正演管线指南.md
+    inject_to: [环境检查者, 正演COMSOL工程师, 反演执行者]
+  - 伴随梯度反演算法: knowledge/伴随梯度反演算法.md
+    inject_to: [理论研究调研者, 反演执行者]
+  - 评估指标定义: knowledge/评估指标定义.md
+    inject_to: [对比评估者, 结果审计者, 实验报告撰写者]
+  - MCP工具使用指南: knowledge/MCP工具使用指南.md
+    inject_to: [环境检查者, R2c, 正演COMSOL工程师, 正演执行者, 反演执行者]
+
+roles:
+  # ═══════════════════════════════════════════════════════════════
+  # L0 理论研究层
+  # ═══════════════════════════════════════════════════════════════
+
+  理论研究调研者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+    outputs:
+      - 理论研究综合报告: outputs/理论研究综合报告.json, type=process
+
+  理论研究调研者（校验）:
+    type: standard
+    confirm: manual
+    inputs:
+      - 理论研究综合报告: outputs/理论研究综合报告.json, type=process
+    outputs:
+      - 理论研究调研者校验报告: outputs/理论研究调研者-validation.json, type=process
+
+  # ═══════════════════════════════════════════════════════════════
+  # L1 仿真配置层
+  # ═══════════════════════════════════════════════════════════════
+
+  仿真配置者:
+    type: producer
+    confirm: manual
+    inputs:
+      - 理论研究综合报告: outputs/理论研究综合报告.json, type=process
+    outputs:
+      - 仿真配置文档: 00-仿真配置.md
+      - 仿体定义文件: config/phantom_config.json
+
+  仿真配置者（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - 仿真配置文档: 00-仿真配置.md
+      - 仿体定义文件: config/phantom_config.json
+    outputs:
+      - 仿真配置校验报告: outputs/仿真配置者-validation.json, type=process
+
+  # ═══════════════════════════════════════════════════════════════
+  # L2 正演数据层
+  # ═══════════════════════════════════════════════════════════════
+
+  环境检查者:
+    type: producer
+    confirm: auto
+    outputs:
+      - 环境就绪报告: outputs/env_status.json, type=process
+
+  物理算法工程师:
+    type: producer
+    confirm: auto
+    inputs:
+      - 仿真配置文档: 00-仿真配置.md
+    outputs:
+      - J_obs计算脚本: scripts/compute_jobs.m
+      - V5a校验脚本: scripts/v5a_check.m
+      - 结果保存脚本: scripts/save_results.m
+
+  物理算法工程师（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - J_obs计算脚本: scripts/compute_jobs.m
+      - V5a校验脚本: scripts/v5a_check.m
+      - 结果保存脚本: scripts/save_results.m
+    outputs:
+      - 物理算法工程师校验报告: outputs/物理算法工程师-validation.json, type=process
+
+  R2c:
+    type: producer
+    confirm: auto
+    inputs:
+      - 仿真配置文档: 00-仿真配置.md
+      - 仿体定义文件: config/phantom_config.json
+    outputs:
+      - eps_real配置: config/eps_real.csv
+      - eps_imag配置: config/eps_imag.csv
+      - 运行参数配置: config/run_params.json
+
+  R2c（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - eps_real配置: config/eps_real.csv
+      - eps_imag配置: config/eps_imag.csv
+      - 运行参数配置: config/run_params.json
+    outputs:
+      - R2c校验报告: outputs/R2c-validation.json, type=process
+
+  正演COMSOL工程师:
+    type: producer
+    confirm: auto
+    inputs:
+      - 仿真配置文档: 00-仿真配置.md
+      - 仿体定义文件: config/phantom_config.json
+    outputs:
+      - COMSOL正演脚本: scripts/forward_solve.m
+      - COMSOL伴随脚本: scripts/adjoint_solve.m
+      - 正演管线入口脚本: scripts/run_forward_pipeline.m
+
+  正演COMSOL工程师（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - COMSOL正演脚本: scripts/forward_solve.m
+      - COMSOL伴随脚本: scripts/adjoint_solve.m
+      - 正演管线入口脚本: scripts/run_forward_pipeline.m
+    outputs:
+      - 正演COMSOL工程师校验报告: outputs/正演COMSOL工程师-validation.json, type=process
+
+  正演执行者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 环境就绪报告: outputs/env_status.json, type=process
+      - 仿真配置文档: 00-仿真配置.md
+      - 仿体定义文件: config/phantom_config.json
+      - COMSOL正演脚本: scripts/forward_solve.m
+      - COMSOL伴随脚本: scripts/adjoint_solve.m
+      - 正演管线入口脚本: scripts/run_forward_pipeline.m
+      - J_obs计算脚本: scripts/compute_jobs.m
+      - V5a校验脚本: scripts/v5a_check.m
+      - 结果保存脚本: scripts/save_results.m
+      - eps_real配置: config/eps_real.csv
+      - eps_imag配置: config/eps_imag.csv
+      - 运行参数配置: config/run_params.json
+    outputs:
+      - 正演数据集: outputs/正演数据集.json, type=process
+      - J_obs数据: outputs/J_obs_data.mat, type=process
+
+  正演数据生成者（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - 正演数据集: outputs/正演数据集.json, type=process
+      - J_obs数据: outputs/J_obs_data.mat, type=process
+    outputs:
+      - 正演数据校验报告: outputs/正演数据生成者-validation.json, type=process
+
+  # ═══════════════════════════════════════════════════════════════
+  # L3 反演执行层
+  # ═══════════════════════════════════════════════════════════════
+
+  反演执行者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 正演数据集: outputs/正演数据集.json, type=process
+      - J_obs数据: outputs/J_obs_data.mat, type=process
+      - 仿真配置文档: 00-仿真配置.md
+      - 仿体定义文件: config/phantom_config.json
+      - COMSOL正演脚本: scripts/forward_solve.m
+      - COMSOL伴随脚本: scripts/adjoint_solve.m
+    outputs:
+      - 反演结果: outputs/反演结果.json, type=process
+
+  反演执行者（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - 反演结果: outputs/反演结果.json, type=process
+    outputs:
+      - 反演执行者校验报告: outputs/反演执行者-validation.json, type=process
+
+  # ═══════════════════════════════════════════════════════════════
+  # L4 对比评估层
+  # ═══════════════════════════════════════════════════════════════
+
+  对比评估者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 反演结果: outputs/反演结果.json, type=process
+      - 正演数据集: outputs/正演数据集.json, type=process
+      - 仿真配置文档: 00-仿真配置.md
+    outputs:
+      - 评估报告: outputs/评估报告.json, type=process
+
+  对比评估者（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - 评估报告: outputs/评估报告.json, type=process
+    outputs:
+      - 评估校验报告: outputs/对比评估者-validation.json, type=process
+
+  # ═══════════════════════════════════════════════════════════════
+  # L5 结果审计层（对抗终审）
+  # ═══════════════════════════════════════════════════════════════
+
+  结果审计者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 评估报告: outputs/评估报告.json, type=process
+      - 仿真配置文档: 00-仿真配置.md
+    outputs:
+      - 审计报告: outputs/审计报告.json, type=process
+
+  # ═══════════════════════════════════════════════════════════════
+  # L6 实验报告层
+  # ═══════════════════════════════════════════════════════════════
+
+  实验报告撰写者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 评估报告: outputs/评估报告.json, type=process
+      - 审计报告: outputs/审计报告.json, type=process
+      - 仿真配置文档: 00-仿真配置.md
+    outputs:
+      - 实验报告: outputs/实验报告.json, type=process
+
+  实验报告撰写者（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - 实验报告: outputs/实验报告.json, type=process
+    outputs:
+      - 实验报告撰写者校验报告: outputs/实验报告撰写者-validation.json, type=process
+
+  # ═══════════════════════════════════════════════════════════════
+  # L7 知识优化层
+  # ═══════════════════════════════════════════════════════════════
+
+  知识优化者:
+    type: producer
+    confirm: auto
+    inputs:
+      - 实验报告: outputs/实验报告.json, type=process
+      - 理论研究综合报告: outputs/理论研究综合报告.json, type=process
+    outputs:
+      - 知识优化文档: outputs/知识优化文档.json, type=process
+
+  知识优化者（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - 知识优化文档: outputs/知识优化文档.json, type=process
+    outputs:
+      - 知识优化者校验报告: outputs/知识优化者-validation.json, type=process
+
+edges:
+  # ═══════════════════════════════════════════════════════════════
+  # L0 理论研究层
+  # ═══════════════════════════════════════════════════════════════
+
+  - 理论研究调研者 → 理论研究调研者（校验）
+  - 理论研究调研者（校验）→ 仿真配置者 when: result.verdict == "confirmed"
+  - 理论研究调研者（校验）→ 理论研究调研者 when: result.verdict == "fail" max_executions: 3
+  - 理论研究调研者（校验）→ 完成 when: result.verdict == "fail" max_executions: 3
+
+  # ═══════════════════════════════════════════════════════════════
+  # L1 仿真配置层
+  # ═══════════════════════════════════════════════════════════════
+
+  - 仿真配置者 → 仿真配置者（校验）
+  - 仿真配置者（校验）→ 仿真配置者 when: result.verdict == "fail" max_executions: 3
+  - 仿真配置者（校验）→ 完成 when: result.verdict == "fail" max_executions: 3
+
+  # [FORK-L2] 仿真配置者（校验）confirmed 后扇出到 L2 各角色（3路，不含正演COMSOL工程师）
+  - 仿真配置者（校验）→ 环境检查者 when: result.verdict == "confirmed"
+  - 仿真配置者（校验）→ 物理算法工程师 when: result.verdict == "confirmed"
+  - 仿真配置者（校验）→ R2c when: result.verdict == "confirmed"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L2 正演数据层 — 环境检查者
+  # ═══════════════════════════════════════════════════════════════
+
+  - 环境检查者 → 环境检查者 when: result.verdict == "fail" max_executions: 3
+  - 环境检查者 → 完成 when: result.verdict == "fail" max_executions: 3
+
+  # ═══════════════════════════════════════════════════════════════
+  # L2 正演数据层 — 物理算法工程师/R2c 脚本准备
+  # ═══════════════════════════════════════════════════════════════
+
+  - 物理算法工程师 → 物理算法工程师（校验）
+  - 物理算法工程师（校验）→ 物理算法工程师 when: result.verdict == "fail" max_executions: 3
+  - 物理算法工程师（校验）→ 完成 when: result.verdict == "fail" max_executions: 3
+
+  - R2c → R2c（校验）
+  - R2c（校验）→ R2c when: result.verdict == "fail" max_executions: 3
+  - R2c（校验）→ 完成 when: result.verdict == "fail" max_executions: 3
+
+  # ═══════════════════════════════════════════════════════════════
+  # L2 正演数据层 — 正演COMSOL工程师（JOIN + 自回退 + 校验）
+  # ═══════════════════════════════════════════════════════════════
+
+  # [JOIN-L2] 环境检查者+物理算法工程师校验+R2c校验 全部 confirmed 后汇入正演COMSOL工程师
+  - [环境检查者（校验）, 物理算法工程师（校验）, R2c（校验）] → 正演COMSOL工程师 when: result.verdict == "confirmed"
+
+  # 正演COMSOL工程师 fail 自回退 + fail-safe
+  - 正演COMSOL工程师 → 正演COMSOL工程师 when: result.verdict == "fail" max_executions: 5
+  - 正演COMSOL工程师 → 完成 when: result.verdict == "fail" max_executions: 5
+
+  # 正演COMSOL工程师 confirmed → 正演COMSOL工程师（校验）
+  - 正演COMSOL工程师 → 正演COMSOL工程师（校验）
+
+  # 正演COMSOL工程师（校验）→ 正演执行者
+  - 正演COMSOL工程师（校验）→ 正演执行者 when: result.verdict == "confirmed"
+  - 正演COMSOL工程师（校验）→ 正演COMSOL工程师 when: result.verdict == "fail" max_executions: 5
+
+  # ═══════════════════════════════════════════════════════════════
+  # L2 正演数据层 — 正演执行者（运行COMSOL + code_bug回退）
+  # ═══════════════════════════════════════════════════════════════
+
+  # 正演执行者 confirmed → 正演数据生成者（校验）
+  - 正演执行者 → 正演数据生成者（校验）
+
+  # 正演执行者 fail 自回退（运行参数问题）
+  - 正演执行者 → 正演执行者 when: result.verdict == "fail" max_executions: 3
+  - 正演执行者 → 完成 when: result.verdict == "fail" max_executions: 3
+
+  # 正演执行者 code_bug 回退（脚本逻辑问题）
+  - 正演执行者 → 正演COMSOL工程师 when: result.verdict == "code_bug" max_executions: 3
+  - 正演执行者 → 物理算法工程师 when: result.verdict == "code_bug" max_executions: 3
+  # 正演执行者（校验）code_bug_exhausted fail-safe — 完成（独立 verdict 终态边，绕过 compiler 同 verdict 合并语义）
+  - 正演执行者 → 完成 when: result.verdict == "code_bug_exhausted"
+
+  # 正演数据校验回路（回退到正演执行者）
+  - 正演数据生成者（校验）→ 正演执行者 when: result.verdict == "fail" max_executions: 3
+  - 正演数据生成者（校验）→ 完成 when: result.verdict == "fail" max_executions: 3
+
+  # ═══════════════════════════════════════════════════════════════
+  # L3 反演执行层
+  # ═══════════════════════════════════════════════════════════════
+
+  # 正演数据校验 confirmed → 反演执行者
+  - 正演数据生成者（校验）→ 反演执行者 when: result.verdict == "confirmed"
+
+  - 反演执行者 → 反演执行者（校验）
+  - 反演执行者（校验）→ 对比评估者 when: result.verdict == "confirmed"
+  - 反演执行者（校验）→ 反演执行者 when: result.verdict == "fail" max_executions: 3
+  - 反演执行者（校验）→ 对比评估者 when: result.verdict == "fail" max_executions: 3
+  # code_bug 回退：反演发现上游脚本逻辑错误，回退到正演COMSOL工程师
+  - 反演执行者（校验）→ 正演COMSOL工程师 when: result.verdict == "code_bug" max_executions: 2
+  # 反演执行者（校验）code_bug_exhausted fail-safe — 完成（独立 verdict 终态边，绕过 compiler 同 verdict 合并语义）
+  - 反演执行者（校验）→ 完成 when: result.verdict == "code_bug_exhausted"
+
+  # ═══════════════════════════════════════════════════════════════
+  # L4 对比评估层
+  # ═══════════════════════════════════════════════════════════════
+
+  - 对比评估者 → 对比评估者（校验）
+  - 对比评估者（校验）→ 结果审计者 when: result.verdict == "confirmed"
+  - 对比评估者（校验）→ 对比评估者 when: result.verdict == "fail" max_executions: 3
+  - 对比评估者（校验）→ 结果审计者 when: result.verdict == "fail" max_executions: 3
+
+  # ═══════════════════════════════════════════════════════════════
+  # L5 结果审计层（对抗终审）
+  # ═══════════════════════════════════════════════════════════════
+
+  - 结果审计者 → 实验报告撰写者 when: result.verdict == "confirmed"
+  - 结果审计者 → 对比评估者 when: result.verdict == "challenged" max_executions: 2
+
+  # ═══════════════════════════════════════════════════════════════
+  # L6 实验报告层
+  # ═══════════════════════════════════════════════════════════════
+
+  - 实验报告撰写者 → 实验报告撰写者（校验）
+  - 实验报告撰写者（校验）→ 知识优化者 when: result.verdict == "confirmed"
+  - 实验报告撰写者（校验）→ 实验报告撰写者 when: result.verdict == "fail" max_executions: 3
+  - 实验报告撰写者（校验）→ 知识优化者 when: result.verdict == "fail" max_executions: 3
+
+  # ═══════════════════════════════════════════════════════════════
+  # L7 知识优化层
+  # ═══════════════════════════════════════════════════════════════
+
+  - 知识优化者 → 知识优化者（校验）
+  - 知识优化者（校验）→ 完成 when: result.verdict == "confirmed"
+  - 知识优化者（校验）→ 知识优化者 when: result.verdict == "fail" max_executions: 3
+  - 知识优化者（校验）→ 完成 when: result.verdict == "fail" max_executions: 3

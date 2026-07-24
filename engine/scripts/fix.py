@@ -129,47 +129,39 @@ def _do_jump(state_path, target_step):
         st.clear()
         st.update(snapshot)
 
-        # v7.3: 恢复并行兄弟分支
-        # 快照中 step_status/active_dispatches 含有 jump 时刻正在执行的兄弟分支
-        # 时间回退后没有实际 agent 在跑，需将它们的 dispatch 指令转入 pending_dispatches 重新分发
-        # v8.0 修复 P1-2：兄弟分支的 dispatch 必须重新生成 checkpoint_id，
-        # 否则下游 step.py --submit 的幂等检查会按旧 checkpoint_id 误判为已处理。
-        import copy as _copy
-        import uuid as _uuid
-        from datetime import datetime, timezone as _tz
+        # v9.2: 恢复并行兄弟分支
+        # 快照中 step_status 含有 jump 时刻正在执行的兄弟分支。
+        # 时间回退后没有实际 agent 在跑，需将其源步的 verdict 信号写入 pending_routes，
+        # 由下一次 --next 的冷路径重新路由生成全新 dispatch（orchestrator 只读 pending_routes）。
         snap_ss = st.get("step_status", {})
-        snap_active = st.get("active_dispatches", {})
+        snap_completed = st.get("completed", {})
+        pending_routes = st.get("pending_routes", {})
 
-        sibling_dispatches = []
+        sibling_names = []
         for step_name, entry in snap_ss.items():
             if step_name == target_step:
                 continue
-            if entry.get("status") == "executing" and step_name in snap_active:
-                # 复制后重新生成 checkpoint_id，避免与快照前的幂等记录冲突
-                new_dispatch = _copy.deepcopy(snap_active[step_name])
-                old_ckpt = new_dispatch.get("checkpoint_id", "")
-                new_ckpt = f"ckpt_{_uuid.uuid4().hex[:12]}"
-                new_dispatch["checkpoint_id"] = new_ckpt
-                # 记录调试信息：源于 jump 重新生成
-                new_dispatch.setdefault("_resumed_from_jump", []).append({
-                    "target_step": target_step,
-                    "old_checkpoint_id": old_ckpt,
-                    "new_checkpoint_id": new_ckpt,
-                    "timestamp": datetime.now(_tz.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                })
-                sibling_dispatches.append(new_dispatch)
+            if entry.get("status") != "executing":
+                continue
+            # 从 step_status.from_steps 溯源：哪个已完成步的 verdict 触发了此兄弟分支
+            from_steps = entry.get("from_steps", [])
+            for fs in from_steps:
+                if fs in snap_completed:
+                    fs_verdict = snap_completed[fs].get("verdict", "confirmed")
+                    # 写入 pending_routes，冷路径会调 router.py 重新生成 dispatch
+                    if fs not in pending_routes:
+                        pending_routes[fs] = snap_completed[fs]
+            sibling_names.append(step_name)
 
-        if sibling_dispatches:
-            existing_pd = st.get("pending_dispatches") or []
-            st["pending_dispatches"] = existing_pd + sibling_dispatches
-            sibling_names = [d.get("step", "?") for d in sibling_dispatches]
+        if sibling_names:
+            st["pending_routes"] = pending_routes
             print(
-                f"[fix v7.3] jump to {target_step}: "
-                f"restored {len(sibling_dispatches)} sibling branch(es): {sibling_names}",
+                f"[fix v9.2] jump to {target_step}: "
+                f"restored {len(sibling_names)} sibling branch(es): {sibling_names}",
                 file=sys.stderr,
             )
 
-        # 清除僵尸 step_status 和 active_dispatches（已转入 pending_dispatches 或无需恢复）
+        # 清除僵尸 step_status 和 active_dispatches（兄弟分支已转入 pending_routes 重新分发）
         st["step_status"] = {}
         st["active_dispatches"] = {}
     cleared_count = len(completed_check) - len(snapshot.get("completed", {}))

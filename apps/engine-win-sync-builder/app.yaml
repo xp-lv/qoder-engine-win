@@ -1,0 +1,160 @@
+app_name: engine-win-sync-builder
+
+# ═══════════════════════════════════════════════════════════════
+# 设计约定（架构级注释块，供审阅者审查与运行引擎参照）
+# ═══════════════════════════════════════════════════════════════
+#
+# 版本: v2 — 引擎 Windows 同步构建器（简化版）
+# 设计目标: 利用已验证的 mac2win.py 自动化迁移脚本，
+#           将 Mac 验证的 qoder-engine 同步到 Windows 版，
+#           覆盖 迁移执行→收尾修正→增量差异→运行验证→
+#           漏洞排查→Git推送 的线性主链流程。
+#
+# §1  编排总览（5 步主链 × 角色映射）
+#     L0 需求层     → 需求接收者(producer, manual)
+#     L1 迁移层     → 迁移执行者（mac2win.py 自动化迁移）
+#     L2 收尾层     → 收尾修正者（处理脚本遗漏 + 回退汇聚点）
+#     L3 检查验证层 → 增量差异检查者 + 运行验证者 + 漏洞排查者
+#     L4 推送层     → Git推送者
+#
+# §2  循环回路与 max_executions
+#     a) 需求校验回路  —— 需求接收者（校验）fail → 需求接收者
+#        （producer 自动展开，局部回退，用户控制节奏）
+#     b) 质量回路1     —— 运行验证者 defects_detected → 收尾修正者  max: 3
+#     c) 质量回路2     —— 漏洞排查者 issues_found → 收尾修正者      max: 3
+#
+# §3  线性拓扑（无并行扇出）
+#     迁移执行者 → 收尾修正者 → 增量差异检查者 → 运行验证者 → 漏洞排查者
+#     无 FORK/JOIN，无并行扇出，纯线性主链 + 2 条质量回路汇聚于收尾修正者
+#
+# §4  质量回路设计
+#     收尾修正者是唯一回退汇聚点，接收两条 backward 边：
+#       · 运行验证者 defects_detected → 收尾修正者（backward, max: 3）
+#       · 漏洞排查者 issues_found → 收尾修正者（backward, max: 3）
+#     收尾修正者本身不回退，无跨角色循环回路
+#
+# §5  回退上下文注入（引擎约定行为）
+#     backward 边回退时，系统自动将源角色产出物注入目标角色：
+#       · 运行验证报告 → 收尾修正者（defects_detected 时注入，用于修复）
+#       · 漏洞排查报告 → 收尾修正者（issues_found 时注入，用于修复）
+#
+# §6  verdict 命名空间
+#     ── 运行验证者 ──
+#       pass              → 漏洞排查者
+#       defects_detected  → 收尾修正者（backward, max: 3）
+#     ── 漏洞排查者 ──
+#       confirmed         → Git推送者
+#       issues_found      → 收尾修正者（backward, max: 3）
+#     ── 其他角色 ──
+#       confirmed         → 下游角色（无条件默认）
+#
+# §7  代码来源（双仓库克隆）
+#     Mac 源仓库：从 git@github.com:xp-lv/qoder-engine.git 克隆到 {workspace}/mac-repo-clone/
+#         这是迁移和差异检查的**权威基准**（GitHub 最新代码）。
+#     Win 目标仓库：从 git@github.com:xp-lv/qoder-engine-win.git 克隆到 {workspace}/win-repo-clone/
+#         作为迁移的目标端。
+#     **禁止**使用当前工作区的本地文件作为 Mac 侧基准（可能已过期）。
+#
+# §8  Git 推送重试
+#     Git推送者内置推送失败重试（最多 3 次指数退避 1s/2s/4s），
+#     重试耗尽后标记失败并产出诊断报告。
+# ═══════════════════════════════════════════════════════════════
+
+knowledge:
+  - 编排范式: knowledge/编排范式.md
+    inject_to: [运行验证者]
+  - SDK规范: knowledge/SDK_SPEC.md
+    inject_to: [运行验证者]
+  - Windows平台适配知识: knowledge/Windows平台适配知识.md
+    inject_to: [迁移执行者, 收尾修正者, 运行验证者, 漏洞排查者]
+
+roles:
+  # ═══ L0 需求层 ═══
+
+  需求接收者:
+    type: producer
+    confirm: manual
+    outputs:
+      - 需求文档: 00-需求描述.md
+
+  需求接收者（校验）:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+    outputs:
+      - 需求校验报告: outputs/需求接收者-validation.json, type=process
+
+  # ═══ L1 迁移层 ═══
+
+  迁移执行者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 需求文档: 00-需求描述.md
+    outputs:
+      - 迁移执行报告: outputs/迁移执行报告.json, type=process
+
+  # ═══ L2 收尾层 ═══
+
+  收尾修正者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 迁移执行报告: outputs/迁移执行报告.json, type=process
+    outputs:
+      - 收尾修正报告: outputs/收尾修正报告.json, type=process
+
+  # ═══ L3 检查验证层 ═══
+
+  增量差异检查者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 收尾修正报告: outputs/收尾修正报告.json, type=process
+    outputs:
+      - 增量差异报告: outputs/增量差异报告.json, type=process
+
+  运行验证者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 增量差异报告: outputs/增量差异报告.json, type=process
+      - 需求文档: 00-需求描述.md
+    outputs:
+      - 运行验证报告: outputs/运行验证报告.json, type=process
+
+  漏洞排查者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 运行验证报告: outputs/运行验证报告.json, type=process
+    outputs:
+      - 漏洞排查报告: outputs/漏洞排查报告.json, type=process
+
+  # ═══ L4 推送层 ═══
+
+  Git推送者:
+    type: standard
+    confirm: auto
+    inputs:
+      - 迁移执行报告: outputs/迁移执行报告.json, type=process
+      - 收尾修正报告: outputs/收尾修正报告.json, type=process
+      - 增量差异报告: outputs/增量差异报告.json, type=process
+      - 运行验证报告: outputs/运行验证报告.json, type=process
+      - 漏洞排查报告: outputs/漏洞排查报告.json, type=process
+    outputs:
+      - 推送报告: 推送报告.md
+
+edges:
+  - 需求接收者 → 需求接收者（校验）
+  - 需求接收者（校验）→ 迁移执行者 when: result.verdict == "confirmed"
+  - 需求接收者（校验）→ 需求接收者 when: result.verdict == "loop" max_executions: 3
+  - 迁移执行者 → 收尾修正者
+  - 收尾修正者 → 增量差异检查者
+  - 增量差异检查者 → 运行验证者
+  - 运行验证者 → 漏洞排查者 when: result.verdict == "pass"
+  - 运行验证者 → 收尾修正者 when: result.verdict == "defects_detected" max_executions: 3
+  - 漏洞排查者 → Git推送者 when: result.verdict == "confirmed"
+  - 漏洞排查者 → 收尾修正者 when: result.verdict == "issues_found" max_executions: 3
+  - Git推送者 → 完成

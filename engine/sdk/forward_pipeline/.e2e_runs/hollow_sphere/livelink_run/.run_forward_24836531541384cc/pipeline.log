@@ -1,0 +1,32 @@
+=== MatlabRunner log ===
+entry:   run_forward_pipeline
+cmd:     D:\LenovoSoftstore\Install\MATLAB\bin\matlab.exe -batch addpath('D:/ZJU/PROJECT/2026-07-02-qoder-engine/engine/sdk/forward_pipeline/matlab'); launcher('run_forward_pipeline', 'D:/ZJU/PROJECT/2026-07-02-qoder-engine/engine/sdk/forward_pipeline/.e2e_runs/hollow_sphere/livelink_run/.run_forward_24836531541384cc/params.json');
+work:    D:\ZJU\PROJECT\2026-07-02-qoder-engine\engine\sdk\forward_pipeline\.e2e_runs\hollow_sphere\livelink_run\.run_forward_24836531541384cc
+timeout: 900s
+start:   2026-07-18 01:31:33
+=========================
+[launcher] entry: run_forward_pipeline
+[launcher] work_dir: D:/ZJU/PROJECT/2026-07-02-qoder-engine/engine/sdk/forward_pipeline/.e2e_runs/hollow_sphere/livelink_run/.run_forward_24836531541384cc
+[launcher] params fields: eps_real_csv, eps_imag_csv, freq_list, model_path, output_path, mat_path, json_path, comsol_server_path, mli_path, comsol_port, comsol_startup_timeout, n_directions, measurement_R, run_v5a, tol, phantom_type, x__entry_function__
+[pipeline] Stage 1: parsing parameters
+[pipeline] Building voxel data from D:/ZJU/PROJECT/2026-07-02-qoder-engine/engine/sdk/forward_pipeline/.e2e_runs/hollow_sphere/hollow_sphere_eps.csv
+[pipeline] Voxel data: 9261 voxels, eps_r range [1.0, 5.0]
+[pipeline] Parameters parsed: 1 freqs, 64 dirs, port 2036
+[pipeline] Stage 2: starting COMSOL Server (port 2036)
+[pipeline][INFO] Port 2036 already in use; assuming external COMSOL Server
+[pipeline] Stage 3: initializing LiveLink
+[pipeline] Added LiveLink API path: D:/LenovoSoftstore/Install/COMSOL62/Multiphysics/mli
+
+MATLAB is now connected to a COMSOL Multiphysics Server at localhost:2036
+
+Run the commands below to access the COMSOL ModelUtil commands:
+import com.comsol.model.util.*
+[pipeline] LiveLink connected (port 2036)
+[pipeline] Stage 4: forward_solve
+[pipeline] LiveLink disconnected
+
+=== summary ===
+exit_code:    1
+timed_out:    False
+duration_sec: 25.07
+end:          2026-07-18 01:31:58

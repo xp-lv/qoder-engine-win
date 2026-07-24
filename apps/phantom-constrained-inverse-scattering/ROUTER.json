@@ -1,0 +1,1140 @@
+{
+  "schema_version": "2.0",
+  "entry": "理论研究调研者",
+  "steps": [
+    {
+      "step": "环境检查者-validate",
+      "role": "环境检查者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "正演COMSOL工程师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/环境检查者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 环境检查者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "环境检查者-validate"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/环境检查者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 环境检查者校验报告"
+            },
+            {
+              "path": "outputs/环境检查者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 环境检查者-validate Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "正演执行者-validate",
+      "role": "正演执行者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "正演数据生成者_校验_"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/正演执行者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 正演执行者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "正演执行者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/正演执行者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 正演执行者校验报告"
+            },
+            {
+              "path": "outputs/正演执行者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 正演执行者-validate Gate校验结果"
+            },
+            {
+              "path": "outputs/正演数据集.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 正演数据集"
+            },
+            {
+              "path": "outputs/J_obs_data.mat",
+              "type": "feedback",
+              "name": "[自身上一轮] J_obs数据"
+            }
+          ]
+        },
+        "code_bug": {
+          "targets": [
+            "正演COMSOL工程师",
+            "物理算法工程师"
+          ],
+          "type": "normal",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/正演执行者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 正演执行者-validate"
+            }
+          ]
+        },
+        "code_bug_exhausted": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/正演执行者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 正演执行者-validate"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "正演数据生成者_校验_",
+      "role": "正演数据生成者（校验）",
+      "transitions": {
+        "fail": {
+          "targets": [
+            "正演执行者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/正演数据生成者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 正演数据校验报告"
+            },
+            {
+              "path": "outputs/正演数据生成者_校验_-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 正演数据生成者_校验_ Gate校验结果"
+            },
+            {
+              "path": "outputs/正演数据集.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 正演数据集"
+            },
+            {
+              "path": "outputs/J_obs_data.mat",
+              "type": "feedback",
+              "name": "[自身上一轮] J_obs数据"
+            }
+          ]
+        },
+        "confirmed": {
+          "targets": [
+            "反演执行者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/正演数据生成者_校验_-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 正演数据生成者_校验_"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "理论研究调研者",
+      "role": "理论研究调研者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "理论研究调研者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/理论研究调研者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 理论研究调研者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "理论研究调研者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/理论研究综合报告.json",
+              "type": "feedback",
+              "name": "[反馈] 理论研究综合报告"
+            },
+            {
+              "path": "outputs/理论研究调研者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 理论研究调研者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "理论研究调研者-validate",
+      "role": "理论研究调研者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "仿真配置者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/理论研究调研者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 理论研究调研者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "理论研究调研者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/理论研究调研者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 理论研究调研者校验报告"
+            },
+            {
+              "path": "outputs/理论研究调研者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 理论研究调研者-validate Gate校验结果"
+            },
+            {
+              "path": "outputs/理论研究综合报告.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 理论研究综合报告"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "仿真配置者",
+      "role": "仿真配置者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "仿真配置者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/仿真配置者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 仿真配置者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "仿真配置者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "00-仿真配置.md",
+              "type": "feedback",
+              "name": "[反馈] 仿真配置文档"
+            },
+            {
+              "path": "config/phantom_config.json",
+              "type": "feedback",
+              "name": "[反馈] 仿体定义文件"
+            },
+            {
+              "path": "outputs/仿真配置者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 仿真配置者 Gate校验结果"
+            },
+            {
+              "path": "outputs/仿真配置者-feedback.json",
+              "type": "feedback",
+              "name": "[反馈] 仿真配置者 用户反馈"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "仿真配置者-validate",
+      "role": "仿真配置者（校验）",
+      "transitions": {
+        "fail": {
+          "targets": [
+            "仿真配置者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/仿真配置者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 仿真配置者校验报告"
+            },
+            {
+              "path": "outputs/仿真配置者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 仿真配置者-validate Gate校验结果"
+            },
+            {
+              "path": "00-仿真配置.md",
+              "type": "feedback",
+              "name": "[自身上一轮] 仿真配置文档"
+            },
+            {
+              "path": "config/phantom_config.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 仿体定义文件"
+            }
+          ]
+        },
+        "confirmed": {
+          "targets": [
+            "环境检查者",
+            "物理算法工程师",
+            "R2c"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/仿真配置者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 仿真配置者-validate"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "环境检查者",
+      "role": "环境检查者",
+      "transitions": {
+        "fail": {
+          "targets": [
+            "环境检查者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/env_status.json",
+              "type": "feedback",
+              "name": "[反馈] 环境就绪报告"
+            },
+            {
+              "path": "outputs/环境检查者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 环境检查者 Gate校验结果"
+            }
+          ]
+        },
+        "confirmed": {
+          "targets": [
+            "环境检查者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/环境检查者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 环境检查者"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "物理算法工程师",
+      "role": "物理算法工程师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "物理算法工程师-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/物理算法工程师-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 物理算法工程师"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "物理算法工程师"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "scripts/compute_jobs.m",
+              "type": "feedback",
+              "name": "[反馈] J_obs计算脚本"
+            },
+            {
+              "path": "scripts/v5a_check.m",
+              "type": "feedback",
+              "name": "[反馈] V5a校验脚本"
+            },
+            {
+              "path": "scripts/save_results.m",
+              "type": "feedback",
+              "name": "[反馈] 结果保存脚本"
+            },
+            {
+              "path": "outputs/物理算法工程师-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 物理算法工程师 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "物理算法工程师-validate",
+      "role": "物理算法工程师（校验）",
+      "transitions": {
+        "fail": {
+          "targets": [
+            "物理算法工程师"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/物理算法工程师-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 物理算法工程师校验报告"
+            },
+            {
+              "path": "outputs/物理算法工程师-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 物理算法工程师-validate Gate校验结果"
+            },
+            {
+              "path": "scripts/compute_jobs.m",
+              "type": "feedback",
+              "name": "[自身上一轮] J_obs计算脚本"
+            },
+            {
+              "path": "scripts/v5a_check.m",
+              "type": "feedback",
+              "name": "[自身上一轮] V5a校验脚本"
+            },
+            {
+              "path": "scripts/save_results.m",
+              "type": "feedback",
+              "name": "[自身上一轮] 结果保存脚本"
+            }
+          ]
+        },
+        "confirmed": {
+          "targets": [
+            "正演COMSOL工程师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/物理算法工程师-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 物理算法工程师-validate"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "R2c",
+      "role": "R2c",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "R2c-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/R2c-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] R2c"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "R2c"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "config/eps_real.csv",
+              "type": "feedback",
+              "name": "[反馈] eps_real配置"
+            },
+            {
+              "path": "config/eps_imag.csv",
+              "type": "feedback",
+              "name": "[反馈] eps_imag配置"
+            },
+            {
+              "path": "config/run_params.json",
+              "type": "feedback",
+              "name": "[反馈] 运行参数配置"
+            },
+            {
+              "path": "outputs/R2c-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] R2c Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "R2c-validate",
+      "role": "R2c（校验）",
+      "transitions": {
+        "fail": {
+          "targets": [
+            "R2c"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/R2c-validation.json",
+              "type": "feedback",
+              "name": "[反馈] R2c校验报告"
+            },
+            {
+              "path": "outputs/R2c-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] R2c-validate Gate校验结果"
+            },
+            {
+              "path": "config/eps_real.csv",
+              "type": "feedback",
+              "name": "[自身上一轮] eps_real配置"
+            },
+            {
+              "path": "config/eps_imag.csv",
+              "type": "feedback",
+              "name": "[自身上一轮] eps_imag配置"
+            },
+            {
+              "path": "config/run_params.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 运行参数配置"
+            }
+          ]
+        },
+        "confirmed": {
+          "targets": [
+            "正演COMSOL工程师"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/R2c-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] R2c-validate"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "正演COMSOL工程师",
+      "role": "正演COMSOL工程师",
+      "transitions": {
+        "fail": {
+          "targets": [
+            "正演COMSOL工程师"
+          ],
+          "type": "backward",
+          "max_executions": 5,
+          "carries": [
+            {
+              "path": "scripts/forward_solve.m",
+              "type": "feedback",
+              "name": "[反馈] COMSOL正演脚本"
+            },
+            {
+              "path": "scripts/adjoint_solve.m",
+              "type": "feedback",
+              "name": "[反馈] COMSOL伴随脚本"
+            },
+            {
+              "path": "scripts/run_forward_pipeline.m",
+              "type": "feedback",
+              "name": "[反馈] 正演管线入口脚本"
+            },
+            {
+              "path": "outputs/正演COMSOL工程师-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 正演COMSOL工程师 Gate校验结果"
+            }
+          ]
+        },
+        "confirmed": {
+          "targets": [
+            "正演COMSOL工程师-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/正演COMSOL工程师-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 正演COMSOL工程师"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "正演COMSOL工程师-validate",
+      "role": "正演COMSOL工程师（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "正演执行者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/正演COMSOL工程师-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 正演COMSOL工程师-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "正演COMSOL工程师"
+          ],
+          "type": "backward",
+          "max_executions": 5,
+          "carries": [
+            {
+              "path": "outputs/正演COMSOL工程师-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 正演COMSOL工程师校验报告"
+            },
+            {
+              "path": "outputs/正演COMSOL工程师-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 正演COMSOL工程师-validate Gate校验结果"
+            },
+            {
+              "path": "scripts/forward_solve.m",
+              "type": "feedback",
+              "name": "[自身上一轮] COMSOL正演脚本"
+            },
+            {
+              "path": "scripts/adjoint_solve.m",
+              "type": "feedback",
+              "name": "[自身上一轮] COMSOL伴随脚本"
+            },
+            {
+              "path": "scripts/run_forward_pipeline.m",
+              "type": "feedback",
+              "name": "[自身上一轮] 正演管线入口脚本"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "正演执行者",
+      "role": "正演执行者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "正演执行者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/正演执行者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 正演执行者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "正演执行者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/正演数据集.json",
+              "type": "feedback",
+              "name": "[反馈] 正演数据集"
+            },
+            {
+              "path": "outputs/J_obs_data.mat",
+              "type": "feedback",
+              "name": "[反馈] J_obs数据"
+            },
+            {
+              "path": "outputs/正演执行者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 正演执行者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "反演执行者",
+      "role": "反演执行者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "反演执行者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/反演执行者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 反演执行者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "反演执行者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/反演结果.json",
+              "type": "feedback",
+              "name": "[反馈] 反演结果"
+            },
+            {
+              "path": "outputs/反演执行者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 反演执行者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "反演执行者-validate",
+      "role": "反演执行者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "对比评估者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/反演执行者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 反演执行者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "反演执行者",
+            "对比评估者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/反演执行者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 反演执行者校验报告"
+            },
+            {
+              "path": "outputs/反演执行者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 反演执行者-validate Gate校验结果"
+            },
+            {
+              "path": "outputs/反演结果.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 反演结果"
+            },
+            {
+              "path": "outputs/评估报告.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 评估报告"
+            }
+          ]
+        },
+        "code_bug": {
+          "targets": [
+            "正演COMSOL工程师"
+          ],
+          "type": "normal",
+          "max_executions": 2,
+          "carries": [
+            {
+              "path": "outputs/反演执行者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 反演执行者-validate"
+            }
+          ]
+        },
+        "code_bug_exhausted": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/反演执行者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 反演执行者-validate"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "对比评估者",
+      "role": "对比评估者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "对比评估者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/对比评估者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 对比评估者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "对比评估者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/评估报告.json",
+              "type": "feedback",
+              "name": "[反馈] 评估报告"
+            },
+            {
+              "path": "outputs/对比评估者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 对比评估者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "对比评估者-validate",
+      "role": "对比评估者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "结果审计者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/对比评估者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 对比评估者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "对比评估者",
+            "结果审计者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/对比评估者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 对比评估者校验报告"
+            },
+            {
+              "path": "outputs/对比评估者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 对比评估者-validate Gate校验结果"
+            },
+            {
+              "path": "outputs/评估报告.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 评估报告"
+            },
+            {
+              "path": "outputs/审计报告.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 审计报告"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "结果审计者",
+      "role": "结果审计者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "实验报告撰写者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/结果审计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 结果审计者"
+            }
+          ]
+        },
+        "challenged": {
+          "targets": [
+            "对比评估者"
+          ],
+          "type": "normal",
+          "max_executions": 2,
+          "carries": [
+            {
+              "path": "outputs/结果审计者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 结果审计者"
+            },
+            {
+              "path": "outputs/审计报告.json",
+              "type": "deliverable",
+              "name": "[上游分析] 审计报告"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "结果审计者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/审计报告.json",
+              "type": "feedback",
+              "name": "[反馈] 审计报告"
+            },
+            {
+              "path": "outputs/结果审计者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 结果审计者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "实验报告撰写者",
+      "role": "实验报告撰写者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "实验报告撰写者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/实验报告撰写者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 实验报告撰写者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "实验报告撰写者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/实验报告.json",
+              "type": "feedback",
+              "name": "[反馈] 实验报告"
+            },
+            {
+              "path": "outputs/实验报告撰写者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 实验报告撰写者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "实验报告撰写者-validate",
+      "role": "实验报告撰写者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "知识优化者"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/实验报告撰写者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 实验报告撰写者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "实验报告撰写者",
+            "知识优化者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/实验报告撰写者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 实验报告撰写者校验报告"
+            },
+            {
+              "path": "outputs/实验报告撰写者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 实验报告撰写者-validate Gate校验结果"
+            },
+            {
+              "path": "outputs/实验报告.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 实验报告"
+            },
+            {
+              "path": "outputs/知识优化文档.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 知识优化文档"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "知识优化者",
+      "role": "知识优化者",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "知识优化者-validate"
+          ],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/知识优化者-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 知识优化者"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "知识优化者"
+          ],
+          "type": "backward",
+          "carries": [
+            {
+              "path": "outputs/知识优化文档.json",
+              "type": "feedback",
+              "name": "[反馈] 知识优化文档"
+            },
+            {
+              "path": "outputs/知识优化者-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 知识优化者 Gate校验结果"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "知识优化者-validate",
+      "role": "知识优化者（校验）",
+      "transitions": {
+        "confirmed": {
+          "targets": [],
+          "type": "normal",
+          "carries": [
+            {
+              "path": "outputs/知识优化者-validate-gate-result.json",
+              "type": "deliverable",
+              "name": "[上游Gate结果] 知识优化者-validate"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "知识优化者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/知识优化者-validation.json",
+              "type": "feedback",
+              "name": "[反馈] 知识优化者校验报告"
+            },
+            {
+              "path": "outputs/知识优化者-validate-gate-result.json",
+              "type": "feedback",
+              "name": "[反馈] 知识优化者-validate Gate校验结果"
+            },
+            {
+              "path": "outputs/知识优化文档.json",
+              "type": "feedback",
+              "name": "[自身上一轮] 知识优化文档"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

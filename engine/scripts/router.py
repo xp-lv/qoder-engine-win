@@ -229,8 +229,12 @@ def main():
         inputs = []
         explicit_inputs = reg.get("inputs", [])
         for inp in explicit_inputs:
-            # v9.2: 删除 inp_type（resolve_workspace_output 不再需要 type）
-            resolved = resolve_workspace_output(args.workspace_id, inp["path"], app_path)
+            # 支持 abs_path（绝对路径）和 path（相对路径）
+            is_abs = bool(inp.get("abs_path"))
+            raw_path = inp.get("abs_path") or inp["path"]
+            # knowledge 类型路由到 app 包（内置资产，不跟随工作区）
+            inp_type = inp.get("type")
+            resolved = resolve_workspace_output(args.workspace_id, raw_path, app_path, is_absolute=is_abs, output_type=inp_type)
             if resolved not in inputs:
                 inputs.append(resolved)
 
@@ -247,37 +251,25 @@ def main():
                         if resolved not in inputs:
                             inputs.append(resolved)
 
-        # output_targets（v9.2: 删除 type 路径分流，统一解析）
+        # output_targets（支持 abs_path 绝对路径）
         output_targets = []
         for o in reg.get("outputs", []):
             o_copy = dict(o)
-            o_copy["path"] = resolve_workspace_output(args.workspace_id, o["path"], app_path)
+            is_abs = bool(o.get("abs_path"))
+            raw_path = o.get("abs_path") or o["path"]
+            o_copy["path"] = resolve_workspace_output(args.workspace_id, raw_path, app_path, is_absolute=is_abs)
             output_targets.append(o_copy)
         expected_outputs = []
         checkpoint_id = f"ckpt_{uuid.uuid4().hex[:12]}"
         blocking_mode = reg.get("blocking_mode", "manual")
 
-        # 读取 schema 约束（与 inputs 同源：registry/roles 目录）
+        # v9.2: verdict 从 ROUTER.json transitions keys 提取（权威源迁移）
+        # 原 schema.json result.verdict.enum 已删除，Gate Layer 0 直接从 transitions 校验
         schema_constraints = {}
-        schema_dir_name = re.sub(r'[^\w\u4e00-\u9fff]', '_', role)
-        schema_file_path = os.path.join(app_path, "roles", schema_dir_name, "schema.json")
-        if os.path.exists(schema_file_path):
-            try:
-                with open(schema_file_path, "r", encoding="utf-8-sig") as f:
-                    role_schema = json.load(f)
-                req_top = role_schema.get("required", [])
-                props = role_schema.get("properties", {})
-                result_props = props.get("result", {}).get("properties", {})
-                result_req = props.get("result", {}).get("required", [])
-                verdict_enum = result_props.get("verdict", {}).get("enum")
-                if req_top or result_req or verdict_enum:
-                    schema_constraints = {
-                        "required_top": req_top,
-                        "result_required": result_req,
-                        "verdict_enum": list(verdict_enum) if verdict_enum else [],
-                    }
-            except Exception:
-                pass
+        step_transitions = step_def.get("transitions", {})
+        verdict_keys = sorted([k for k in step_transitions.keys() if k != "fail"])
+        if verdict_keys:
+            schema_constraints = {"verdict_enum": verdict_keys}
 
         # 根据 edge_counts 动态过滤 verdict_enum：
         # 某个 verdict 对应的边已达到 max_executions → 从可选值中移除
@@ -322,7 +314,6 @@ def main():
                 "blocking_mode": blocking_mode
             },
             "expected_outputs": expected_outputs,
-            "principles": reg.get("principles", ""),
             "checkpoint_id": checkpoint_id
         })
 

@@ -1,0 +1,21 @@
+{
+  "eps_real_csv": "D:/ZJU/PROJECT/2026-07-02-qoder-engine/engine/sdk/forward_pipeline/.e2e_runs/hollow_sphere/hollow_sphere_eps.csv",
+  "eps_imag_csv": "",
+  "freq_list": [
+    1000000000.0
+  ],
+  "model_path": "D:/ZJU/PROJECT/2026-07-02-qoder-engine/COMSOL/livelink_model.mph",
+  "output_path": "D:/ZJU/PROJECT/2026-07-02-qoder-engine/engine/sdk/forward_pipeline/.e2e_runs/hollow_sphere/livelink_run/.run_forward_24836531541384cc/forward_scattered_field.mat",
+  "mat_path": "D:/ZJU/PROJECT/2026-07-02-qoder-engine/engine/sdk/forward_pipeline/.e2e_runs/hollow_sphere/livelink_run/.run_forward_24836531541384cc/J_obs_data.mat",
+  "json_path": "D:/ZJU/PROJECT/2026-07-02-qoder-engine/engine/sdk/forward_pipeline/.e2e_runs/hollow_sphere/livelink_run/.run_forward_24836531541384cc/forward_dataset.json",
+  "comsol_server_path": "D:/LenovoSoftstore/Install/COMSOL62/Multiphysics/bin/win64/comsolmphserver.exe",
+  "mli_path": "D:/LenovoSoftstore/Install/COMSOL62/Multiphysics/mli",
+  "comsol_port": 2036,
+  "comsol_startup_timeout": 240,
+  "n_directions": 64,
+  "measurement_R": 0.26,
+  "run_v5a": false,
+  "tol": 0.05,
+  "phantom_type": "single_layer",
+  "__entry_function__": "run_forward_pipeline"
+}

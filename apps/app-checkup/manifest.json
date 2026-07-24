@@ -1,0 +1,34 @@
+{
+  "schema_version": "2.0",
+  "app_name": "app-checkup",
+  "paths": {
+    "router": "ROUTER.json",
+    "registry": "registry.json"
+  },
+  "workspace_template": {
+    "dirs": [
+      "knowledge",
+      "outputs",
+      "process/outputs"
+    ],
+    "init_files": {},
+    "knowledge_sources": [
+      {
+        "from": "knowledge/约束分层规范.md",
+        "to": "knowledge/约束分层规范.md"
+      },
+      {
+        "from": "knowledge/dispatch-skill分工规范.md",
+        "to": "knowledge/dispatch-skill分工规范.md"
+      },
+      {
+        "from": "knowledge/skill编写规范.md",
+        "to": "knowledge/skill编写规范.md"
+      },
+      {
+        "from": "knowledge/角色评审方法论.md",
+        "to": "knowledge/角色评审方法论.md"
+      }
+    ]
+  }
+}

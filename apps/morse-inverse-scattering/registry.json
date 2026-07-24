@@ -1,0 +1,496 @@
+[
+  {
+    "role_name": "理论问题定义者",
+    "skill_path": "roles/理论问题定义者/skill.md",
+    "blocking_mode": "manual",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "理论研究纲领",
+        "path": "00-理论研究纲领.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "逆散射物理原理",
+        "path": "knowledge/逆散射物理原理.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/理论问题定义者/principles.md",
+    "input_groups": [
+      [
+        "理论问题定义者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "理论问题定义者（校验）",
+    "skill_path": "roles/理论问题定义者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "理论问题定义者校验报告",
+        "path": "outputs/理论问题定义者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "理论研究纲领",
+        "path": "00-理论研究纲领.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/理论问题定义者/principles.md",
+    "input_groups": [
+      [
+        "理论问题定义者"
+      ],
+      [
+        "理论问题定义者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "临界点分析者",
+    "skill_path": "roles/临界点分析者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "临界点分析报告",
+        "path": "outputs/临界点分析报告.md",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "理论研究纲领",
+        "path": "00-理论研究纲领.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "Morse理论方法",
+        "path": "knowledge/Morse理论方法.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "理论问题定义者-validate"
+      ],
+      [
+        "拓扑红队"
+      ],
+      [
+        "适定性审查者"
+      ],
+      [
+        "临界点分析者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "拓扑红队",
+    "skill_path": "roles/拓扑红队/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "拓扑对抗报告",
+        "path": "outputs/拓扑红队-对抗分析报告.md",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "临界点分析报告",
+        "path": "outputs/临界点分析报告.md",
+        "type": "process"
+      },
+      {
+        "name": "Morse理论方法",
+        "path": "knowledge/Morse理论方法.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "临界点分析者"
+      ],
+      [
+        "拓扑红队"
+      ]
+    ],
+    "verdicts": [
+      "challenged",
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "适定性审查者",
+    "skill_path": "roles/适定性审查者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "适定性审查报告",
+        "path": "outputs/适定性审查报告.md",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "临界点分析报告",
+        "path": "outputs/临界点分析报告.md",
+        "type": "process"
+      },
+      {
+        "name": "拓扑对抗报告",
+        "path": "outputs/拓扑红队-对抗分析报告.md",
+        "type": "process"
+      },
+      {
+        "name": "Morse理论方法",
+        "path": "knowledge/Morse理论方法.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "逆散射适定性理论",
+        "path": "knowledge/逆散射适定性理论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "拓扑红队"
+      ],
+      [
+        "适定性审查者"
+      ]
+    ],
+    "verdicts": [
+      "challenged",
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "文献调研者",
+    "skill_path": "roles/文献调研者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "文献综述报告",
+        "path": "outputs/文献综述报告.md",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "理论研究纲领",
+        "path": "00-理论研究纲领.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "适定性审查报告",
+        "path": "outputs/适定性审查报告.md",
+        "type": "process"
+      },
+      {
+        "name": "Morse理论文献综述",
+        "path": "knowledge/Morse理论文献综述.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "适定性审查者"
+      ],
+      [
+        "文献调研者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "理论推导者",
+    "skill_path": "roles/理论推导者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "理论推导报告",
+        "path": "outputs/理论推导报告.md",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "临界点分析报告",
+        "path": "outputs/临界点分析报告.md",
+        "type": "process"
+      },
+      {
+        "name": "适定性审查报告",
+        "path": "outputs/适定性审查报告.md",
+        "type": "process"
+      },
+      {
+        "name": "Morse理论方法",
+        "path": "knowledge/Morse理论方法.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "逆散射物理原理",
+        "path": "knowledge/逆散射物理原理.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "逆散射适定性理论",
+        "path": "knowledge/逆散射适定性理论.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "适定性审查者"
+      ],
+      [
+        "理论推导者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "工程可行性验证者",
+    "skill_path": "roles/工程可行性验证者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "工程可行性分析报告",
+        "path": "outputs/工程可行性分析报告.md",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "理论研究纲领",
+        "path": "00-理论研究纲领.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "适定性审查报告",
+        "path": "outputs/适定性审查报告.md",
+        "type": "process"
+      },
+      {
+        "name": "工程可行性分析框架",
+        "path": "knowledge/工程可行性分析框架.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "适定性审查者"
+      ],
+      [
+        "工程可行性验证者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "研究报告者",
+    "skill_path": "roles/研究报告者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "研究报告",
+        "path": "研究报告.md",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "文献综述报告",
+        "path": "outputs/文献综述报告.md",
+        "type": "process"
+      },
+      {
+        "name": "理论推导报告",
+        "path": "outputs/理论推导报告.md",
+        "type": "process"
+      },
+      {
+        "name": "工程可行性分析报告",
+        "path": "outputs/工程可行性分析报告.md",
+        "type": "process"
+      }
+    ],
+    "input_groups": [
+      [
+        "文献调研者",
+        "理论推导者",
+        "工程可行性验证者"
+      ],
+      [
+        "研究报告者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  }
+]

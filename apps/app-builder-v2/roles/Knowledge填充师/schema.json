@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "_required_files": [
+    {
+      "name": "知识填充报告",
+      "path": "process/outputs/知识填充报告.json"
+    },
+    {
+      "name": "知识文档",
+      "path": "knowledge/"
+    }
+  ]
+}

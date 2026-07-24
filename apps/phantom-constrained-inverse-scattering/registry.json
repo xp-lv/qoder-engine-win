@@ -1,0 +1,1523 @@
+[
+  {
+    "role_name": "正演数据生成者（校验）",
+    "skill_path": "roles/正演数据生成者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "正演数据校验报告",
+        "path": "outputs/正演数据生成者-validation.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "正演数据集",
+        "path": "outputs/正演数据集.json",
+        "type": "process"
+      },
+      {
+        "name": "J_obs数据",
+        "path": "outputs/J_obs_data.mat",
+        "type": "process"
+      }
+    ],
+    "input_groups": [
+      [
+        "正演执行者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "理论研究调研者",
+    "skill_path": "roles/理论研究调研者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "理论研究综合报告",
+        "path": "outputs/理论研究综合报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "逆散射物理原理",
+        "path": "knowledge/逆散射物理原理.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "仿体约束正则化方法",
+        "path": "knowledge/仿体约束正则化方法.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "伴随梯度反演算法",
+        "path": "knowledge/伴随梯度反演算法.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/理论研究调研者/principles.md",
+    "input_groups": [
+      [
+        "理论研究调研者-validate"
+      ],
+      [
+        "理论研究调研者"
+      ],
+      [
+        "理论研究调研者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "理论研究调研者（校验）",
+    "skill_path": "roles/理论研究调研者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "理论研究调研者校验报告",
+        "path": "outputs/理论研究调研者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "理论研究综合报告",
+        "path": "outputs/理论研究综合报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/理论研究调研者/principles.md",
+    "input_groups": [
+      [
+        "理论研究调研者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "仿真配置者",
+    "skill_path": "roles/仿真配置者/skill.md",
+    "blocking_mode": "manual",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "仿真配置文档",
+        "path": "00-仿真配置.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "仿体定义文件",
+        "path": "config/phantom_config.json",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "理论研究综合报告",
+        "path": "outputs/理论研究综合报告.json",
+        "type": "process"
+      },
+      {
+        "name": "仿体约束正则化方法",
+        "path": "knowledge/仿体约束正则化方法.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/仿真配置者/principles.md",
+    "input_groups": [
+      [
+        "理论研究调研者-validate"
+      ],
+      [
+        "仿真配置者-validate"
+      ],
+      [
+        "仿真配置者"
+      ],
+      [
+        "仿真配置者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "仿真配置者（校验）",
+    "skill_path": "roles/仿真配置者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "仿真配置者校验报告",
+        "path": "outputs/仿真配置者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "仿真配置文档",
+        "path": "00-仿真配置.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "仿体定义文件",
+        "path": "config/phantom_config.json",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/仿真配置者/principles.md",
+    "input_groups": [
+      [
+        "仿真配置者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "环境检查者",
+    "skill_path": "roles/环境检查者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "环境就绪报告",
+        "path": "outputs/env_status.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "COMSOL正演管线指南",
+        "path": "knowledge/COMSOL正演管线指南.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "MCP工具使用指南",
+        "path": "knowledge/MCP工具使用指南.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/环境检查者/principles.md",
+    "input_groups": [
+      [
+        "仿真配置者-validate"
+      ],
+      [
+        "环境检查者"
+      ],
+      [
+        "环境检查者"
+      ]
+    ]
+  },
+  {
+    "role_name": "环境检查者（校验）",
+    "skill_path": "roles/环境检查者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "环境检查者校验报告",
+        "path": "outputs/环境检查者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "环境就绪报告",
+        "path": "outputs/env_status.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/环境检查者/principles.md",
+    "input_groups": [
+      [
+        "环境检查者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "物理算法工程师",
+    "skill_path": "roles/物理算法工程师/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "J_obs计算脚本",
+        "path": "scripts/compute_jobs.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "V5a校验脚本",
+        "path": "scripts/v5a_check.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "结果保存脚本",
+        "path": "scripts/save_results.m",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "仿真配置文档",
+        "path": "00-仿真配置.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "逆散射物理原理",
+        "path": "knowledge/逆散射物理原理.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/物理算法工程师/principles.md",
+    "input_groups": [
+      [
+        "仿真配置者-validate"
+      ],
+      [
+        "物理算法工程师-validate"
+      ],
+      [
+        "正演执行者-validate"
+      ],
+      [
+        "物理算法工程师"
+      ],
+      [
+        "物理算法工程师-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "物理算法工程师（校验）",
+    "skill_path": "roles/物理算法工程师_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "物理算法工程师校验报告",
+        "path": "outputs/物理算法工程师-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "J_obs计算脚本",
+        "path": "scripts/compute_jobs.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "V5a校验脚本",
+        "path": "scripts/v5a_check.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "结果保存脚本",
+        "path": "scripts/save_results.m",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/物理算法工程师/principles.md",
+    "input_groups": [
+      [
+        "物理算法工程师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "R2c",
+    "skill_path": "roles/R2c/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "eps_real配置",
+        "path": "config/eps_real.csv",
+        "type": "deliverable"
+      },
+      {
+        "name": "eps_imag配置",
+        "path": "config/eps_imag.csv",
+        "type": "deliverable"
+      },
+      {
+        "name": "运行参数配置",
+        "path": "config/run_params.json",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "仿真配置文档",
+        "path": "00-仿真配置.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "仿体定义文件",
+        "path": "config/phantom_config.json",
+        "type": "deliverable"
+      },
+      {
+        "name": "MCP工具使用指南",
+        "path": "knowledge/MCP工具使用指南.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/R2c/principles.md",
+    "input_groups": [
+      [
+        "仿真配置者-validate"
+      ],
+      [
+        "R2c-validate"
+      ],
+      [
+        "R2c"
+      ],
+      [
+        "R2c-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "R2c（校验）",
+    "skill_path": "roles/R2c_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "R2c校验报告",
+        "path": "outputs/R2c-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "eps_real配置",
+        "path": "config/eps_real.csv",
+        "type": "deliverable"
+      },
+      {
+        "name": "eps_imag配置",
+        "path": "config/eps_imag.csv",
+        "type": "deliverable"
+      },
+      {
+        "name": "运行参数配置",
+        "path": "config/run_params.json",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/R2c/principles.md",
+    "input_groups": [
+      [
+        "R2c"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "正演COMSOL工程师",
+    "skill_path": "roles/正演COMSOL工程师/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "COMSOL正演脚本",
+        "path": "scripts/forward_solve.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "COMSOL伴随脚本",
+        "path": "scripts/adjoint_solve.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "正演管线入口脚本",
+        "path": "scripts/run_forward_pipeline.m",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "仿真配置文档",
+        "path": "00-仿真配置.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "仿体定义文件",
+        "path": "config/phantom_config.json",
+        "type": "deliverable"
+      },
+      {
+        "name": "COMSOL正演管线指南",
+        "path": "knowledge/COMSOL正演管线指南.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "MCP工具使用指南",
+        "path": "knowledge/MCP工具使用指南.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/正演COMSOL工程师/principles.md",
+    "input_groups": [
+      [
+        "环境检查者-validate",
+        "物理算法工程师-validate",
+        "R2c-validate"
+      ],
+      [
+        "正演COMSOL工程师"
+      ],
+      [
+        "正演COMSOL工程师-validate"
+      ],
+      [
+        "正演执行者-validate"
+      ],
+      [
+        "反演执行者-validate"
+      ],
+      [
+        "正演COMSOL工程师"
+      ],
+      [
+        "正演COMSOL工程师-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "正演COMSOL工程师（校验）",
+    "skill_path": "roles/正演COMSOL工程师_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "正演COMSOL工程师校验报告",
+        "path": "outputs/正演COMSOL工程师-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "COMSOL正演脚本",
+        "path": "scripts/forward_solve.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "COMSOL伴随脚本",
+        "path": "scripts/adjoint_solve.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "正演管线入口脚本",
+        "path": "scripts/run_forward_pipeline.m",
+        "type": "deliverable"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/正演COMSOL工程师/principles.md",
+    "input_groups": [
+      [
+        "正演COMSOL工程师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "正演执行者",
+    "skill_path": "roles/正演执行者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "正演数据集",
+        "path": "outputs/正演数据集.json",
+        "type": "process"
+      },
+      {
+        "name": "J_obs数据",
+        "path": "outputs/J_obs_data.mat",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "环境就绪报告",
+        "path": "outputs/env_status.json",
+        "type": "process"
+      },
+      {
+        "name": "仿真配置文档",
+        "path": "00-仿真配置.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "仿体定义文件",
+        "path": "config/phantom_config.json",
+        "type": "deliverable"
+      },
+      {
+        "name": "COMSOL正演脚本",
+        "path": "scripts/forward_solve.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "COMSOL伴随脚本",
+        "path": "scripts/adjoint_solve.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "正演管线入口脚本",
+        "path": "scripts/run_forward_pipeline.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "J_obs计算脚本",
+        "path": "scripts/compute_jobs.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "V5a校验脚本",
+        "path": "scripts/v5a_check.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "结果保存脚本",
+        "path": "scripts/save_results.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "eps_real配置",
+        "path": "config/eps_real.csv",
+        "type": "deliverable"
+      },
+      {
+        "name": "eps_imag配置",
+        "path": "config/eps_imag.csv",
+        "type": "deliverable"
+      },
+      {
+        "name": "运行参数配置",
+        "path": "config/run_params.json",
+        "type": "deliverable"
+      },
+      {
+        "name": "MCP工具使用指南",
+        "path": "knowledge/MCP工具使用指南.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/正演执行者/principles.md",
+    "input_groups": [
+      [
+        "正演COMSOL工程师-validate"
+      ],
+      [
+        "正演执行者-validate"
+      ],
+      [
+        "正演数据生成者_校验_"
+      ],
+      [
+        "正演执行者-validate"
+      ],
+      [
+        "正演数据生成者_校验_"
+      ],
+      [
+        "正演执行者"
+      ]
+    ]
+  },
+  {
+    "role_name": "正演执行者（校验）",
+    "skill_path": "roles/正演执行者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "正演执行者校验报告",
+        "path": "outputs/正演执行者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "正演数据集",
+        "path": "outputs/正演数据集.json",
+        "type": "process"
+      },
+      {
+        "name": "J_obs数据",
+        "path": "outputs/J_obs_data.mat",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/正演执行者/principles.md",
+    "verdicts": [
+      "code_bug",
+      "code_bug_exhausted",
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "反演执行者",
+    "skill_path": "roles/反演执行者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "反演结果",
+        "path": "outputs/反演结果.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "正演数据集",
+        "path": "outputs/正演数据集.json",
+        "type": "process"
+      },
+      {
+        "name": "J_obs数据",
+        "path": "outputs/J_obs_data.mat",
+        "type": "process"
+      },
+      {
+        "name": "仿真配置文档",
+        "path": "00-仿真配置.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "仿体定义文件",
+        "path": "config/phantom_config.json",
+        "type": "deliverable"
+      },
+      {
+        "name": "COMSOL正演脚本",
+        "path": "scripts/forward_solve.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "COMSOL伴随脚本",
+        "path": "scripts/adjoint_solve.m",
+        "type": "deliverable"
+      },
+      {
+        "name": "逆散射物理原理",
+        "path": "knowledge/逆散射物理原理.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "仿体约束正则化方法",
+        "path": "knowledge/仿体约束正则化方法.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "COMSOL正演管线指南",
+        "path": "knowledge/COMSOL正演管线指南.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "伴随梯度反演算法",
+        "path": "knowledge/伴随梯度反演算法.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "MCP工具使用指南",
+        "path": "knowledge/MCP工具使用指南.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/反演执行者/principles.md",
+    "input_groups": [
+      [
+        "正演数据生成者_校验_"
+      ],
+      [
+        "反演执行者-validate"
+      ],
+      [
+        "反演执行者"
+      ],
+      [
+        "反演执行者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "反演执行者（校验）",
+    "skill_path": "roles/反演执行者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "反演执行者校验报告",
+        "path": "outputs/反演执行者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "反演结果",
+        "path": "outputs/反演结果.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/反演执行者/principles.md",
+    "input_groups": [
+      [
+        "反演执行者"
+      ]
+    ],
+    "verdicts": [
+      "code_bug",
+      "code_bug_exhausted",
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "对比评估者",
+    "skill_path": "roles/对比评估者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "评估报告",
+        "path": "outputs/评估报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "反演结果",
+        "path": "outputs/反演结果.json",
+        "type": "process"
+      },
+      {
+        "name": "正演数据集",
+        "path": "outputs/正演数据集.json",
+        "type": "process"
+      },
+      {
+        "name": "仿真配置文档",
+        "path": "00-仿真配置.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "逆散射物理原理",
+        "path": "knowledge/逆散射物理原理.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "仿体约束正则化方法",
+        "path": "knowledge/仿体约束正则化方法.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "评估指标定义",
+        "path": "knowledge/评估指标定义.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/对比评估者/principles.md",
+    "input_groups": [
+      [
+        "反演执行者-validate"
+      ],
+      [
+        "反演执行者-validate"
+      ],
+      [
+        "对比评估者-validate"
+      ],
+      [
+        "结果审计者"
+      ],
+      [
+        "反演执行者-validate"
+      ],
+      [
+        "对比评估者"
+      ],
+      [
+        "对比评估者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "对比评估者（校验）",
+    "skill_path": "roles/对比评估者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "对比评估者校验报告",
+        "path": "outputs/对比评估者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "评估报告",
+        "path": "outputs/评估报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/对比评估者/principles.md",
+    "input_groups": [
+      [
+        "对比评估者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "结果审计者",
+    "skill_path": "roles/结果审计者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "审计报告",
+        "path": "outputs/审计报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "评估报告",
+        "path": "outputs/评估报告.json",
+        "type": "process"
+      },
+      {
+        "name": "仿真配置文档",
+        "path": "00-仿真配置.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "评估指标定义",
+        "path": "knowledge/评估指标定义.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "对比评估者-validate"
+      ],
+      [
+        "对比评估者-validate"
+      ],
+      [
+        "对比评估者-validate"
+      ],
+      [
+        "结果审计者"
+      ]
+    ],
+    "verdicts": [
+      "challenged",
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "实验报告撰写者",
+    "skill_path": "roles/实验报告撰写者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "实验报告",
+        "path": "outputs/实验报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "评估报告",
+        "path": "outputs/评估报告.json",
+        "type": "process"
+      },
+      {
+        "name": "审计报告",
+        "path": "outputs/审计报告.json",
+        "type": "process"
+      },
+      {
+        "name": "仿真配置文档",
+        "path": "00-仿真配置.md",
+        "type": "deliverable"
+      },
+      {
+        "name": "评估指标定义",
+        "path": "knowledge/评估指标定义.md",
+        "type": "knowledge"
+      }
+    ],
+    "principles": "roles/实验报告撰写者/principles.md",
+    "input_groups": [
+      [
+        "结果审计者"
+      ],
+      [
+        "实验报告撰写者-validate"
+      ],
+      [
+        "实验报告撰写者"
+      ],
+      [
+        "实验报告撰写者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "实验报告撰写者（校验）",
+    "skill_path": "roles/实验报告撰写者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "实验报告撰写者校验报告",
+        "path": "outputs/实验报告撰写者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "实验报告",
+        "path": "outputs/实验报告.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/实验报告撰写者/principles.md",
+    "input_groups": [
+      [
+        "实验报告撰写者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "知识优化者",
+    "skill_path": "roles/知识优化者/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "producer",
+    "outputs": [
+      {
+        "name": "知识优化文档",
+        "path": "outputs/知识优化文档.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "text_validation": {
+          "min_size": 50
+        }
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "实验报告",
+        "path": "outputs/实验报告.json",
+        "type": "process"
+      },
+      {
+        "name": "理论研究综合报告",
+        "path": "outputs/理论研究综合报告.json",
+        "type": "process"
+      }
+    ],
+    "principles": "roles/知识优化者/principles.md",
+    "input_groups": [
+      [
+        "实验报告撰写者-validate"
+      ],
+      [
+        "实验报告撰写者-validate"
+      ],
+      [
+        "知识优化者-validate"
+      ],
+      [
+        "实验报告撰写者-validate"
+      ],
+      [
+        "知识优化者"
+      ],
+      [
+        "知识优化者-validate"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "知识优化者（校验）",
+    "skill_path": "roles/知识优化者_校验_/skill.md",
+    "blocking_mode": "auto",
+    "role_type": "standard",
+    "outputs": [
+      {
+        "name": "知识优化者校验报告",
+        "path": "outputs/知识优化者-validation.json",
+        "type": "deliverable"
+      }
+    ],
+    "inputs": [
+      {
+        "name": "知识优化文档",
+        "path": "outputs/知识优化文档.json",
+        "type": "process"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true,
+        "rules": [
+          {
+            "type": "field_exists",
+            "field": "result.verdict",
+            "must_be_non_empty": true,
+            "description": "校验角色必须输出 result.verdict"
+          }
+        ]
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "principles": "roles/知识优化者/principles.md",
+    "input_groups": [
+      [
+        "知识优化者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  }
+]

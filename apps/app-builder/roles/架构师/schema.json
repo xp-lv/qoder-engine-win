@@ -1,45 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
-  "properties": {
-    "result": {
-      "type": "object",
-      "required": [
-        "verdict",
-        "summary"
-      ],
-      "properties": {
-        "verdict": {
-          "type": "string",
-          "enum": [
-            "confirmed"
-          ]
-        },
-        "summary": {
-          "type": "string"
-        },
-        "findings": {
-          "type": "array"
-        },
-        "errors": {
-          "type": "array"
-        }
-      }
-    }
-  },
-  "required": [
-    "result"
-  ],
+  "properties": {},
+  "required": [],
   "_required_files": [
     {
       "name": "App架构文件",
-      "path": "app.yaml",
-      "type": "deliverable"
+      "path": "app.yaml"
     },
     {
       "name": "知识文档设计清单",
-      "path": "outputs/知识文档设计.json",
-      "type": "process"
+      "path": "outputs/知识文档设计.json"
     }
   ]
 }

@@ -1,0 +1,79 @@
+app_name: app-checkup
+
+# ═══════════════════════════════════════════════════════════════
+# app-checkup — APP 体检工具
+# ═══════════════════════════════════════════════════════════════
+#
+# 版本: v1
+# 设计目标: 对任意已编译的多角色 APP 包执行自动化体检，
+#           基于 6 维评审框架（A 职责 / B 一致性 / C 完备性 /
+#           D 质量 / E 机制 / F 契约）产出结构化体检报告。
+#
+# 核心拓扑: 体检入口 → FORK[3 个体检者] → JOIN → 体检报告生成者 → 完成
+# 特征: 纯只读分析（不修改目标 APP）、单次产出（无迭代循环）
+#
+# 使用方式: 传入 "体检 apps/xxx" 触发，体检入口解析目标路径
+# ═══════════════════════════════════════════════════════════════
+
+knowledge:
+  - 约束分层规范: knowledge/约束分层规范.md
+    inject_to: [结构一致性体检者]
+  - dispatch-skill分工规范: knowledge/dispatch-skill分工规范.md
+    inject_to: [机制兼容性体检者]
+  - skill编写规范: knowledge/skill编写规范.md
+    inject_to: [机制兼容性体检者, 内容质量体检者]
+  - 角色评审方法论: knowledge/角色评审方法论.md
+    inject_to: [结构一致性体检者, 机制兼容性体检者, 内容质量体检者]
+
+roles:
+  # ═══ 入口层：解析目标 APP + 预校验 ═══
+  体检入口:
+    confirm: auto
+    outputs:
+      - 体检范围声明: process/outputs/体检范围声明.json
+
+  # ═══ 并行体检层（FORK 扇出，3 维并行）═══
+
+  结构一致性体检者:
+    confirm: auto
+    inputs:
+      - 体检范围声明: process/outputs/体检范围声明.json
+    outputs:
+      - 结构一致性报告: process/outputs/结构一致性体检报告.json
+
+  机制兼容性体检者:
+    confirm: auto
+    inputs:
+      - 体检范围声明: process/outputs/体检范围声明.json
+    outputs:
+      - 机制兼容性报告: process/outputs/机制兼容性体检报告.json
+
+  内容质量体检者:
+    confirm: auto
+    inputs:
+      - 体检范围声明: process/outputs/体检范围声明.json
+    outputs:
+      - 内容质量报告: process/outputs/内容质量体检报告.json
+
+  # ═══ 汇总层（JOIN 汇入 + 评分 + 报告）═══
+  体检报告生成者:
+    confirm: manual
+    inputs:
+      - 体检范围声明: process/outputs/体检范围声明.json
+      - 结构一致性报告: process/outputs/结构一致性体检报告.json
+      - 机制兼容性报告: process/outputs/机制兼容性体检报告.json
+      - 内容质量报告: process/outputs/内容质量体检报告.json
+    outputs:
+      - 体检报告: outputs/体检报告.json
+
+edges:
+  # ═══ FORK: 体检入口扇出到 3 个并行体检者 ═══
+  - 体检入口 → [结构一致性体检者, 机制兼容性体检者, 内容质量体检者]
+    carries: [process/outputs/体检范围声明.json]
+
+  # ═══ JOIN: 3 个体检者汇入报告生成者 ═══
+  - [结构一致性体检者, 机制兼容性体检者, 内容质量体检者] → 体检报告生成者
+    carries: [process/outputs/结构一致性体检报告.json, process/outputs/机制兼容性体检报告.json, process/outputs/内容质量体检报告.json]
+
+  # ═══ 完成 ═══
+  - 体检报告生成者 → 完成

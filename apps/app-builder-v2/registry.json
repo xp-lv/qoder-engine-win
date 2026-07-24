@@ -1,0 +1,546 @@
+[
+  {
+    "role_name": "蓝图解析师",
+    "skill_path": "roles/蓝图解析师/skill.md",
+    "blocking_mode": "manual",
+    "outputs": [
+      {
+        "name": "内部蓝图模型",
+        "path": "process/outputs/内部蓝图模型.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "架构蓝图",
+        "path": "outputs/架构蓝图.md"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "蓝图解析规范",
+        "path": "knowledge/蓝图解析规范.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "蓝图解析师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "结构生成师",
+    "skill_path": "roles/结构生成师/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "目标APP架构文件",
+        "path": "app.yaml"
+      },
+      {
+        "name": "目标APP清单",
+        "path": "manifest.json"
+      },
+      {
+        "name": "目标APP路由",
+        "path": "ROUTER.json"
+      },
+      {
+        "name": "目标APP注册表",
+        "path": "registry.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "内部蓝图模型",
+        "path": "process/outputs/内部蓝图模型.json"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "APP包结构规范",
+        "path": "knowledge/APP包结构规范.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "蓝图解析师"
+      ],
+      [
+        "结构生成师"
+      ],
+      [
+        "终审裁决者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "Skill填充师",
+    "skill_path": "roles/Skill填充师/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "技能填充报告",
+        "path": "process/outputs/技能填充报告.json"
+      },
+      {
+        "name": "角色文件树",
+        "path": "roles/"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "内部蓝图模型",
+        "path": "process/outputs/内部蓝图模型.json"
+      },
+      {
+        "name": "目标APP架构文件",
+        "path": "app.yaml"
+      },
+      {
+        "name": "目标APP路由",
+        "path": "ROUTER.json"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "skill编写指南",
+        "path": "knowledge/skill编写指南.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "结构生成师"
+      ],
+      [
+        "编译预检师"
+      ],
+      [
+        "终审裁决者"
+      ],
+      [
+        "Skill填充师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "Knowledge填充师",
+    "skill_path": "roles/Knowledge填充师/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "知识填充报告",
+        "path": "process/outputs/知识填充报告.json"
+      },
+      {
+        "name": "知识文档",
+        "path": "knowledge/"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "内部蓝图模型",
+        "path": "process/outputs/内部蓝图模型.json"
+      },
+      {
+        "name": "目标APP架构文件",
+        "path": "app.yaml"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "knowledge编写指南",
+        "path": "knowledge/knowledge编写指南.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "结构生成师"
+      ],
+      [
+        "编译预检师"
+      ],
+      [
+        "终审裁决者"
+      ],
+      [
+        "Knowledge填充师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "编译预检师",
+    "skill_path": "roles/编译预检师/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "编译预检报告",
+        "path": "process/outputs/编译预检报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "目标APP架构文件",
+        "path": "app.yaml"
+      },
+      {
+        "name": "目标APP清单",
+        "path": "manifest.json"
+      },
+      {
+        "name": "目标APP路由",
+        "path": "ROUTER.json"
+      },
+      {
+        "name": "目标APP注册表",
+        "path": "registry.json"
+      },
+      {
+        "name": "技能填充报告",
+        "path": "process/outputs/技能填充报告.json"
+      },
+      {
+        "name": "知识填充报告",
+        "path": "process/outputs/知识填充报告.json"
+      },
+      {
+        "name": "APP包结构规范",
+        "path": "knowledge/APP包结构规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "SDK规范",
+        "path": "knowledge/SDK_SPEC.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "Skill填充师",
+        "Knowledge填充师"
+      ],
+      [
+        "编译预检师"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "fail_compile"
+    ]
+  },
+  {
+    "role_name": "忠实度红队",
+    "skill_path": "roles/忠实度红队/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "忠实度问题清单",
+        "path": "process/outputs/R1-问题清单.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "内部蓝图模型",
+        "path": "process/outputs/内部蓝图模型.json"
+      },
+      {
+        "name": "角色文件树",
+        "path": "roles/"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "对抗校验准则",
+        "path": "knowledge/对抗校验准则.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "编译预检师"
+      ],
+      [
+        "忠实度红队"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "完整性红队",
+    "skill_path": "roles/完整性红队/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "完整性问题清单",
+        "path": "process/outputs/R2-问题清单.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "内部蓝图模型",
+        "path": "process/outputs/内部蓝图模型.json"
+      },
+      {
+        "name": "角色文件树",
+        "path": "roles/"
+      },
+      {
+        "name": "知识文档",
+        "path": "knowledge/"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "对抗校验准则",
+        "path": "knowledge/对抗校验准则.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "编译预检师"
+      ],
+      [
+        "完整性红队"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "一致性红队",
+    "skill_path": "roles/一致性红队/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "一致性问题清单",
+        "path": "process/outputs/R3-问题清单.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "内部蓝图模型",
+        "path": "process/outputs/内部蓝图模型.json"
+      },
+      {
+        "name": "角色文件树",
+        "path": "roles/"
+      },
+      {
+        "name": "目标APP路由",
+        "path": "ROUTER.json"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "对抗校验准则",
+        "path": "knowledge/对抗校验准则.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "编译预检师"
+      ],
+      [
+        "一致性红队"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "终审裁决者",
+    "skill_path": "roles/终审裁决者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "终审裁决书",
+        "path": "outputs/终审裁决书.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "编译预检报告",
+        "path": "process/outputs/编译预检报告.json"
+      },
+      {
+        "name": "忠实度问题清单",
+        "path": "process/outputs/R1-问题清单.json"
+      },
+      {
+        "name": "完整性问题清单",
+        "path": "process/outputs/R2-问题清单.json"
+      },
+      {
+        "name": "一致性问题清单",
+        "path": "process/outputs/R3-问题清单.json"
+      },
+      {
+        "name": "高质量APP产出原则",
+        "path": "knowledge/高质量APP产出原则.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "SDK规范",
+        "path": "knowledge/SDK_SPEC.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "忠实度红队",
+        "完整性红队",
+        "一致性红队"
+      ],
+      [
+        "终审裁决者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "consistency_defect",
+      "fail_consistency",
+      "fail_structure"
+    ]
+  }
+]

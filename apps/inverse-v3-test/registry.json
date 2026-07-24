@@ -1,0 +1,710 @@
+[
+  {
+    "role_name": "管线维护者",
+    "skill_path": "roles/管线维护者/skill.md",
+    "blocking_mode": "manual",
+    "outputs": [
+      {
+        "name": "修改日志",
+        "path": "modification_log.md"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "管线重构报告",
+        "path": "outputs/管线重构报告.json"
+      },
+      {
+        "name": "管线注册表",
+        "path": "pipeline_registry.json"
+      }
+    ],
+    "input_groups": [
+      [
+        "管线维护者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "方向把控者",
+    "skill_path": "roles/方向把控者/skill.md",
+    "blocking_mode": "manual",
+    "outputs": [
+      {
+        "name": "方向声明",
+        "path": "direction/方向声明.json"
+      },
+      {
+        "name": "方向演变史",
+        "path": "direction/方向演变史.json"
+      },
+      {
+        "name": "方向认知",
+        "path": "direction/方向认知.md"
+      },
+      {
+        "name": "方向声明传递件",
+        "path": "outputs/方向声明.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "需求文档",
+        "path": "00-需求描述.md"
+      },
+      {
+        "name": "方向健康度评估",
+        "path": "outputs/direction_assessment.json"
+      },
+      {
+        "name": "方向演变史",
+        "path": "direction/方向演变史.json"
+      },
+      {
+        "name": "方向认知",
+        "path": "direction/方向认知.md"
+      },
+      {
+        "name": "逆散射科研闭环规范",
+        "path": "knowledge/逆散射科研闭环规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "演进知识库",
+        "path": "knowledge/演进知识库.json",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "方向质疑者"
+      ],
+      [
+        "知识提炼者"
+      ],
+      [
+        "方向把控者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "方向质疑者",
+    "skill_path": "roles/方向质疑者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "方向质疑报告",
+        "path": "outputs/方向质疑报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "方向声明",
+        "path": "direction/方向声明.json"
+      },
+      {
+        "name": "方向演变史",
+        "path": "direction/方向演变史.json"
+      },
+      {
+        "name": "演进知识库",
+        "path": "knowledge/演进知识库.json",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "方向把控者"
+      ],
+      [
+        "方向质疑者"
+      ]
+    ],
+    "verdicts": [
+      "direction_challenged",
+      "direction_confirmed"
+    ]
+  },
+  {
+    "role_name": "研究者",
+    "skill_path": "roles/研究者/skill.md",
+    "blocking_mode": "manual",
+    "outputs": [
+      {
+        "name": "假设链",
+        "path": "hypothesis_chain.json"
+      },
+      {
+        "name": "研究笔记",
+        "path": "research/研究笔记.md"
+      },
+      {
+        "name": "已否决假设",
+        "path": "research/已否决假设.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "方向声明",
+        "path": "direction/方向声明.json"
+      },
+      {
+        "name": "改进信号",
+        "path": "outputs/delta_report.md"
+      },
+      {
+        "name": "汇聚裁决结果",
+        "path": "outputs/汇聚裁决报告.json"
+      },
+      {
+        "name": "研究笔记",
+        "path": "research/研究笔记.md"
+      },
+      {
+        "name": "已否决假设",
+        "path": "research/已否决假设.json"
+      },
+      {
+        "name": "逆散射科研闭环规范",
+        "path": "knowledge/逆散射科研闭环规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "管线能力契约规范",
+        "path": "knowledge/管线能力契约规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "演进知识库",
+        "path": "knowledge/演进知识库.json",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "方向质疑者"
+      ],
+      [
+        "管线重构者"
+      ],
+      [
+        "汇聚裁决者"
+      ],
+      [
+        "知识提炼者"
+      ],
+      [
+        "研究者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "对抗评审者",
+    "skill_path": "roles/对抗评审者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "评审报告",
+        "path": "outputs/对抗评审报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "假设链",
+        "path": "hypothesis_chain.json"
+      }
+    ],
+    "input_groups": [
+      [
+        "研究者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "算法可行性检查者",
+    "skill_path": "roles/算法可行性检查者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "算法可行性报告",
+        "path": "outputs/算法可行性报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "假设链",
+        "path": "hypothesis_chain.json"
+      }
+    ],
+    "input_groups": [
+      [
+        "研究者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "管线匹配者",
+    "skill_path": "roles/管线匹配者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "管线匹配报告",
+        "path": "outputs/管线匹配报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "假设链",
+        "path": "hypothesis_chain.json"
+      },
+      {
+        "name": "管线注册表",
+        "path": "pipeline_registry.json"
+      },
+      {
+        "name": "管线能力契约规范",
+        "path": "knowledge/管线能力契约规范.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "研究者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "汇聚裁决者",
+    "skill_path": "roles/汇聚裁决者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "汇聚裁决报告",
+        "path": "outputs/汇聚裁决报告.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "评审报告",
+        "path": "outputs/对抗评审报告.json"
+      },
+      {
+        "name": "算法可行性报告",
+        "path": "outputs/算法可行性报告.json"
+      },
+      {
+        "name": "管线匹配报告",
+        "path": "outputs/管线匹配报告.json"
+      }
+    ],
+    "input_groups": [
+      [
+        "对抗评审者",
+        "算法可行性检查者",
+        "管线匹配者"
+      ],
+      [
+        "对抗评审者"
+      ],
+      [
+        "算法可行性检查者"
+      ],
+      [
+        "管线匹配者"
+      ],
+      [
+        "汇聚裁决者"
+      ]
+    ],
+    "verdicts": [
+      "algorithm_fail",
+      "all_pass",
+      "challenged",
+      "needs_pipeline"
+    ]
+  },
+  {
+    "role_name": "管线重构者",
+    "skill_path": "roles/管线重构者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "管线重构报告",
+        "path": "outputs/管线重构报告.json"
+      },
+      {
+        "name": "管线注册表",
+        "path": "pipeline_registry.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "汇聚裁决报告",
+        "path": "outputs/汇聚裁决报告.json"
+      },
+      {
+        "name": "管线注册表",
+        "path": "pipeline_registry.json"
+      },
+      {
+        "name": "管线能力契约规范",
+        "path": "knowledge/管线能力契约规范.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "汇聚裁决者"
+      ],
+      [
+        "管线重构者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "算法实现者",
+    "skill_path": "roles/算法实现者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "修改日志",
+        "path": "modification_log.md"
+      },
+      {
+        "name": "执行指令",
+        "path": "outputs/执行指令.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "假设链",
+        "path": "hypothesis_chain.json"
+      },
+      {
+        "name": "管线匹配报告",
+        "path": "outputs/管线匹配报告.json"
+      },
+      {
+        "name": "逆散射科研闭环规范",
+        "path": "knowledge/逆散射科研闭环规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "管线能力契约规范",
+        "path": "knowledge/管线能力契约规范.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "汇聚裁决者"
+      ],
+      [
+        "算法实现者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "实验执行者",
+    "skill_path": "roles/实验执行者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "实验子目录",
+        "path": "experiments/"
+      },
+      {
+        "name": "实验索引",
+        "path": "experiments_index.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "执行指令",
+        "path": "outputs/执行指令.json"
+      },
+      {
+        "name": "假设链",
+        "path": "hypothesis_chain.json"
+      },
+      {
+        "name": "逆散射科研闭环规范",
+        "path": "knowledge/逆散射科研闭环规范.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "算法实现者"
+      ],
+      [
+        "实验执行者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "基线评估者",
+    "skill_path": "roles/基线评估者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "基线对比报告",
+        "path": "outputs/delta_report.md"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "实验子目录",
+        "path": "experiments/"
+      },
+      {
+        "name": "三件套基线",
+        "path": "baseline/metrics_baseline.json"
+      },
+      {
+        "name": "逆散射科研闭环规范",
+        "path": "knowledge/逆散射科研闭环规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "基线资产参考",
+        "path": "knowledge/基线资产参考.md",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "实验执行者"
+      ],
+      [
+        "基线评估者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed"
+    ]
+  },
+  {
+    "role_name": "知识提炼者",
+    "skill_path": "roles/知识提炼者/skill.md",
+    "blocking_mode": "auto",
+    "outputs": [
+      {
+        "name": "知识更新",
+        "path": "knowledge/演进知识库.json"
+      },
+      {
+        "name": "方向健康度评估",
+        "path": "outputs/direction_assessment.json"
+      }
+    ],
+    "gate_rules": {
+      "phase1_cross_validation": {
+        "enabled": true
+      },
+      "phase2_schema_comparison": {
+        "enabled": false
+      },
+      "phase3_anomaly_detection": {
+        "enabled": false
+      }
+    },
+    "inputs": [
+      {
+        "name": "基线对比报告",
+        "path": "outputs/delta_report.md"
+      },
+      {
+        "name": "方向声明",
+        "path": "direction/方向声明.json"
+      },
+      {
+        "name": "逆散射科研闭环规范",
+        "path": "knowledge/逆散射科研闭环规范.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "基线资产参考",
+        "path": "knowledge/基线资产参考.md",
+        "type": "knowledge"
+      },
+      {
+        "name": "演进知识库",
+        "path": "knowledge/演进知识库.json",
+        "type": "knowledge"
+      }
+    ],
+    "input_groups": [
+      [
+        "基线评估者"
+      ],
+      [
+        "知识提炼者"
+      ]
+    ],
+    "verdicts": [
+      "confirmed",
+      "direction_reassess",
+      "fail_new_hypothesis"
+    ]
+  }
+]

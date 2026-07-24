@@ -1,0 +1,47 @@
+cmd: D:\LenovoSoftstore\Install\MATLAB\bin\matlab.exe -batch addpath('D:/ZJU/PROJECT/2026-07-02-qoder-engine/engine/sdk/forward_pipeline/matlab'); build_hollow_sphere_model('D:/ZJU/PROJECT/2026-07-02-qoder-engine/engine/sdk/forward_pipeline/.e2e_runs/hollow_sphere/hollow_sphere.mph', 2036);
+==================================================
+[build] ========================================
+[build] Hollow Sphere Model Builder
+[build] Output: D:/ZJU/PROJECT/2026-07-02-qoder-engine/engine/sdk/forward_pipeline/.e2e_runs/hollow_sphere/hollow_sphere.mph
+[build] COMSOL port: 2036
+[build] ========================================
+[build] [1/10] Connecting to COMSOL Server (port 2036)...
+[build]       LiveLink API path: D:\LenovoSoftstore\Install\COMSOL62\Multiphysics\mli
+
+MATLAB is now connected to a COMSOL Multiphysics Server at localhost:2036
+
+Run the commands below to access the COMSOL ModelUtil commands:
+import com.comsol.model.util.*
+[build]       LiveLink connected
+[build] [2/10] Model object ready
+[build] [3/10] Building geometry...
+[build]       Sphere R=0.40, layer=0.10 (PML outer shell)
+[build][WARN] domain query failed: δ������ 'com.comsol.clientapi.impl.GeomFeatureClient' ���͵�����������Ӧ�ĺ��� 'resultSelection'��
+[build]       interior_domain=1, pml_domain=2
+[build] [4/10] Setting up PML (Spherical scaling)...
+[build] [5/10] Setting up EMW physics (scattered field)...
+[build]       Scattered field mode, Ebg = +z 1V/m
+[build] [6/10] Adding air material (eps_r=1)...
+[build]       mat1 = air on all domains
+[build] [7/10] Building mesh...
+[build]       Mesh built (autoMeshSize=8)
+[build] [8/10] Creating Frequency study @ 1 GHz...
+[build] [9/10] Running pre-save validation solve...
+[build]       Initial solve finished, validating fields...
+[build]       Pre-save field validation:
+[build]       Point                |Ez| (total)       |relEz| (scattered)
+[build]       (0,0,0)              0.0000e+00 V/m     0.0000e+00 V/m  <-- FAIL (background field <0.5)
+[build]       (0.1,0,0)            0.0000e+00 V/m     0.0000e+00 V/m  <-- FAIL (background field <0.5)
+[build]       (-0.1,0,0)           0.0000e+00 V/m     0.0000e+00 V/m  <-- FAIL (background field <0.5)
+[build]       (0,0.1,0)            0.0000e+00 V/m     0.0000e+00 V/m  <-- FAIL (background field <0.5)
+[build]       (0.2,0,0)            0.0000e+00 V/m     0.0000e+00 V/m  <-- FAIL (background field <0.5)
+[build]       (0.35,0,0) PML       0.0000e+00 V/m     0.0000e+00 V/m
+[build][ERROR] Background field validation failed.
+[build][ERROR] Possible causes:
+[build][ERROR]   - PML scaling type wrong
+[build][ERROR]   - pml_domain selection wrong (current=2)
+[build][ERROR]   - Ebg not properly set
+{����ʹ�� build_hollow_sphere_model
+Pre-save validation failed
+} 
+ERROR: MATLAB error Exit Status: 0x00000001

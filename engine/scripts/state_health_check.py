@@ -91,7 +91,6 @@ def _z3_broken_join_detection(state, router_idx, join_idx):
     findings = []
     completed = state.get("completed", {})
     step_status = state.get("step_status", {})
-    pending_dispatches = state.get("pending_dispatches")
     pending_routes = state.get("pending_routes", {})
     cached_branch_results = state.get("cached_branch_results", [])
 
@@ -127,9 +126,6 @@ def _z3_broken_join_detection(state, router_idx, join_idx):
         if not should_dispatch:
             continue
 
-        in_dispatches = False
-        if pending_dispatches:
-            in_dispatches = any(d.get("step") == tgt for d in pending_dispatches)
         in_pending_routes = any(s in pending_routes for s in satisfied_sources)
 
         # v8.0 修复 P1-4：cached_branch_results 屏蔽全量改按 target 维度判断。
@@ -145,12 +141,12 @@ def _z3_broken_join_detection(state, router_idx, join_idx):
                     sources_in_cache = True
                     break
 
-        if not in_dispatches and not in_pending_routes and not sources_in_cache:
+        if not in_pending_routes and not sources_in_cache:
             findings.append({
                 "id": "Z3",
                 "severity": "major",
                 "category": "broken_join" if join_groups else "missing_dispatch",
-                "description": f"目标 '{tgt}' 的路由来源已满足 ({', '.join(satisfied_sources)}) 但未出现在 pending_dispatches/pending_routes 中",
+                "description": f"目标 '{tgt}' 的路由来源已满足 ({', '.join(satisfied_sources)}) 但未出现在 pending_routes 中",
                 "step": tgt,
                 "fix_type": "regenerate_dispatch",
                 "fix_data": {"step": tgt, "sources": satisfied_sources},

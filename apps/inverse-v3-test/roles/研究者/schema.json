@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "_required_files": [
+    {
+      "name": "假设链",
+      "path": "hypothesis_chain.json"
+    },
+    {
+      "name": "研究笔记",
+      "path": "research/研究笔记.md"
+    },
+    {
+      "name": "已否决假设",
+      "path": "research/已否决假设.json"
+    }
+  ]
+}

@@ -1,0 +1,303 @@
+{
+  "schema_version": "2.0",
+  "entry": "蓝图解析师",
+  "steps": [
+    {
+      "step": "蓝图解析师",
+      "role": "蓝图解析师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "结构生成师"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "蓝图解析师"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/内部蓝图模型.json"
+            },
+            {
+              "path": "outputs/蓝图解析师-gate-result.json"
+            },
+            {
+              "path": "outputs/蓝图解析师-feedback.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "结构生成师",
+      "role": "结构生成师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "Skill填充师",
+            "Knowledge填充师"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "结构生成师"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "app.yaml"
+            },
+            {
+              "path": "manifest.json"
+            },
+            {
+              "path": "ROUTER.json"
+            },
+            {
+              "path": "registry.json"
+            },
+            {
+              "path": "outputs/结构生成师-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "Skill填充师",
+      "role": "Skill填充师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "编译预检师"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "Skill填充师"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/技能填充报告.json"
+            },
+            {
+              "path": "roles/"
+            },
+            {
+              "path": "outputs/Skill填充师-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "Knowledge填充师",
+      "role": "Knowledge填充师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "编译预检师"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "Knowledge填充师"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/知识填充报告.json"
+            },
+            {
+              "path": "knowledge/"
+            },
+            {
+              "path": "outputs/Knowledge填充师-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "编译预检师",
+      "role": "编译预检师",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "忠实度红队",
+            "完整性红队",
+            "一致性红队"
+          ],
+          "type": "normal"
+        },
+        "fail_compile": {
+          "targets": [
+            "Skill填充师",
+            "Knowledge填充师"
+          ],
+          "type": "backward",
+          "max_executions": 10
+        },
+        "fail": {
+          "targets": [
+            "编译预检师"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/编译预检报告.json"
+            },
+            {
+              "path": "outputs/编译预检师-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "忠实度红队",
+      "role": "忠实度红队",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "终审裁决者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "忠实度红队"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/R1-问题清单.json"
+            },
+            {
+              "path": "outputs/忠实度红队-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "完整性红队",
+      "role": "完整性红队",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "终审裁决者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "完整性红队"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/R2-问题清单.json"
+            },
+            {
+              "path": "outputs/完整性红队-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "一致性红队",
+      "role": "一致性红队",
+      "transitions": {
+        "confirmed": {
+          "targets": [
+            "终审裁决者"
+          ],
+          "type": "normal"
+        },
+        "fail": {
+          "targets": [
+            "一致性红队"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "process/outputs/R3-问题清单.json"
+            },
+            {
+              "path": "outputs/一致性红队-gate-result.json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "终审裁决者",
+      "role": "终审裁决者",
+      "transitions": {
+        "confirmed": {
+          "targets": [],
+          "type": "normal"
+        },
+        "consistency_defect": {
+          "targets": [],
+          "type": "normal"
+        },
+        "fail_consistency": {
+          "targets": [
+            "Skill填充师",
+            "Knowledge填充师"
+          ],
+          "type": "backward",
+          "max_executions": 10
+        },
+        "fail_structure": {
+          "targets": [
+            "结构生成师"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/终审裁决书.json"
+            },
+            {
+              "path": "outputs/终审裁决者-gate-result.json"
+            }
+          ]
+        },
+        "fail": {
+          "targets": [
+            "终审裁决者"
+          ],
+          "type": "backward",
+          "max_executions": 3,
+          "carries": [
+            {
+              "path": "outputs/终审裁决书.json"
+            },
+            {
+              "path": "outputs/终审裁决者-gate-result.json"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

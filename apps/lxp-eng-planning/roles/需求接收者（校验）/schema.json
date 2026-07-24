@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "object",
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": ["confirmed", "loop"]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["verdict", "summary"]
+    }
+  },
+  "required": ["result"],
+  "_required_files": []
+}

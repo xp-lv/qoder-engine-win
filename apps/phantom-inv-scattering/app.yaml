@@ -1,0 +1,124 @@
+app_name: phantom-inv-scattering
+
+# ═══════════════════════════════════════════════════════════════
+# 设计约定（v2 — pipline 作为持久化科研资产）
+# ═══════════════════════════════════════════════════════════════
+#
+# 版本: v2 — 逆散射算法研究 App
+# 设计目标: 直接操作 COMSOL/pipline/ 管线代码，聚焦逆散射算法开发
+#
+# §1  核心原则
+#     COMSOL/pipline/ 是持久化科研资产，属于整个科研项目
+#     所有角色直接读写 pipline 目录，不拷贝、不分层（无 L0/L1）
+#     代码演进通过 git 版本控制（commit 记录改动，tag 标记实验快照）
+#     pipline 路径（工作区相对）: ../../../COMSOL/pipline/
+#
+# §2  科研闭环（5 个主线角色 + 1 个独立维护角色）
+#     M1 假设提出者 → M2 算法实现者 → M3 实验执行者 → M4 结果分析者 → M5 基线评估者
+#     ↑___________________改进信号（闭环回归）___________________|
+#     M6 管线优化者（独立触发，可维护 pipline 全部代码）
+#
+# §3  路径约定（工作区相对）
+#     pipline 代码: ../../../COMSOL/pipline/{core_jhyp,core_adjoint,core_inversion,algorithm,config,utils,core_forward,core_jobs}/
+#     工作区本地: experiment/（实验产出）、hypothesis_chain.json、modification_log.md、baseline/
+#
+# §4  角色写权限
+#     M2 算法实现者: 改 pipline 的算法目录（core_jhyp/ core_adjoint/ core_inversion/ algorithm/）
+#     M6 管线优化者: 可维护 pipline 全部目录（含 config/ utils/ core_forward/ core_jobs/）
+#     冲突协调: git 版本控制天然处理，M2 改算法逻辑 vs M6 改性能/正确性，关注点不同
+#
+# §5  verdict 命名约定
+#     · confirmed            — 正向通过（M5 研究结论确认 → 完成）
+#     · fail_new_hypothesis  — 闭环回归（M5 需启动新假设 → 回退 M1）
+#     注：fail_ 前缀由编译器识别为 backward 回退边
+# ═══════════════════════════════════════════════════════════════
+
+knowledge:
+  - 逆散射科研闭环规范: knowledge/逆散射科研闭环规范.md
+    inject_to: [假设提出者, 算法实现者, 实验执行者, 结果分析者, 基线评估者, 管线优化者]
+  - 基线资产参考: knowledge/基线资产参考.md
+    inject_to: [结果分析者, 基线评估者]
+  - 高质量APP产出原则: knowledge/高质量APP产出原则.md
+    inject_to: [假设提出者, 算法实现者, 实验执行者, 结果分析者, 基线评估者, 管线优化者]
+  - pipline接口映射: knowledge/pipline接口映射.md
+    inject_to: [实验执行者, 管线优化者, 算法实现者]
+  - 实验执行手册: knowledge/实验执行手册.md
+    inject_to: [实验执行者, 管线优化者]
+
+roles:
+  # ═══ 科研闭环入口（confirm: manual）═══
+  # 假设生成——把研究者的算法改进直觉转化为结构化、可追溯的假设记录
+  假设提出者:
+    confirm: manual
+    inputs:
+      - 假设链: hypothesis_chain.json
+    outputs:
+      - 假设链: hypothesis_chain.json
+
+  # ═══ 算法实现（直接改 pipline 代码）═══
+  # 把 M1 的假设转化为 pipline 算法目录的可执行代码 diff
+  # pipline 绝对路径在 skill.md 和 knowledge/pipline接口映射.md 中声明
+  # 写权限: pipline 的 core_jhyp/ core_adjoint/ core_inversion/ algorithm/
+  算法实现者:
+    confirm: auto
+    inputs:
+      - 假设链: hypothesis_chain.json
+    outputs:
+      - 修改日志: modification_log.md
+
+  # ═══ 实验执行 ═══
+  # 调用 pipline 管线产生正演/反演结果，产出 experiment/<exp_id>/ 子目录
+  # 实验快照: git tag exp_<exp_id>（零成本版本标记，无需文件拷贝）
+  # pipline 绝对路径在 skill.md 和 knowledge/pipline接口映射.md 中声明
+  实验执行者:
+    confirm: auto
+    inputs:
+      - 修改日志: modification_log.md
+    outputs:
+      - 实验子目录: experiment/
+
+  # ═══ 结果分析 ═══
+  # 从实验产出中提取三件套指标（cos θ / F_cheb / PASS 项数）
+  # 前置执行健全性校验，拦截静默错误
+  结果分析者:
+    confirm: auto
+    inputs:
+      - 实验子目录: experiment/
+    outputs:
+      - 分析报告: experiment/
+
+  # ═══ 基线评估 ═══
+  # 把分析结果与固化基线对比，产出 Δ 指标 + 改进信号
+  基线评估者:
+    confirm: auto
+    inputs:
+      - 实验子目录: experiment/
+      - 三件套基线: baseline/metrics_baseline.json
+    outputs:
+      - 基线对比报告: experiment/
+
+  # ═══ 管线维护（独立角色，可维护 pipline 全部代码）═══
+  # 改进 pipline 的性能/正确性/基础设施
+  # pipline 绝对路径在 skill.md 和 knowledge/pipline接口映射.md 中声明
+  # 写权限: pipline 全部目录（含 config/ utils/ core_forward/ core_jobs/ 等）
+  管线优化者:
+    confirm: manual
+    inputs:
+      - 修改日志: modification_log.md
+    outputs:
+      - 修改日志: modification_log.md
+
+edges:
+  # ═══ 主线串行链（科研闭环）═══
+  - 假设提出者 → 算法实现者
+  - 算法实现者 → 实验执行者
+  - 实验执行者 → 结果分析者
+  - 结果分析者 → 基线评估者
+
+  # ═══ M5 闭环回归 / 终态退出 ═══
+  - 基线评估者 → 假设提出者 when: result.verdict == "fail_new_hypothesis" max_executions: 10
+    carries: [experiment/, outputs/基线评估者-gate-result.json]
+  - 基线评估者 → 完成 when: result.verdict == "confirmed"
+
+  # ═══ M6 独立触发（不在主线链中，手动启动）═══
+  - 管线优化者 → 完成

@@ -1,0 +1,54 @@
+{
+  "stage": "inverse_experiment",
+  "status": "PARTIAL_TIMEOUT",
+  "plugin": "plugin_a12",
+  "n_cz": 5,
+  "n_control_points": 500,
+  "bspline_NNZ": 1006038,
+  "bspline_memory_MB": 16.10,
+  "bspline_PoU": 1.000000,
+  "max_iter_configured": 10,
+  "iterations_completed": 2,
+  "converged": false,
+  "timeout_at": "iter 3, freq=3 (3 GHz) forward solve",
+  "best_F_cheb_multifreq": 0.3763,
+  "best_cos_theta_1GHz": 0.328,
+  "best_inner_eps_mean": 3.719,
+  "best_inner_eps_std": 0.038,
+  "iteration_history": [
+    {
+      "iter": 1,
+      "mu": 0.05,
+      "F_cheb_agg": 0.4364,
+      "F_max": 2.6554,
+      "cos_agg": 0.037,
+      "inner_mean": 4.0,
+      "inner_std": 0.0,
+      "armijo": "ACCEPTED",
+      "time_s": 60.4,
+      "per_freq": {
+        "1GHz": {"F_k_mean": 0.1996, "F_k_max": 1.1507, "cos": 0.453},
+        "2GHz": {"F_k_mean": 0.6740, "F_k_max": 7.2738, "cos": -0.309},
+        "3GHz": {"F_k_mean": 0.4355, "F_k_max": 2.2958, "cos": -0.035}
+      }
+    },
+    {
+      "iter": 2,
+      "mu": 0.10,
+      "F_cheb_agg": 0.3763,
+      "F_max": 1.1430,
+      "cos_agg": -0.012,
+      "inner_mean": 3.719,
+      "inner_std": 0.038,
+      "armijo": "ALL_REJECTED",
+      "armijo_trials": 8,
+      "time_s": 54.4,
+      "per_freq": {
+        "1GHz": {"F_k_mean": 0.2322, "F_k_max": 1.2169, "cos": 0.328},
+        "2GHz": {"F_k_mean": 0.4956, "F_k_max": 2.9042, "cos": -0.336},
+        "3GHz": null
+      }
+    }
+  ],
+  "note": "Inversion stalled at iter 2: all 8 Armijo trials rejected. Best F_cheb=0.3763 is 4.1× worse than baseline 0.091."
+}

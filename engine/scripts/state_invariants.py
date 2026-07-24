@@ -111,21 +111,6 @@ def _b1_step_reference(state, all_steps, violations):
                     auto_fixable=True,
                 ))
 
-    pd = state.get("pending_dispatches")
-    if pd:
-        for i, disp in enumerate(pd):
-            if isinstance(disp, dict):
-                step = disp.get("step", "")
-                if step and step not in all_steps:
-                    violations.append(Violation(
-                        inv_id="B1",
-                        severity="critical",
-                        step=step,
-                        message=f"pending_dispatches[{i}].step='{step}' 不在 ROUTER.json 中",
-                        fix_type="remove_illegal_dispatch",
-                        fix_data={"index": i},
-                        auto_fixable=True,
-                    ))
 
 
 def _b2_verdict_consistency(state, step_transitions, violations):
@@ -177,12 +162,12 @@ def _b2_verdict_consistency(state, step_transitions, violations):
 def check_causal(state: dict, router_steps: list, join_map: dict, entry_step: str = "") -> List[Violation]:
     """因果检查，需 ROUTER + registry。
 
-    覆盖: C1 (调度前置合法性), C2 (因果可达性), C3 (dispatch 有效性)
+    覆盖: C1 (调度前置合法性), C2 (因果可达性)
     """
     violations = []
     _c1_precondition(state, join_map, violations, entry_step)
     _c2_causal_reachability(state, router_steps, violations, entry_step)
-    _c3_dispatch_validity(state, join_map, violations)
+    # v9.2: _c3_dispatch_validity 已删除（pending_dispatches 废弃）
     return violations
 
 
@@ -283,54 +268,7 @@ def _c2_causal_reachability(state, router_steps, violations, entry_step=""):
                 ))
 
 
-def _c3_dispatch_validity(state, join_map, violations):
-    """C3: pending_dispatches 中的 dispatch 不指向正在执行的步骤，且 JOIN 前置已满足。"""
-    pd = state.get("pending_dispatches")
-    if not pd:
-        return
-
-    ss = state.get("step_status", {})
-    cp = state.get("completed", {})
-    cp_set = set(cp.keys())
-
-    for i, disp in enumerate(pd):
-        if not isinstance(disp, dict):
-            continue
-        step = disp.get("step", "")
-
-        if step in ss:
-            violations.append(Violation(
-                inv_id="C3",
-                severity="major",
-                step=step,
-                message=f"pending_dispatches[{i}] 指向 '{step}' 已在 step_status 中（重复执行）",
-                fix_type="remove_duplicate_dispatch",
-                fix_data={"index": i},
-                auto_fixable=True,
-            ))
-            continue
-
-        groups = join_map.get(step, [])
-        if groups:
-            satisfied = False
-            for group in groups:
-                if isinstance(group, list) and set(group).issubset(cp_set):
-                    satisfied = True
-                    break
-            if not satisfied:
-                missing = []
-                for group in groups:
-                    if isinstance(group, list):
-                        missing.extend([s for s in group if s not in cp_set])
-                violations.append(Violation(
-                    inv_id="C3",
-                    severity="major",
-                    step=step,
-                    message=f"pending_dispatches[{i}].step='{step}' JOIN 前置未满足，缺少: {sorted(set(missing))}",
-                    fix_type="remove_unsatisfied_dispatch",
-                    fix_data={"index": i, "missing_sources": sorted(set(missing))},
-                    auto_fixable=True,
-                ))
+# v9.2: C3 (pending_dispatches dispatch validity) 已删除——字段已废弃
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -435,14 +373,9 @@ def _d3_join_liveness(state, router_steps, join_map, violations):
     """
     cp = state.get("completed", {})
     ss = state.get("step_status", {})
-    pd = state.get("pending_dispatches")
 
     # 收集所有可达的 step 集合
     reachable = set(cp.keys()) | set(ss.keys())
-    if pd:
-        for disp in pd:
-            if isinstance(disp, dict):
-                reachable.add(disp.get("step", ""))
 
     # 所有 ROUTER 中定义的 step
     all_steps = {s.get("step", "") for s in router_steps}
@@ -474,7 +407,7 @@ def _d3_join_liveness(state, router_steps, join_map, violations):
                     step=step,
                     message=(
                         f"JOIN 目标 '{step}' 的成员 {unreachable_members} 不可达"
-                        f"（不在 completed/step_status/pending_dispatches 中），"
+                        f"（不在 completed/step_status 中），"
                         f"该 JOIN 永远无法收敛"
                     ),
                     fix_type="join_deadlock",

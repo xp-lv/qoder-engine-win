@@ -6,8 +6,7 @@
   "_required_files": [
     {
       "name": "需求文档",
-      "path": "00-需求描述.md",
-      "type": "deliverable"
+      "path": "00-需求描述.md"
     }
   ]
 }
