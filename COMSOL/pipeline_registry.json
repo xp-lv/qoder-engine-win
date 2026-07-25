@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0",
+  "description": "管线代际注册表 — 全局唯一权威。所有 role 通过此文件感知管线版本。",
+  "default": "gen1_comsol",
+  "latest": "gen1_comsol",
+  "generations": {
+    "gen1_comsol": {
+      "name": "COMSOL FEM 伴随梯度管线",
+      "status": "stable",
+      "created": "2026-06-20",
+      "abs_path": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline",
+      "model_file": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\livelink_model.mph",
+      "entry_script": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline\\experiment\\run_experiment.m",
+      "config_script": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline\\config\\config.m",
+      "capabilities": {
+        "forward": {
+          "method": "COMSOL_mphinterp",
+          "max_freq_hz": 3000000000,
+          "nonuniform_bg": true,
+          "description": "COMSOL LiveLink mphinterp 提取场值，支持平面波/高斯波束背景场"
+        },
+        "adjoint": {
+          "method": "analytical_maxwell",
+          "differentiable": false,
+          "description": "解析 Maxwell 伴随源，手动推导梯度"
+        },
+        "parameterization": {
+          "supported": ["voxel", "b-spline", "uniform"],
+          "default": "b-spline",
+          "max_control_points": 500
+        },
+        "constraints": {
+          "phantom_prior": true,
+          "tikhonov": true,
+          "tv_regularization": true,
+          "nonuniform_bg": true
+        },
+        "metrics": {
+          "cos_theta": true,
+          "f_cheb": true,
+          "pass_count": true
+        }
+      },
+      "plugins": {
+        "plugin_basic": {
+          "algorithm": "基础伴随梯度法",
+          "param_type": "voxel",
+          "description": "core_inversion/inversion_loop 直接体素迭代"
+        },
+        "plugin_a12": {
+          "algorithm": "A12 B-spline + TV 多频反演",
+          "param_type": "b-spline",
+          "description": "B-spline 参数化 + Chebyshev 加权 + TV 正则化"
+        },
+        "plugin_c01": {
+          "algorithm": "C01 复数均匀球反演",
+          "param_type": "uniform",
+          "description": "均匀复数介电常数单参数反演"
+        }
+      },
+      "matlab": {
+        "comsol_port": 2036,
+        "comsol_version": "6.2",
+        "matlab_version": "R2023b"
+      },
+      "validated": {
+        "date": "2026-07-03",
+        "voxel_count": 673,
+        "v5a_pass": true,
+        "experiments_run": 50
+      }
+    }
+  }
+}

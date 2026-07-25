@@ -1,0 +1,157 @@
+{
+  "generation": "gen1_comsol",
+  "version": "1.0.0",
+  "name": "COMSOL FEM 伴随梯度管线",
+  "status": "stable",
+  "created": "2026-06-20",
+  "abs_path": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline",
+  "model_file": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\livelink_model.mph",
+  "entry_script": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline\\experiment\\run_experiment.m",
+  "config_script": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline\\config\\config.m",
+
+  "capabilities": {
+    "forward": {
+      "method": "COMSOL_mphinterp",
+      "max_freq_hz": 3000000000,
+      "nonuniform_bg": true,
+      "bg_types": ["planewave", "gaussian"],
+      "description": "COMSOL LiveLink mphinterp 提取场值，支持平面波/高斯波束背景场"
+    },
+    "adjoint": {
+      "method": "analytical_maxwell",
+      "differentiable": false,
+      "description": "解析 Maxwell 伴随源，手动推导梯度"
+    },
+    "parameterization": {
+      "supported": ["voxel", "b-spline", "uniform"],
+      "default": "b-spline",
+      "max_control_points": 500,
+      "voxel_count": 673
+    },
+    "constraints": {
+      "phantom_prior": true,
+      "tikhonov": true,
+      "tv_regularization": true,
+      "nonuniform_bg": true
+    },
+    "metrics": {
+      "cos_theta": true,
+      "f_cheb": true,
+      "pass_count": true
+    }
+  },
+
+  "plugins": {
+    "plugin_basic": {
+      "algorithm": "基础伴随梯度法",
+      "param_type": "voxel",
+      "entry": "algorithm/plugin_basic/run_inversion.m",
+      "description": "core_inversion/inversion_loop 直接体素迭代"
+    },
+    "plugin_a12": {
+      "algorithm": "A12 B-spline + TV 多频反演",
+      "param_type": "b-spline",
+      "entry": "algorithm/plugin_a12/run_inversion.m",
+      "description": "B-spline 参数化 + Chebyshev 加权 + TV 正则化"
+    },
+    "plugin_c01": {
+      "algorithm": "C01 复数均匀球反演",
+      "param_type": "uniform",
+      "entry": "algorithm/plugin_c01/run_inversion.m",
+      "description": "均匀复数介电常数单参数反演"
+    }
+  },
+
+  "directories": {
+    "config": "config/",
+    "core_forward": "core_forward/",
+    "core_adjoint": "core_adjoint/",
+    "core_inversion": "core_inversion/",
+    "core_jhyp": "core_jhyp/",
+    "core_jobs": "core_jobs/",
+    "algorithm": "algorithm/",
+    "experiment": "experiment/",
+    "utils": "utils/",
+    "viz": "viz/",
+    "data": "data/"
+  },
+
+  "matlab": {
+    "comsol_port": 2036,
+    "comsol_version": "6.2",
+    "matlab_version": "R2023b",
+    "livelink": true
+  },
+
+  "validated": {
+    "date": "2026-07-03",
+    "voxel_count": 673,
+    "v5a_pass": true,
+    "experiments_run": 50,
+    "inner_voxels": 673,
+    "measurement_points": 4608,
+    "k_directions": 64
+  },
+
+  "key_scripts": {
+    "run_experiment": "experiment/run_experiment.m",
+    "solve_forward": "core_forward/solve_forward.m",
+    "solve_adjoint": "core_forward/solve_adjoint.m",
+    "compute_jhyp": "core_jhyp/compute_jhyp.m",
+    "compute_jobs": "core_jobs/compute_jobs.m",
+    "inversion_loop": "core_inversion/inversion_loop.m",
+    "fem_mesh_utils": "utils/fem_mesh_utils.m",
+    "verify_pipeline": "experiment/verify_forward_pipeline.m"
+  },
+
+  "usage": {
+    "language": "MATLAB",
+    "language_version": "R2023b",
+    "config_file": "config/config.m",
+    "config_format": "MATLAB struct (p.xxx = value)",
+    "entry_command": "run_experiment('plugin_name')",
+    "entry_script": "experiment/run_experiment.m",
+    "runtime_requirements": "COMSOL Server port 2036 (mphstart), MATLAB LiveLink",
+    "startup_guide": {
+      "precondition": "COMSOL mphserver 需独立终端长期运行在端口 2036（非临时启动，单客户端模式会自杀）",
+      "check_comsol": "在 MATLAB 中执行 mphstart(2036)，若报错 'Already connected' 说明已连接",
+      "matlab_invoke": "matlab -batch \"cd('d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline'); addpath('config','experiment'); state = run_experiment('plugin_a12'); save('experiment_output.mat', 'state', '-v7.3'); \"",
+      "addpath_required": "必须显式 addpath config 和 experiment 目录，否则函数未定义",
+      "encoding": "Windows 下 MATLAB stdout 需确保 UTF-8 输出不乱码"
+    },
+    "key_params": {
+      "parameterization": "p.n_cx, p.n_cy, p.n_cz (B-spline 控制点数)",
+      "regularization": "p.weight_strategy (uniform|adaptive|chebyshev), p.chebyshev_eta",
+      "iteration": "p.max_iter, p.eps_tol, p.mu_init, p.grad_clip",
+      "constraints": "p.eps_r_min, p.eps_r_max",
+      "plugin": "p.inversion_plugin (plugin_basic|plugin_a12|plugin_c01)"
+    },
+    "param_modification_guide": "修改 config/config.m 中 p 结构体的对应字段",
+    "plugin_dir": "algorithm/",
+    "plugin_signature": "function state = run_inversion(model, voxel, lc, grid, p)",
+    "plugin_params": {
+      "model": "COMSOL 模型句柄",
+      "voxel": "体素网格信息（含 epsilon_r, mask_interior）",
+      "lc": "光锥投影数据（含 J_obs_perp, k_dir, k_vec）",
+      "grid": "测量网格",
+      "p": "全局参数（config.m 产出）"
+    },
+    "state_fields": {
+      "converged": "bool — 是否收敛",
+      "iteration": "int — 迭代轮数",
+      "residual": "float — 最终残差",
+      "history_J_hyp": "N_k × 2 × N_iter — J_hyp 历史"
+    },
+    "execution_steps": [
+      "setup() + config() — 初始化参数",
+      "mphstart(port) + mphload(model) — 连接 COMSOL Server",
+      "fem_mesh_utils — 提取 FEM 体素网格",
+      "设真值 eps_r — 设散射体介电常数",
+      "solve_forward — COMSOL 正演求解",
+      "extract_scattered + lightcone_project — 计算 J_obs",
+      "fibonacci_sphere — 构建光锥方向",
+      "addpath(plugin_dir) + run_inversion — 加载插件运行反演",
+      "三件套指标输出 — cos θ / F_cheb / 收敛信息"
+    ]
+  }
+}

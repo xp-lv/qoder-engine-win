@@ -1,0 +1,8 @@
+judge,value,threshold,result
+P1_inner_mean_error,1.1976,0.1,FAIL
+P2_inner_std,0.0341,0.05,PASS
+P3_F_cheb,3.795406e-01,0.15,FAIL
+P4_worst_F_k,1.369854e+00,0.15,FAIL
+P5_J_obs_consistent,1,1,PASS
+P6_per_d_mean,3.484539e+00,0.15,FAIL
+P7_cos_theta,0.0001,0.90,FAIL

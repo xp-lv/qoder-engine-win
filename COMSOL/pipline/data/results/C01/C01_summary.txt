@@ -1,0 +1,15 @@
+C01 Uniform Complex Sphere Inversion Summary
+=============================================
+True model: eps_r = 5.0 -5.0j (uniform, all inner)
+B-spline: 2x3x4 = 24 control points
+Frequency: 1.0 GHz (single)
+Iterations: 3 (max 20)
+Converged: YES
+Best iter: 1
+F_cheb: 2.5505e-03
+Re(eps_r) mean: 4.0000 (true=5.0)
+Im(eps_r) mean: -4.0000 (true=-5.0)
+Re(eps_r) std: 0.0000
+Im(eps_r) std: 0.0000
+cos_theta: 0.9967
+Pass: 5/6
