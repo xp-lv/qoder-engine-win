@@ -145,7 +145,7 @@ def list_all():
 
 def sync_from_state(ws_id, state):
     """从 STATE.json 同步关键字段到 index（advance 后调用）。"""
-    completed_count = len(state.get("completed", {}))
+    completed_count = len(state.get("completed", {})) + len(state.get("pending_routes", {}))
     terminal_state = state.get("terminal_state")
     ws_base = os.path.join(_PROJECT_ROOT, "runtime", "workspaces", ws_id)
     has_snapshots = os.path.exists(os.path.join(ws_base, "snapshots"))

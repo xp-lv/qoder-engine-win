@@ -202,15 +202,16 @@ def _print_error(error, action="error"):
 
 
 def _check_idempotent(state, dispatch_id):
-    """检查 dispatch_id 是否已处理（已 advance 到 completed）。"""
+    """检查 dispatch_id 是否已处理（已 advance 到 completed 或 pending_routes）。"""
     if not dispatch_id:
         return False
 
-    # v4.1: 读 completed
-    completed = state.get("completed", {}) or {}
-    for ckpt_data in completed.values():
-        if isinstance(ckpt_data, dict) and ckpt_data.get("id") == dispatch_id:
-            return True
+    # 检查 completed 和 pending_routes 两个字段
+    for field in ("completed", "pending_routes"):
+        records = state.get(field, {}) or {}
+        for ckpt_data in records.values():
+            if isinstance(ckpt_data, dict) and ckpt_data.get("id") == dispatch_id:
+                return True
     return False
 
 

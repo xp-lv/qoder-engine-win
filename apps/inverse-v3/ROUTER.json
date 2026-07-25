@@ -30,9 +30,6 @@
             },
             {
               "path": "outputs/方向把控者-gate-result.json"
-            },
-            {
-              "path": "outputs/方向把控者-feedback.json"
             }
           ]
         }
@@ -101,9 +98,6 @@
             },
             {
               "path": "outputs/研究者-gate-result.json"
-            },
-            {
-              "path": "outputs/研究者-feedback.json"
             }
           ]
         }
@@ -480,9 +474,6 @@
             },
             {
               "path": "outputs/管线维护者-gate-result.json"
-            },
-            {
-              "path": "outputs/管线维护者-feedback.json"
             }
           ]
         }

@@ -2,7 +2,7 @@
   {
     "role_name": "方向把控者",
     "skill_path": "roles/方向把控者/skill.md",
-    "blocking_mode": "manual",
+    "blocking_mode": "auto",
     "outputs": [
       {
         "name": "方向声明",
@@ -128,7 +128,7 @@
   {
     "role_name": "研究者",
     "skill_path": "roles/研究者/skill.md",
-    "blocking_mode": "manual",
+    "blocking_mode": "auto",
     "outputs": [
       {
         "name": "假设链",
@@ -750,7 +750,7 @@
   {
     "role_name": "管线维护者",
     "skill_path": "roles/管线维护者/skill.md",
-    "blocking_mode": "manual",
+    "blocking_mode": "auto",
     "outputs": [
       {
         "name": "修改日志",

@@ -92,7 +92,7 @@ roles:
   # 演进知识库通过 knowledge 段注入（非 inputs/outputs）
   方向把控者:
     type: producer
-    confirm: manual
+    confirm: auto
     inputs:
       - 需求文档: 00-需求描述.md
       - 方向健康度评估: outputs/direction_assessment.json
@@ -125,7 +125,7 @@ roles:
   # 持久空间：research/ 目录（研究笔记+已否决假设，跨迭代保留）
   研究者:
     type: producer
-    confirm: manual
+    confirm: auto
     inputs:
       - 方向声明: direction/方向声明.json
       - 改进信号: outputs/delta_report.md
@@ -287,7 +287,7 @@ roles:
   # 消费实验执行者产出的管线优化建议（如有）
   管线维护者:
     type: producer
-    confirm: manual
+    confirm: auto
     inputs:
       - 管线重构报告: outputs/管线重构报告.json
       - 管线优化建议: outputs/管线优化建议.md

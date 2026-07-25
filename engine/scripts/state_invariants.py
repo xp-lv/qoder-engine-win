@@ -221,6 +221,9 @@ def _c2_causal_reachability(state, router_steps, violations, entry_step=""):
     排除 backward 边和自环。
     """
     cp = state.get("completed", {})
+    pr = state.get("pending_routes", {})
+    # 合并视图：completed（成功）+ pending_routes（含 fail 的瞬态信号）
+    cp_merged = {**cp, **pr}
 
     reverse_adj = {}
     # 入口步骤通过 entry_step 参数识别（而非 "无 transitions" 判定）
@@ -239,7 +242,7 @@ def _c2_causal_reachability(state, router_steps, violations, entry_step=""):
             for tgt in targets:
                 reverse_adj.setdefault(tgt, []).append((step_name, verdict))
 
-    for step in cp:
+    for step in cp_merged:
         if step in entry_candidates:
             continue
         sources = reverse_adj.get(step, [])
@@ -247,14 +250,14 @@ def _c2_causal_reachability(state, router_steps, violations, entry_step=""):
         for src_step, src_verdict in sources:
             if src_step == step:
                 continue
-            if src_step in cp:
-                src_ckpt = cp[src_step]
+            if src_step in cp_merged:
+                src_ckpt = cp_merged[src_step]
                 if isinstance(src_ckpt, dict) and src_ckpt.get("verdict") == src_verdict:
                     found = True
                     break
         if not found:
             external_sources_in_cp = [
-                s for s, v in sources if s != step and s in cp
+                s for s, v in sources if s != step and s in cp_merged
             ]
             if not external_sources_in_cp:
                 violations.append(Violation(

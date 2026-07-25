@@ -106,7 +106,8 @@ def _do_jump(state_path, target_step):
                 "message": "STATE.json 不存在或无法解析", "new_state_snapshot": None})
 
     completed_check = st_check.get("completed", {})
-    if target_step not in completed_check:
+    pending_check = st_check.get("pending_routes", {})
+    if target_step not in completed_check and target_step not in pending_check:
         output({
             "status": "failure",
             "error_code": "OIC-E105",
@@ -135,7 +136,8 @@ def _do_jump(state_path, target_step):
         # 由下一次 --next 的冷路径重新路由生成全新 dispatch（orchestrator 只读 pending_routes）。
         snap_ss = st.get("step_status", {})
         snap_completed = st.get("completed", {})
-        pending_routes = st.get("pending_routes", {})
+        snap_pending = st.get("pending_routes", {})
+        pending_routes = dict(snap_pending)  # 复制，后续可能追加
 
         sibling_names = []
         for step_name, entry in snap_ss.items():
@@ -146,11 +148,12 @@ def _do_jump(state_path, target_step):
             # 从 step_status.from_steps 溯源：哪个已完成步的 verdict 触发了此兄弟分支
             from_steps = entry.get("from_steps", [])
             for fs in from_steps:
-                if fs in snap_completed:
-                    fs_verdict = snap_completed[fs].get("verdict", "confirmed")
+                # 同时检查 completed 和 pending_routes（fail 可能只在 pending_routes 中）
+                src_data = snap_completed.get(fs) or snap_pending.get(fs)
+                if src_data:
                     # 写入 pending_routes，冷路径会调 router.py 重新生成 dispatch
                     if fs not in pending_routes:
-                        pending_routes[fs] = snap_completed[fs]
+                        pending_routes[fs] = src_data
             sibling_names.append(step_name)
 
         if sibling_names:

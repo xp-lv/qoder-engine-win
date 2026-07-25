@@ -125,7 +125,10 @@ def do_advance(state, step, role, dispatch_id, verdict=None):
     }
     if verdict:
         result["verdict"] = verdict
-    state.setdefault("completed", {})[step] = result
+    # fail 只写 pending_routes（驱动 backward 路由），不写 completed（避免污染 JOIN 记忆）
+    # 非 fail 写 completed（JOIN 前驱记忆）+ pending_routes（路由信号）
+    if verdict != "fail":
+        state.setdefault("completed", {})[step] = result
     state.setdefault("pending_routes", {})[step] = result
     state["metadata"]["last_advance_at"] = now_iso()
     # v6.0: 清理 active_dispatches 中已完成 step 的 dispatch 缓存
@@ -135,9 +138,10 @@ def do_advance(state, step, role, dispatch_id, verdict=None):
 
 def do_resume(state, step):
     completed = state.get("completed", {})
-    if step not in completed:
-        raise ValidationException("OIC-E205", f"无可恢复 completed：{step}")
-    r = completed[step]
+    pending = state.get("pending_routes", {})
+    r = completed.get(step) or pending.get(step)
+    if not r:
+        raise ValidationException("OIC-E205", f"无可恢复记录：{step}")
     state.setdefault("step_status", {})[step] = {
         "role": r.get("role", ""),
         "status": "executing",
