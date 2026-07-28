@@ -1,3 +1,40 @@
-# 演进知识库
-
-（待填充）
+{
+  "version": 2,
+  "last_updated": "2026-07-28",
+  "iterations": [
+    {
+      "exp_id": "adjoint_verification_20260728",
+      "direction": "精确全 Maxwell 双源伴随梯度反演",
+      "methodology": "exact_maxwell_surface_dual_source",
+      "pipeline_gen": "gen1_comsol + gen1_comsol_adjoint",
+      "results": {
+        "matrix_level_ratio": "1±1e-15",
+        "per_voxel_sign_rate": "30/30=100%",
+        "cos_theta": 0.927,
+        "cv": 0.40,
+        "inversion_convergence": "3 轮 sqrt(F)=0.042<0.05",
+        "overshoot_fd_sign": "15/15=100%"
+      },
+      "knowledge": {
+        "do": [
+          "coeff_base=0.5i·ω·ε₀ 正确",
+          "双源路径 conj(lambda_raw) 必须",
+          "Armijo mu=1.0 效果最佳",
+          "F 定义统一为定义 A",
+          "SurfaceMagneticCurrentDensity 含内置 n̂×"
+        ],
+        "dont": [
+          "不要用 bilinear 替代 Hermitian（sign 0% 全反）",
+          "CV=0.40 非 bug，是积分映射 vs 点值映射的结构性偏差"
+        ]
+      }
+    }
+  ],
+  "direction_assessment": {
+    "current_direction": "精确全 Maxwell 双源伴随梯度反演",
+    "confidence": "healthy",
+    "trend": "validated",
+    "threats": ["CV=0.40 限制收敛速度", "主管线 Armijo 步长需调优"],
+    "recommendation": "continue"
+  }
+}

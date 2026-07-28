@@ -1,0 +1,41 @@
+﻿
+========== FD 步长收敛性验证（4 参数全量）==========
+[build_measurement_grid] N_surface=4608 (R=0.260m, 48x96 theta×phi)
+
+MATLAB is now connected to a COMSOL Multiphysics Server at localhost:2036
+
+Run the commands below to access the COMSOL ModelUtil commands:
+import com.comsol.model.util.*
+[fem_mesh_utils] 提取 COMSOL FEM 网格...
+  tet: 19268 单元
+  总顶点: 3623
+  Gauss: 673 内部tet, 2692 Gauss积分点
+[fem_mesh_utils] 完成: 19268 单元, 673 内部 (3.5%), dV range [3.38e-06, 4.47e-05]
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 设置 EMW 复数表达式 (首次配置, epsilonr_mat=userdef)...
+  OK epsilonr_mat: "from_mat" -> "userdef"
+  [set_complex] 发现 7 个 EMW features
+  [set_complex] feature[1]: wee1
+  [set_complex] feature[2]: pec1
+  [set_complex] feature[3]: init1
+  [set_complex] feature[4]: dcont1
+  [set_complex] feature[5]: sctr1
+  [set_complex] feature[6]: ecd1
+  [set_complex] feature[7]: vec1
+  [set_complex] Method 1 未找到 int2, 尝试直接覆盖 wee1...
+  [set_complex] wee1.epsilonr 当前值 = 1
+  OK emw/wee1.epsilonr = int2(x,y,z) + i*int3(x,y,z) (override, forced re-eval)
+  [update_epsilon] 复数 ε_r 表达式已设置 (首次配置完成)
+matlab.exe : {函数或变量 'pi' 无法识别。
+所在位置 行:1 字符: 61
++ ... L\pipline"; & "D:\LenovoSoftstore\Install\MATLAB\bin\matlab.exe" -bat ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ({函数或变量 'pi' 无法识别。:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+出错 verify_fd_convergence (第 42 行)
+pf = p; pf.freq=1e9; pf.omega=2*pi*pf.freq; pf.k0=pf.omega/pf.c; pf.lambda=pf.c/pf.freq;
+} 
+ERROR: MATLAB error Exit Status: 0x00000001

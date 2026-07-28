@@ -46,6 +46,21 @@ fprintf('[Step 0] Plugin: %s\n', plugin_name);
 
 %% Step 1: COMSOL LiveLink
 fprintf('\n=== Step 1: COMSOL LiveLink ===\n');
+% [管线维护 H029-P0] COMSOL Server 存活性预检查
+% mphstart 在 Server 未启动时抛出晦涩的 Java ConnectException，实验执行者易误判为代码 bug。
+% 此处在 mphstart 前探测端口连通性，给出明确的中文错误提示。
+% （逆散射规范第 5 节：COMSOL Server 需独立终端长期运行于 port 2036）
+try
+    comsol_sock = java.net.Socket('localhost', p.comsol_port);
+    comsol_sock.close();
+catch
+    error('run_experiment:comsol_server_down', ...
+        ['COMSOL Server 未在 localhost:%d 运行。\n', ...
+         '请先在独立终端启动：comsolmphserver.exe -port %d（需长期运行，非临时启动）。\n', ...
+         '（此为 mphstart 前的预检查，避免 mphstart 抛出 Java ConnectException 造成误判）'], ...
+         p.comsol_port, p.comsol_port);
+end
+fprintf('[Step 1] COMSOL Server alive on port %d\n', p.comsol_port);
 try
     mphstart(p.comsol_port);
 catch ME

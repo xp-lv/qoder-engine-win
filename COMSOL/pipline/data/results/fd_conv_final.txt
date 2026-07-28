@@ -1,0 +1,604 @@
+﻿
+========== FD 步长收敛性验证（4 参数全量）==========
+[build_measurement_grid] N_surface=4608 (R=0.260m, 48x96 theta×phi)
+
+MATLAB is now connected to a COMSOL Multiphysics Server at localhost:2036
+
+Run the commands below to access the COMSOL ModelUtil commands:
+import com.comsol.model.util.*
+[fem_mesh_utils] 提取 COMSOL FEM 网格...
+  tet: 19268 单元
+  总顶点: 3623
+  Gauss: 673 内部tet, 2692 Gauss积分点
+[fem_mesh_utils] 完成: 19268 单元, 673 内部 (3.5%), dV range [3.38e-06, 4.47e-05]
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 设置 EMW 复数表达式 (首次配置, epsilonr_mat=userdef)...
+  OK epsilonr_mat: "from_mat" -> "userdef"
+  [set_complex] 发现 7 个 EMW features
+  [set_complex] feature[1]: wee1
+  [set_complex] feature[2]: pec1
+  [set_complex] feature[3]: init1
+  [set_complex] feature[4]: dcont1
+  [set_complex] feature[5]: sctr1
+  [set_complex] feature[6]: ecd1
+  [set_complex] feature[7]: vec1
+  [set_complex] Method 1 未找到 int2, 尝试直接覆盖 wee1...
+  [set_complex] wee1.epsilonr 当前值 = 1
+  OK emw/wee1.epsilonr = int2(x,y,z) + i*int3(x,y,z) (override, forced re-eval)
+  [update_epsilon] 复数 ε_r 表达式已设置 (首次配置完成)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+  [solve_forward] PARDISO (主) + MUMPS (备) 直接求解器已配置
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [1.4238e-01, 2.9478e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.0860e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=5.0076e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.9255e-04
+
+测试点: eps_r=4.0000, hole=[0.0003, 0.0089, 0.0046]
+真值:   eps_r=5.0000, hole=[0.0300, 0.0200, 0.0100]
+hole_err=0.0322m
+
+--- eps_r FD 步长收敛性 ---
+| δ          | g_FD          | sign |
+|------------|---------------|------|
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [3.0520e-01, 3.2526e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1507e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.6421e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8846e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [1.6557e-01, 3.0045e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.0556e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.3615e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8204e-04
+| 1.0000e-01   | -1.791718e-01  |  -   |
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [1.0363e-01, 3.1437e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1054e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.5061e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8539e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [6.1256e-02, 3.1177e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.0955e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4775e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8472e-04
+| 1.0000e-02   | -1.754123e-01  |  -   |
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.3488e-02, 3.1320e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1009e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4931e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8509e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [7.9202e-02, 3.1294e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.0999e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4902e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8502e-04
+| 1.0000e-03   | -1.753758e-01  |  -   |
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1549e-02, 3.1308e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1005e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4918e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8506e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1121e-02, 3.1306e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4915e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+| 1.0000e-04   | -1.753914e-01  |  -   |
+→ ★ 方向稳定（所有步长同号）★
+  截断误差(δ1→δ2): 2.10%
+
+--- hole_x FD 步长收敛性 ---
+| δ          | g_FD          | sign |
+|------------|---------------|------|
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.0233e-02, 3.1314e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1006e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4913e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.2053e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4918e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8506e-04
+| 1.0000e-02   | +3.046151e-04  |  +   |
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1240e-02, 3.1308e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4916e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1425e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+| 1.0000e-03   | +2.250510e-04  |  +   |
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1326e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1344e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+| 1.0000e-04   | +3.348111e-04  |  +   |
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1334e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1336e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+| 1.0000e-05   | +1.171220e-03  |  +   |
+→ ★ 方向稳定（所有步长同号）★
+  截断误差(δ1→δ2): 26.12%
+
+--- hole_y FD 步长收敛性 ---
+| δ          | g_FD          | sign |
+|------------|---------------|------|
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1814e-02, 3.1306e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4918e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.0915e-02, 3.1311e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1006e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4914e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+| 1.0000e-02   | +3.403604e-04  |  +   |
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1406e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1261e-02, 3.1308e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4916e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+| 1.0000e-03   | +3.804087e-05  |  +   |
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1342e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1327e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+| 1.0000e-04   | +1.188993e-04  |  +   |
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1335e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1334e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+| 1.0000e-05   | -3.229526e-04  |  -   |
+→ ? 方向不稳定（步长间符号变化）→ FD 在此参数上不可靠
+  截断误差(δ1→δ2): 88.82%
+
+--- hole_z FD 步长收敛性 ---
+| δ          | g_FD          | sign |
+|------------|---------------|------|
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1474e-02, 3.1301e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1003e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4920e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1404e-02, 3.1306e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+| 1.0000e-02   | -1.132707e-03  |  -   |
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1349e-02, 3.1306e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1321e-02, 3.1308e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4916e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+| 1.0000e-03   | -2.917758e-03  |  -   |
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1336e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1333e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+| 1.0000e-04   | -2.947151e-03  |  -   |
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1335e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=19268)...
+[update_epsilon] 更新 ε_r (N_voxel=19268)...
+  OK int2 (Re) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 673 个评估点...
+[read_field] 完成: |E| range [8.1335e-02, 3.1307e+00]
+[solve_forward] 完成: 673 个体素, |E| mean=1.1004e+00
+[extract_scattered] COMSOL relE extracted: 4608 points, |E_scat| mean=4.4917e-01
+[lightcone_project] J_obs 光锥投影完成: N_k=64
+  |J_obs_perp| mean=1.8505e-04
+| 1.0000e-05   | -2.796427e-03  |  -   |
+→ ★ 方向稳定（所有步长同号）★
+  截断误差(δ1→δ2): 157.59%
+
+========== 总结 ==========
+? 部分参数 FD 方向不稳定——需进一步分析
+============================
+

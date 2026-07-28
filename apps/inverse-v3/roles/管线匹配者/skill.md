@@ -68,12 +68,12 @@
   "matched_plugin": "plugin_a12",
   "capability_details": {
     "forward": "COMSOL_mphinterp ✓",
-    "adjoint": "analytical_maxwell ✓",
+    "adjoint": "exact_maxwell_surface_dual_source ✓",
     "parameterization": "b-spline ✓ (max_control_points=500)",
     "constraints": "tv_regularization ✓, phantom_prior ✓"
   },
   "verdict": "confirmed",
-  "summary": "gen1_comsol 完全满足假设的能力需求"
+  "summary": "gen1_comsol 完全满足假设的能力需求（精确双源伴随已验证）"
 }
 ```
 
@@ -87,7 +87,7 @@
   },
   "match_result": "no_match",
   "gap_analysis": {
-    "gen1_comsol": "forward=COMSOL_mphinterp ≠ neural_surrogate; adjoint=analytical ≠ autograd",
+    "gen1_comsol": "forward=COMSOL_mphinterp ≠ neural_surrogate; adjoint=exact_maxwell ≠ autograd",
     "gen2_hybrid": "尚未注册"
   },
   "verdict": "fail",

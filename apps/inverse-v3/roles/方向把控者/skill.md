@@ -88,17 +88,17 @@
 ```json
 {
   "round": 1,
-  "direction": "伴随梯度反演 + B-spline 参数化",
-  "methodology": "analytical_adjoint",
+  "direction": "精确全 Maxwell 伴随梯度反演 + B-spline 参数化",
+  "methodology": "exact_adjoint_dual_source",
   "capability_requirements": {
     "forward": "COMSOL_mphinterp 或等效",
-    "adjoint": "analytical_maxwell 或 autograd",
+    "adjoint": "exact_maxwell_surface_dual_source",
     "parameterization": "b-spline",
     "constraints": ["phantom_prior", "tv_regularization"]
   },
   "iteration_budget": "10 rounds",
   "status": "active",
-  "rationale": "COMSOL 管线已验证，伴随梯度在当前对比度场景有效"
+  "rationale": "精确双源伴随法已四层验证（sign 100%, cos θ=0.927），管线2 跑通 3 轮收敛，主管线已移植"
 }
 ```
 
@@ -126,7 +126,11 @@
 ## Round 1
 
 ### 当前方向判断
-伴随梯度反演在当前散射体对比度（eps_r=5）下有效。
+精确全 Maxwell 双源伴随法（exact_maxwell_surface_dual_source）已通过四层验证：矩阵级 ratio=1±1e-15，逐体素 sign 100%，非均匀初值鲁棒性确认，过冲体素 FD 验证 sign 100%。管线2 已跑通 3 轮收敛反演。主管线已移植 linesearch_adj + run_inversion_verified。
+
+### 当前残余问题
+- CV=0.40：积分映射 vs 点值映射的结构性偏差，不影响方向正确性但影响收敛速度
+- 主管线步长需调优（第一轮 F 下降 57%，但后续 Armijo 拒绝率偏高）
 
 ### 文献趋势
 - Smith2024 指出伴随梯度在高对比度（eps_r>20）场景收敛慢

@@ -41,7 +41,7 @@ p.voxel_size = 0.01;               % 体素边长 ~lambda/30 m
 
 %% ---- 迭代参数（伴随法）----
 p.max_iter     = 10;               % 最大迭代次数
-p.eps_tol      = 0.2;              % 残差收敛阈值（Born 残差底线 ~0.11）
+p.eps_tol      = 0.05;             % 残差收敛阈值（★ R22 精确伴随：从 0.2 放宽到 0.05，避免 eps_r 过早冻结）
 p.mu_init      = 0.15;             % 梯度下降初始步长（H003: 0.05→0.15，3倍以打破H002残差冻结死锁，使Δ控制点系数>mphinterp数值灵敏度阈值）
 p.mu_min       = 1e-6;             % 线搜索最小步长
 p.mu_max       = 0.5;              % 线搜索最大步长
@@ -159,7 +159,7 @@ p.cavity_eps_r_true    = 5.0;        % 主体真值 ε_r（用于生成 J_obs）
 p.cavity_hole_pos_true = [0.03, 0.02, 0.01]; % 真值空洞中心 [m]（偏心）
 p.cavity_eps_r_init    = 3.0;        % 反演初始猜测 ε_r
 p.cavity_hole_pos_init = [0.0, 0.0, 0.0];     % 反演初始猜测空洞中心 [m]
-p.cavity_mu_eps_r      = 0.5;        % ε_r 步长（材料梯度独立归一化）
+p.cavity_mu_eps_r      = 1.0;        % ★ H029 迁移: Armijo mu=1.0（验证管线确认最佳初始步长，原值 0.5）
 p.cavity_mu_hole_pos   = 0.02;       % H014: 位置步长 0.005→0.02（4倍，吸收效率建议 A-02；配合梯度方向修正加速 hole 收敛，原 0.005 相对需位移 0.037m 过小 7 倍）
 p.cavity_freqs         = [1.0e9];    % H012 单频 1 GHz
 
@@ -185,10 +185,167 @@ p.cavity_fd_delta      = 0.001;      % FD 中心差分扰动量 [m]（~体素尺
 %   voxel 级几何方案下 δ=1e-3m 微扰不触发 x 方向 cavity_mask 变更（体素 ~0.02-0.05m），
 %   边界积分退化为数值噪声。δ_x=0.005m=1/4 体素下界，确保 ≥1 个边界体素归属翻转。
 % 成本：每迭代 2 次额外正演（x+δ_x, x−δ_x），max_iter=10 共 20 次额外正演（~20-40min 增量）。
-p.cavity_hybrid_fd_x   = true;       % H015: 启用 x 分量有限差分梯度（混合策略）
-p.cavity_fd_delta_x    = 0.005;      % H015: x 分量 FD 中心差分扰动量 [m]（1/4 体素下界）
+p.cavity_hybrid_fd_x   = false;      % H017: 废弃 hybrid FD（由 cavity_continuous_bi 替代；H015/H016 FD 路径已穷尽）
+p.cavity_fd_delta_x    = 0.005;      % H015: x 分量 FD 中心差分扰动量 [m]（保留供 H017 FD 符号交叉验证参考）
 p.cavity_fd_delta_x_fallback = 0.01;  % H015 Round11 P-01: FD fallback 升级 δ_x [m]（|g_FD_x| < min_magnitude 时触发自动升级重算）
 p.cavity_fd_x_min_magnitude  = 1e4;   % H015 Round11 P-01: g_FD_x 最小有效量级阈值（低于此值视为伪信号，触发 δ_x 升级）
+p.cavity_fd_geo_preflight   = true;   % H017 P-04: 几何预判短路（±δ_x 不改变体素归属时跳过正演，数学精确 g_FD_x≡0；向后兼容默认 true）
+
+%% ---- H017: 连续边界积分梯度策略（analytical_continuous_boundary_integral）----
+% H017 核心改动：将空洞位置梯度从 FD 估计（H015/H016 hybrid_fd，已穷尽）重构为
+%   解析形状导数连续边界积分。在 COMSOL FEM 求解的连续球形空洞边界上通过 mphinterp
+%   提取 E_adj/E_fwd 场值，在 N~200-500 Fibonacci 球面采样点上数值求积。
+%   dF/dx_hole = -Σ_k (ε_body−ε_cavity)·k0²·Re(E_fwd·E_adj)·n_x,k·w_k / N_freq （上升方向）
+%   下降方向 g_pos = +Σ_k (ε_body−ε_cavity)·k0²·Re(E_fwd·E_adj)·n_k·w_k / N_freq
+% 根因：voxel 级几何方案下 x 方向体素对称性硬约束——FD 路径无法打破
+%   （H015 δ_x=0.005m g_FD_x≈0，H016 δ_x=0.01m fallback |g_FD_x|~0.1，差 5 个数量级）。
+%   连续边界积分的积分域和被积函数均随 x_hole 连续变化，无需体素翻转。
+% 关键优势：①积分域和被积函数连续变化 ②零额外正演（mphinterp 后处理） ③三分量统一框架
+p.cavity_continuous_bi    = true;     % H017: 启用连续边界积分梯度（替代 hybrid_fd）
+p.cavity_bi_N             = 300;      % Fibonacci 球面采样点数（200-500，等面积求积）
+p.cavity_bi_fd_crosscheck = false;    % H018: FD 符号交叉验证已完成（H017 sign_consistent=true），关闭以节省 2 次额外正演
+
+%% ---- H018 v2: 双组件稳定化（梯度归一化 + best_intermediate 保护）----
+% H018 v2 保持 H017 cavity 4 参数几何配置与 CBI 梯度框架完全不变，
+% 采用双组件并行方案消除 H017 暴露的 hole_err 终态震荡（iter2 最优 0.0182m→iter4 恶化 0.0534m）。
+%
+% 组件 A（梯度归一化·动力学层）：将空洞位置步长从固定 mu_hole=0.02 升级为
+%   自适应缩放 Δx_hole = target_step × g_hole / ||g_hole||（target_step=0.01m），
+%   使步长与 CBI 梯度量级（|g_hole|~1e7）显式解耦。当前代码已归一化方向
+%   （dir_pos = g_pos/||g_pos||），故 mu_hole_try = target_step 即可实现物理位移目标。
+%   含振荡检测 backtracking（连续 2 轮 hole_err 增加→target_step 减半，下界 0.001m）
+%   和近零梯度守卫（||g_hole||<1e-12 时 Δx_hole=0）。
+%
+% 组件 B（best_intermediate 保护·终态层）：在迭代循环中维护 best_state
+%   （以 hole_err 为判定指标），反演终止时返回 best_state 而非 final state，
+%   提供数学保证：终态 hole_err ≤ 历史最优 hole_err（必然不差于 H017 iter2 的 0.0182m）。
+%   纯安全网零回归风险，与组件 A 机制正交可安全并行。
+p.cavity_h018_dual_component  = true;   % H018 v2: 启用双组件（true=组件A+B并行，false=退化为H017固定步长）
+p.cavity_h018_target_step     = 0.03;   % H030: 物理位移目标 0.01→0.03（3 倍，匹配空洞位移需求 0.037m，H013 建议区间 0.02-0.05 中值）
+p.cavity_h018_target_step_min = 0.001;  % 组件 A: backtracking 下界 [m]（防无限缩减）
+p.cavity_h018_mu_hole_upper   = 0.05;   % 组件 A: 自适应步长上界 [m]（收敛后期 ||g||→0 时防发散）
+p.cavity_h018_near_zero_grad  = 1e-12;  % 组件 A: 近零梯度守卫阈值（||g_hole|| 低于此值时 Δx_hole=0）
+
+%% ---- H019: 多目标综合质量判据 Q（best_intermediate 判据升级）----
+% H019 将组件 B best_intermediate 的终态选择判据从单一 hole_err 升级为多目标综合质量判据 Q：
+%   Q = w_cos·cos θ + w_hole·max(0, 1−hole_err/hole_err_ref) + w_eps·max(0, 1−eps_r_err/eps_r_ref)
+% cos θ 作为综合方向一致性指标（J_obs vs J_hyp）天然捕捉 eps_r 与 hole 的协同质量，
+% 纳入判据后 best_intermediate 从'位置单目标极端'升级为'综合 Pareto 最优'。
+% 触发背景：H018 v2 实验暴露残差 eps_r 与位置 hole_err 反相关（多目标失配），
+% 单目标 hole_err 判据可能选中位置最优但材料/cos θ 退化的态。
+p.cavity_h019_multi_obj_q   = true;    % H019: 启用多目标 Q 判据（true=Q判据, false=退化为H018 v2 hole_err单目标）
+p.cavity_h019_w_cos         = 0.4;     % Q 权重: cos θ（综合方向一致性，核心质量保证）
+p.cavity_h019_w_hole        = 0.4;     % Q 权重: hole_err 项（位置为核心反演目标）
+p.cavity_h019_w_eps         = 0.2;     % Q 权重: eps_r_err 项（材料约束，eps_r 连续五轮 90% 恢复故权重略低）
+p.cavity_h019_hole_err_ref  = 0.037;   % hole_err 归一化参考值 [m]（初始位置误差 norm([0,0,0]-[0.03,0.02,0.01])）
+p.cavity_h019_eps_r_ref     = 1.0;     % eps_r_err 归一化参考值（相对误差 eps_r_true=5.0）
+
+%% ---- H020: 双门独立收敛判据（convergence criterion from single-gate to dual-gate）----
+% H020 唯一变更：全局收敛触发判据从单门 residual-based（F_cheb < eps_tol=0.2）
+%   升级为双门独立收敛——Gate A residual AND Gate B hole_err 稳定性。
+%   Gate A: residual F_cheb < eps_tol=0.2（与 H012-H019 完全一致，保持不变）
+%   Gate B: hole_err 稳定性——连续 hole_stability_window 轮 |Δhole_err|/hole_err < hole_stability_threshold
+%   全局收敛 = Gate A AND Gate B（双门同时满足才触发 converged=true）
+% 触发背景：H019 实验暴露 residual（eps_r 主导）在 iter3 即收敛（F_cheb=0.062 << eps_tol=0.2），
+%   但 hole_err 序列 0.0374→0.0277→0.0314→0.0404 仍在震荡（iter1 后 |Δhole_err|/hole_err = 13.6%/28.6% 远超 10% 稳定性阈值）。
+%   单门 residual 收敛过早截断了 hole 优化空间。Gate B 强制 hole_err 稳定后才终止，给 hole 额外迭代预算。
+% 三重终止兜底：max_iter=10 / LS 全 reject 早停（Round15）/ Q 判据 best_state 兜底（H019 组件 B）
+p.cavity_h020_dual_gate              = true;    % H020: 启用双门独立收敛（true=Gate_A AND Gate_B，false=退化为 H019 单门 residual）
+p.cavity_h020_hole_stability_window  = 2;       % H020 Gate B: hole_err 稳定性滑窗（连续 N 轮变化率均达标）
+p.cavity_h020_hole_stability_threshold = 0.10;  % H020 Gate B: hole_err 变化率阈值（|Δhole_err|/hole_err < 10%）
+
+%% ---- H021: eps_r 冻结机制（eps_r freeze after Gate A first satisfied）----
+% H021 唯一变更：在 H020 双门独立收敛基础上新增 eps_r 冻结机制。
+% 当 Gate A（F_cheb < eps_tol=0.2）首次满足时设置 eps_r_frozen=true，
+% 后续迭代跳过 eps_r 梯度计算与参数更新，仅更新 hole 位置三分量。
+% 触发背景：H020 双门收敛机制验证成功（Gate B 正确检测 hole_err 震荡并延迟收敛），
+%   但 hole_err 终态 0.0404m 仍超标——根因：Gate A 满足后 eps_r 仍每轮参与 Armijo 更新，
+%   微小 eps_r 变化经正演场 E_fwd 传导扰动 hole CBI 梯度景观导致 hole_err 震荡。
+%   eps_r 冻结使正演场完全恒定，hole 在数学上严格的稳定梯度景观下独立收敛。
+% 与 CBI/组件A/组件B/Q判据/GateB 五层正交，不改变任何已有机制。
+p.cavity_h021_eps_r_freeze = true;    % H021: 启用 eps_r 冻结（true=Gate A 首次满足后冻结 eps_r，false=退化为 H020）
+
+%% ---- H021-Round17: dF 机器精度早停（post-freeze LS trial 效率优化）----
+% 触发：H021 needs_optimization。eps_r 冻结后 LS trial dF 降至机器精度（~1e-16），
+%   在数值噪声中做 accept/reject 判定，浪费 3 次正演（~15s，占总耗时 5%）。
+% 根因：hole 位置 sub-voxel 移动不改变离散化 epsilon 分布（相同 cavity 体素），
+%   正演问题完全相同 → residual 恒定 → Armijo 在舍入误差级噪声中操作。
+% 机制：线搜索 trial 中检测 |dF| < 机器精度阈值，判定为"离散化不敏感步"并终止线搜索：
+%   dF<=0 仍 accept（残差不上升）但立即 break；dF>0 不 decay mu 直接 break（避免无意义试探）。
+% 阈值 1e-10 比 F_cheb(~6e-2) 小 8 个数量级，远超物理下降量级（收敛时 dF>=1e-6），误伤风险极低。
+p.cavity_h021_dF_earlystop    = true;    % Round17: 启用 dF 机器精度早停
+p.cavity_h021_dF_machine_eps  = 1e-10;   % Round17: 机器精度阈值（|dF|<此值判定为离散化不敏感）
+p.cavity_h021_dF_rel_threshold = 0.005;  % Round19: dF 相对阈值（|dF|/F_old<0.5% 时判定为低效步，SDF 场景物理量级 dF 防护）
+
+%% ---- H022: SDF sub-voxel 软边界连续化（epsilon 映射）----
+% H022 唯一变更：将 cavity epsilon 映射从硬二值体素分配（body ε_r OR cavity ε=1）
+%   升级为符号距离函数（SDF）sub-voxel 软边界连续化。
+%   对每个内部体素 i：d_i=|r_i-r_hole|-R_hole（符号距离，负=腔内，正=体内），
+%   ε_i=ε_r+(1.0-ε_r)·H_smooth(d_i)，H_smooth(d)=0.5·(1-tanh(d/δ))。
+%   δ=0.008m（~1/3 体素尺寸 0.024m），使正演 epsilon 连续依赖 hole 位置，
+%   恢复残差对 sub-voxel hole 移动的梯度反馈（dF/d(r_hole)≠0）。
+% 触发背景：H021 冻结实验证伪 eps_r-hole 耦合根因——冻结后 residual 恒定 dF~1e-16，
+%   离散化正演对 sub-voxel hole 位置完全不敏感（7 cavity voxels 不变→ε分布不变→正演相同）。
+%   SDF 使 hole 移动→符号距离连续变化→ε连续变化→正演场连续变化→residual 连续变化。
+% 与 CBI/组件A/组件B/Q判据/双门/eps_r冻结/Armijo 七层正交，仅改 epsilon 赋值方式。
+p.cavity_h022_sdf       = true;     % H022: 启用 SDF 软边界 epsilon 映射（true=SDF连续化, false=硬二值退化为H021）
+p.cavity_h022_sdf_delta = 0.008;    % H022: 软边界半宽 δ [m]（~1/3 体素尺寸 0.024m，平衡连续敏感性与物理精度）
+
+%% ---- H030-Round21: 连续 reject 早停阈值（迭代轮级）----
+% H029 参数化（默认 3），H030 二次验证后默认降至 2。
+% 连续 N 轮 LS 全 reject 且参数态不变时，第 N+1 轮极大概率也 reject（确定性重演）。
+% best-state tracking 保证不丢最优态。设 3 可恢复旧行为基线。
+p.cavity_reject_threshold    = 2;       % Round21: 连续 reject 阈值（达到即提前终止迭代）
+
+%% ---- H022-Round18: 系统性 reject 早停（H023 needs_optimization 正式启用）----
+% 触发：H023 needs_optimization。H022 已编码 Round18 机制但 config.m 未设 true，
+%   致 H023 iter3+iter4 各跑满 8 次 LS trial 全 reject（16 次浪费/~128s/23%）。
+% 机制：同一轮线搜索内连续 N=4 次 trial 全部 reject 且 dF 物理量级同号 → 梯度方向系统性错误，提前终止。
+% 预期效果：H023 iter3 从 8 次→4 次 trial（省 4 次正演），iter4 从 8 次→0 次（冻结后 LS 短路）。
+p.cavity_h022_sysreject_earlystop = true;   % Round18: 启用系统性 reject 早停（H022 已编码，H023 正式启用）
+p.cavity_h022_sysreject_N         = 4;      % Round18: 连续同号 reject 阈值（达到即 break）
+p.cavity_h022_sysreject_dF_floor  = 1e-8;   % Round18: dF 物理量级下限（|dF|<此值不计数，与 Round17 缓冲）
+
+%% ---- H023: SDF-aware 伴随体积积分（hole 位置梯度升级）----
+% H023 唯一变更：将 hole 位置梯度从 CBI 硬边界球面积分（∂Ω_cav 上 Re(E_adj·E_fwd)·n dS）
+%   升级为 SDF 过渡带伴随体积积分（Ω_transition 上 Re(E_adj·E_fwd)·(dε/d_r_hole) dV）。
+%   链式法则穿过 tanh 软边界：dε_i/d_r_hole=(1−ε_r)·0.5·sech²(d_i/δ)/δ·(r_i−r_hole)/|r_i−r_hole|，
+%   使梯度与 H022 SDF 正演模型严格一致（消除 H022 条件_1 cos=−0.3082 方向反向不匹配）。
+% 触发背景：H022 SDF 核心假设 CONFIRMED（dF/d_hole 从 ~1e-16 恢复至 5.74），但 CBI 硬边界梯度
+%   与 SDF 软边界正演不匹配（条件_1 cos<0），致 cos θ 退化 0.859→0.506、iter3 LS 8 次全 reject。
+%   H023 直接治理梯度−正演一致性根因，预期条件_1 cos>0.95、cos θ 恢复突破 0.92。
+% 与 SDF 正演/组件A/组件B/Q判据/双门/eps_r冻结/Armijo 八层正交，仅改 hole 位置梯度公式。
+p.cavity_h023_sdf_aware         = true;   % H023: 启用 SDF-aware 体积积分（true=替代CBI, false=退化为H022 CBI球面积分）
+p.cavity_h023_transition_factor = 2.0;    % H023: 过渡带半宽因子（|d_i|<factor·δ 内计算梯度，sech²天然集中）
+
+%% ---- H024: 梯度公式逐层分解诊断模块（diagnostic decomposition）----
+% H024 唯一变更：在 SDF-aware 梯度计算后新增三层诊断模块，不修改梯度公式本身。
+% 诊断目标：将 cos(g_SDF_aware, g_FD)=−0.0920 的系统性偏差归因至唯一层级。
+% L1: dε_i/d_r_hole 链式法则逐体素验证（解析 vs 数值中心差分，零额外正演）
+% L2: ∂F/∂ε_i Born 近似 FD 验证（6 代表体素 ε_i 微扰，~36 次额外正演）
+% L3: 逐频梯度分解 + −k0² 加权修正梯度构造（零额外正演，数据重排）
+% 诊断性假设——不改变优化动力学，H023 SDF-aware 公式完全保持不变。
+p.cavity_h024_diagnostic       = true;   % H024: 启用梯度诊断分解（true=执行三层诊断, false=跳过）
+p.cavity_h024_diag_iter        = 2;      % H024: 诊断执行迭代轮（iter=2，梯度景观演化后验证）
+p.cavity_h024_l1_delta         = 1e-6;   % H024 L1: 链式法则数值中心差分步长 [m]
+p.cavity_h024_l2_n_voxels      = 6;      % H024 L2: 代表性体素数（过渡带内/边界/外各 2 个）
+p.cavity_h024_l2_delta_eps     = 0.01;   % H024 L2: ε_i 微扰量（Born 近似 FD 验证）
+
+%% ---- Round20 (H025 needs_optimization): L2 诊断跨实验缓存 ----
+% H025 实验执行者观察：H024 L2 诊断 12 次额外正演占 iter2 耗时 84%（总反演 331.6s 的 52%），
+%   其中 5/6 体素与 H024 跨实验 6 位有效数字完全一致 → 冗余正演。
+% 引入持久化缓存（data/l2_diag_cache.mat）：以 (hole_pos, 全局 inner ε_r, d_eps, freqs, v_idx, J_obs)
+%   的 SHA-256 指纹为键缓存 born_ratio，跨实验命中时跳过 COMSOL 正演。
+% 纯效率优化——不改变诊断逻辑/梯度公式/能力契约（H025 证 Born 因子非偏差根因 residual_gap=-7.24 orders）。
+% 单客户端串行运行（COMSOL Server 单客户端模式），无并发写冲突。
+p.cavity_h025_l2_cache         = true;   % Round20: L2 诊断跨实验缓存（true=启用，命中跳过冗余正演）
+
+%% ---- Round 22: 精确全 Maxwell 伴随法（表面双源）----
+% build_adjoint_source_fullmaxwell 返回 Js + Ms 双源，solve_adjoint 创建 SurfaceCurrent + SurfaceMagneticCurrentDensity
+% 替代旧 Born 近似的简化反向投影（忽略极化投影核）
+% 参见：z-workspace/inverse-v3/SurfaceMagneticCurrentDensity_使用说明.md
+% 实测验证：COMSOL/pipline/experiment/probe_magnetic_current_v2.m
+p.exact_adjoint_r22             = true;   % Round22: 精确伴随（true=表面双源/false=旧Born体积电流）
 
 %% ---- 反演算法插件（随插随用）----
 % 通过 run_experiment.m 统一调度，切换此参数即可更换算法
@@ -197,6 +354,6 @@ p.cavity_fd_x_min_magnitude  = 1e4;   % H015 Round11 P-01: g_FD_x 最小有效�
 %   'plugin_a12'    - A12 B-spline + TV 多频反演
 %   'plugin_c01'    - C01 复数均匀球反演（H012: cavity_mode=true → body+cavity）
 % 新建插件：在 algorithm/ 下创建 plugin_xxx/run_inversion.m
-p.inversion_plugin = 'plugin_c01';   % H012: 切换至 plugin_c01 + cavity_mode
+p.inversion_plugin = 'plugin_c01';   % H012: 切换至 plugin_c01 + cavity_mode（H017: continuous_bi; H018: dual_component; H019: multi_obj_Q）
 
 end

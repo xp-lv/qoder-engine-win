@@ -1,0 +1,19 @@
+﻿
+========== 单参数（eps_r）伴随法验证 ==========
+[build_measurement_grid] N_surface=4608 (R=0.260m, 48x96 theta×phi)
+[FAIL] mphstart: A connection to COMSOL could not be established. Please check that a COMSOL server is started prior to calling mphstart
+
+mphstart (0): Java exception occurred: 
+Exception:
+
+	java.net.ConnectException: Connection refused: no further information
+	(rethrown as com.comsol.util.exceptions.FlException)
+
+Messages:
+
+	Failed to connect to server
+
+
+
+	Connection refused: no further information
+

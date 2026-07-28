@@ -70,22 +70,24 @@
     {
       "exp_id": "H001_20260722_153000",
       "hypothesis_id": "H001",
-      "direction": "伴随梯度反演+B-spline",
-      "pipeline_gen": "gen1_comsol",
-      "cos_theta": 0.9935,
+      "direction": "精确全 Maxwell 双源伴随+B-spline",
+      "pipeline_gen": "gen1_comsol / gen1_comsol_adjoint",
+      "cos_theta": 0.927,
+      "sign_rate": 1.0,
+      "cv": 0.40,
       "exceeds_baseline": true,
       "knowledge_extracted": {
-        "do": ["K=60 在低频段有效，压缩比 11:1 合理"],
-        "dont": ["K=60 在高频段出现轻微 Gibbs 振荡"]
+        "do": ["精确双源伴随 sign 100% 验证通过", "coeff_base=0.5i·ω·ε₀ 正确", "conj(lambda_raw) 双源路径必须", "Armijo 线搜索 mu=1.0 效果最佳"],
+        "dont": ["不要用 bilinear 内积替代 Hermitian（实验 sign 0% 全反）", "CV=0.40 是积分映射 vs 点值映射的结构性偏差，非 bug"]
       }
     }
   ],
   "direction_assessment": {
-    "current_direction": "伴随梯度反演",
+    "current_direction": "精确全 Maxwell 双源伴随梯度反演",
     "confidence": "healthy",
-    "trend": "improving",
+    "trend": "validated",
     "consecutive_no_improvement": 0,
-    "threats": [],
+    "threats": ["CV=0.40 残余偏差限制收敛速度", "主管线 Armijo 步长需调优"],
     "lifespan_estimate": "5+ more iterations"
   }
 }
@@ -95,11 +97,11 @@
 ```json
 {
   "round": 1,
-  "direction": "伴随梯度反演+B-spline",
+  "direction": "精确全 Maxwell 双源伴随+B-spline",
   "confidence": "healthy",
-  "trend": "improving",
+  "trend": "validated",
   "consecutive_no_improvement": 0,
-  "threats": [],
+  "threats": ["CV=0.40 残余偏差限制收敛速度"],
   "lifespan_estimate": "5+ more iterations",
   "recommendation": "continue"
 }

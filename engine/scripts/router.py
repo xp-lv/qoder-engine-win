@@ -244,52 +244,6 @@ def _router_assemble_dispatches(dispatchable, steps_map, registry_map, args, app
     return dispatch_instructions
 
 
-def _router_check_reachable_closure(args, router, finished, pending_routes, executing,
-                                     steps_map, candidates, missing_steps, from_steps):
-    """BFS closure check and output when no dispatchable targets found.
-
-    使用 pending_routes 作为 BFS 遍历的 verdict 来源（瞬态信号）。
-    """
-    entry = router.get("entry", "")
-    visited = set()
-    bfs_queue = [entry] if entry else []
-    while bfs_queue:
-        cur = bfs_queue.pop(0)
-        if cur in visited:
-            continue
-        visited.add(cur)
-        if cur not in finished:
-            continue
-        cur_verdict = pending_routes.get(cur, {}).get("verdict", "confirmed")
-        cur_def = steps_map.get(cur, {})
-        cur_trans = cur_def.get("transitions", {})
-        cur_edge = cur_trans.get(cur_verdict, {})
-        if isinstance(cur_edge, dict):
-            for t in cur_edge.get("targets", []):
-                if t not in visited:
-                    bfs_queue.append(t)
-    reachable_unfinished = visited - finished
-    if not reachable_unfinished and not executing:
-        output({"status": "success", "error_code": None, "message": "all_complete", "dispatch_instructions": []})
-
-    if args.from_steps:
-        if missing_steps:
-            reason = f"from_step 不存在于 ROUTER.json: {missing_steps}（STATE 与 ROUTER 可能版本不一致）"
-        elif not candidates:
-            reason = f"verdict '{args.on}' 在 from_steps {from_steps} 的 transitions 中无匹配边"
-        else:
-            reason = f"候选目标 {candidates} 全部被过滤（executing/max_executions）"
-        output({
-            "status": "success",
-            "error_code": None,
-            "message": "route_failed",
-            "reason": reason,
-            "dispatch_instructions": []
-        })
-
-    output({"status": "success", "error_code": None, "message": "no_dispatchable_steps", "dispatch_instructions": []})
-
-
 def main():
     args = _router_parse_args()
 
@@ -354,12 +308,18 @@ def main():
         dispatchable, steps_map, registry_map, args, app_path,
         from_steps, edge_counts, user_request)
 
-    if not dispatchable:
-        _router_check_reachable_closure(
-            args, router, finished, pending_routes, executing,
-            steps_map, candidates, missing_steps, from_steps)
+    # router 只报告事实，不做终态判定。终态判定由 orchestrator 全局决策。
+    result = {
+        "status": "success",
+        "error_code": None,
+        "dispatch_instructions": dispatch_instructions,
+        "has_candidates": len(candidates) > 0,
+    }
+    if not dispatchable and args.from_steps and missing_steps:
+        result["message"] = "route_failed"
+        result["reason"] = f"from_step 不存在于 ROUTER.json: {missing_steps}（STATE 与 ROUTER 可能版本不一致）"
 
-    output({"status": "success", "error_code": None, "dispatch_instructions": dispatch_instructions})
+    output(result)
 
 if __name__ == "__main__":
     main()

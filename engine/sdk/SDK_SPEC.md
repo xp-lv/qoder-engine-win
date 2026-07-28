@@ -411,7 +411,7 @@ A 完成 → router 沿 A.confirmed 找到 [B, C, D]
 
 ### 5.8 退出
 
-targets=[] 的边 → router 无候选 → 返回 `all_complete` → orchestrator 写 `terminal_state: "completed"`。
+router 返回 `has_candidates: false`（verdict 边无 targets）→ orchestrator 全局判定（冷路径：所有 pending_routes 均无 candidates 且无 dispatch 产出；热路径：from_steps 无 candidates）→ 写 `terminal_state: "completed"`。
 
 ### 5.9 WORKSPACE_ROOT 路径解析
 

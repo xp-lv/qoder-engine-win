@@ -231,3 +231,38 @@ cd "d:\ZJU\PROJECT\2026-07-02-qoder-engine\COMSOL\pipline"
 ```
 
 注意：`addpath('config','experiment')` 是必需的——setup() 在这两个目录中。
+
+## MATLAB 向量维度鲁棒性检查清单
+
+> **背景**：H022 + H024 累计两起同类维度崩溃 bug，共同根因是 MATLAB 向量索引的「源方向继承」语义——`A(I)` 与 `A` 同方向（而非与索引 `I` 同方向），导致 `horzcat(A(I), (c:d))` 在 `A` 为列向量时崩溃。本检查清单供算法实现者/管线维护者在代码审查时使用。
+
+### 检查项
+
+当出现以下模式时，**必须**显式归一化向量方向：
+
+| 模式 | 风险 | 修复 |
+|------|------|------|
+| `[A(idx), B(idx), (c:d)]` | `A(idx)` 继承 `A` 的方向；若 `A` 为列向量则 horzcat 崩溃 | `A(:).'` 或 `normalize_vec(A, 'row')` |
+| `[A(idx); (c:d).']` | vertcat 方向不一致 | `A(:)` 或 `normalize_vec(A, 'col')` |
+| `pos_inner - hole_pos.'` | `hole_pos` 为 `[1×3]` 时 `.'` 不变；为 `[3×1]` 时转置后维度匹配 | 统一用 `hole_pos(:).'` |
+| `sort(...)` 结果参与拼接 | `sort` 保留输入方向 | 排序后立即 `(:).'` 或 `(:)` |
+
+### 工具函数
+
+`utils/normalize_vec.m` 提供语义化的方向归一化：
+
+```matlab
+% horzcat 前统一为行向量
+idx_row = normalize_vec(sort_idx, 'row');
+result  = [idx_row(1:k), idx_row(k+1:end), (a:b)];
+
+% vertcat 前统一为列向量
+col_vec = normalize_vec(data, 'col');
+```
+
+### 历史记录
+
+| Bug | 位置 | 根因 | 修复 |
+|-----|------|------|------|
+| H022 | `C01_cavity_inversion_loop.m` line 204 | `hole_true.'` 未归一化（`[1×3]` 侥幸通过，`[3×1]` 崩溃）| `hole_true(:).'` |
+| H024 | `C01_cavity_inversion_loop.m` line 594 | `d_sort_idx`（列）与 `(a:b)`（行）horzcat 崩溃 | `d_sort_idx(:).'` |

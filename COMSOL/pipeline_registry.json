@@ -69,6 +69,48 @@
         "v5a_pass": true,
         "experiments_run": 50
       }
+    },
+    "gen1_comsol_adjoint": {
+      "name": "pipline_adjoint 伴随法验证管线",
+      "status": "stable",
+      "created": "2026-07-28",
+      "abs_path": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline_adjoint",
+      "model_file": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline_adjoint\\2layer.mph",
+      "entry_script": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline_adjoint\\experiment\\verify_per_voxel.m",
+      "config_script": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline_adjoint\\config\\config.m",
+      "capabilities": {
+        "forward": {
+          "method": "COMSOL_mphinterp",
+          "max_freq_hz": 3000000000,
+          "description": "极简 2 层球 COMSOL 模型，散射场公式"
+        },
+        "adjoint": {
+          "method": "exact_maxwell_surface_dual_source",
+          "differentiable": false,
+          "description": "精确 Stratton-Chu 伴随：SurfaceCurrent + SurfaceMagneticCurrentDensity 双源注入"
+        },
+        "parameterization": {
+          "supported": ["voxel"],
+          "default": "voxel",
+          "voxel_count": 1164
+        },
+        "metrics": {
+          "sign_consistency": true,
+          "cos_theta": true,
+          "cv": true
+        }
+      },
+      "matlab": {
+        "comsol_port": 2036,
+        "comsol_version": "6.2",
+        "matlab_version": "R2023b"
+      },
+      "validated": {
+        "date": "2026-07-28",
+        "voxel_count": 1164,
+        "sign_rate": 1.0,
+        "cos_theta": 0.927
+      }
     }
   }
 }

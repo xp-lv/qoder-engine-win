@@ -1,6 +1,6 @@
 {
   "generation": "gen1_comsol",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "COMSOL FEM 伴随梯度管线",
   "status": "stable",
   "created": "2026-06-20",
@@ -18,9 +18,12 @@
       "description": "COMSOL LiveLink mphinterp 提取场值，支持平面波/高斯波束背景场"
     },
     "adjoint": {
-      "method": "analytical_maxwell",
+      "method": "exact_maxwell_surface_dual_source",
       "differentiable": false,
-      "description": "解析 Maxwell 伴随源，手动推导梯度"
+      "description": "★ Round 22 升级：精确 Stratton-Chu 伴随——表面电流 SurfaceCurrent (Js0) + 表面磁流 SurfaceMagneticCurrentDensity (Jms0) 双源注入，替代旧 Born 近似简化反向投影",
+      "legacy_method": "analytical_maxwell (Born 近似, v1.0.0)",
+      "comsol_features": ["SurfaceCurrent", "SurfaceMagneticCurrentDensity"],
+      "probe_script": "experiment/probe_magnetic_current_v2.m"
     },
     "parameterization": {
       "supported": ["voxel", "b-spline", "uniform"],
