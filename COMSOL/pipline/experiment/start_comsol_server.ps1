@@ -1,15 +1,24 @@
 <#
 .SYNOPSIS
-    COMSOL Server 启动辅助脚本（管线维护 Round21 — H030-P0）
+    COMSOL Server startup helper script (pipeline maintenance H031-P0).
 .DESCRIPTION
-    逆散射规范第 5 节要求 COMSOL Server 需独立终端长期运行于 port 2036。
-    H029/H030 连续两次实验均在首次检查时发现 Server 未启动，浪费 ~25s 排查时间。
-    run_experiment.m 已在 mphstart 前增加了端口预检查（H029-P0），
-    本脚本提供配套的 Server 一键启动能力，消除手动查找路径的摩擦。
+    The inverse-scattering spec (Section 5) requires the COMSOL Server to run
+    long-term on port 2036 in a dedicated terminal. H029/H030/H031 all found
+    the Server NOT running on first check, wasting ~20-25s each time.
 
-    用法：
-    1. 独立终端运行：powershell -ExecutionPolicy Bypass -File start_comsol_server.ps1
-    2. 若已在运行则跳过；若未运行则后台启动并等待端口就绪。
+    H031 also discovered a NEW bug (P0): this script failed to parse on Windows
+    because it contained Chinese characters saved as UTF-8 (no BOM). Windows
+    PowerShell defaults to GBK codepage and mis-parses multi-byte UTF-8 Chinese
+    sequences, causing errors like "missing } in statement block" and
+    "array index expression missing or invalid".
+
+    FIX (H031-P0): the entire script is now pure ASCII (English messages only),
+    making it immune to all codepage/encoding issues regardless of locale.
+
+    Usage:
+    1. Run in a dedicated terminal:
+       powershell -ExecutionPolicy Bypass -File start_comsol_server.ps1
+    2. If already running -> skip; if not -> start in background and wait for port.
 #>
 
 param(
@@ -19,7 +28,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# --- COMSOL 安装路径（按优先级探测常见安装位置）---
+# --- COMSOL install path (probe common locations by priority) ---
 $ComsolCandidates = @(
     "D:\LenovoSoftstore\Install\COMSOL62\Multiphysics\bin\win64\comsolmphserver.exe",
     "C:\Program Files\COMSOL62\Multiphysics\bin\win64\comsolmphserver.exe",
@@ -35,35 +44,36 @@ foreach ($candidate in $ComsolCandidates) {
 }
 
 if (-not $ComsolExe) {
-    Write-Host "[ERROR] 未找到 comsolmphserver.exe。" -ForegroundColor Red
-    Write-Host "        已探测路径均不存在，请手动指定 -ComsolExe 参数或修改脚本中的候选路径。" -ForegroundColor Yellow
-    Write-Host "        示例：D:\LenovoSoftstore\Install\COMSOL62\Multiphysics\bin\win64\comsolmphserver.exe"
+    Write-Host "[ERROR] comsolmphserver.exe not found." -ForegroundColor Red
+    Write-Host "        None of the probed paths exist. Please specify -ComsolExe or edit the candidate list." -ForegroundColor Yellow
+    Write-Host "        Example: D:\LenovoSoftstore\Install\COMSOL62\Multiphysics\bin\win64\comsolmphserver.exe" -ForegroundColor Yellow
     exit 1
 }
 
-# --- 检查 Server 是否已在运行 ---
-Write-Host "[CHECK] 探测 localhost:$Port ..." -ForegroundColor Cyan
+# --- Check if Server is already running ---
+Write-Host "[CHECK] Probing localhost:$Port ..." -ForegroundColor Cyan
 $connection = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
 if ($connection) {
-    Write-Host "[OK] COMSOL Server 已在 localhost:$Port 运行（PID=$($connection.OwningProcess | Select-Object -First 1)），无需重复启动。" -ForegroundColor Green
+    $pidVal = ($connection.OwningProcess | Select-Object -First 1)
+    Write-Host "[OK] COMSOL Server already running on localhost:$Port (PID=$pidVal), no need to start again." -ForegroundColor Green
     exit 0
 }
-Write-Host "[INFO] 端口 $Port 无监听，准备启动 COMSOL Server ..." -ForegroundColor Yellow
+Write-Host "[INFO] Port $Port has no listener, preparing to start COMSOL Server ..." -ForegroundColor Yellow
 
-# --- 确保 tmpdir 存在 ---
+# --- Ensure tmpdir exists ---
 if (-not (Test-Path $TmpDir)) {
-    Write-Host "[SETUP] 创建临时目录: $TmpDir" -ForegroundColor Cyan
+    Write-Host "[SETUP] Creating temp directory: $TmpDir" -ForegroundColor Cyan
     New-Item -ItemType Directory -Path $TmpDir -Force | Out-Null
 }
 
-# --- 启动 COMSOL Server（后台进程，独立终端长期运行）---
+# --- Start COMSOL Server (background process, long-term in dedicated terminal) ---
 Write-Host "[START] $ComsolExe -port $Port -tmpdir $TmpDir" -ForegroundColor Cyan
 $processArgs = @("-port", $Port, "-tmpdir", $TmpDir)
 $process = Start-Process -FilePath $ComsolExe -ArgumentList $processArgs -PassThru -WindowStyle Normal
 Write-Host "[STARTED] COMSOL Server PID=$($process.Id)" -ForegroundColor Green
 
-# --- 等待端口就绪（最多 30s）---
-Write-Host "[WAIT] 等待端口 $Port 就绪 ..." -ForegroundColor Cyan
+# --- Wait for port ready (up to 30s) ---
+Write-Host "[WAIT] Waiting for port $Port to be ready ..." -ForegroundColor Cyan
 $maxWait = 30
 $waited = 0
 while ($waited -lt $maxWait) {
@@ -71,16 +81,16 @@ while ($waited -lt $maxWait) {
     $waited++
     $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
     if ($conn) {
-        Write-Host "[READY] COMSOL Server 已就绪（localhost:$Port，等待 ${waited}s）。" -ForegroundColor Green
+        Write-Host "[READY] COMSOL Server is ready (localhost:$Port, waited ${waited}s)." -ForegroundColor Green
         Write-Host ""
-        Write-Host "  现在可以在 MATLAB 中执行：" -ForegroundColor White
+        Write-Host "  Now in MATLAB you can run:" -ForegroundColor White
         Write-Host "    cd('d:\ZJU\PROJECT\2026-07-02-qoder-engine\COMSOL\pipline')" -ForegroundColor White
         Write-Host "    addpath('config','experiment')" -ForegroundColor White
         Write-Host "    state = run_experiment('plugin_c01');" -ForegroundColor White
         Write-Host ""
-        Write-Host "  注意：此终端须保持打开，Server 关闭后 MATLAB 连接将断开。" -ForegroundColor Yellow
+        Write-Host "  NOTE: Keep this terminal open. Closing it will disconnect MATLAB." -ForegroundColor Yellow
         exit 0
     }
 }
-Write-Host "[TIMEOUT] 端口 $Port 在 ${maxWait}s 内未就绪，请检查 COMSOL 日志或许可证。" -ForegroundColor Red
+Write-Host "[TIMEOUT] Port $Port not ready within ${maxWait}s. Check COMSOL logs or license." -ForegroundColor Red
 exit 1

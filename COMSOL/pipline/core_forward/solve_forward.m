@@ -25,6 +25,12 @@ end
 % 1. 更新 ε_r 分布
 model = update_epsilon(model, voxel, p);
 
+% ★ 确保背景场开启（与管线2 solve_forward.m 对齐）
+try
+    model.physics('emw').prop('BackgroundField').set('Eb', [0 0 1]);
+catch
+end
+
 % 2. 运行求解
 fprintf('[solve_forward] 运行 COMSOL 求解...\n');
 

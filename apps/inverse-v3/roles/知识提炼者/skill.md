@@ -68,26 +68,30 @@
   "version": "auto-increment",
   "iterations": [
     {
-      "exp_id": "H001_20260722_153000",
-      "hypothesis_id": "H001",
-      "direction": "精确全 Maxwell 双源伴随+B-spline",
-      "pipeline_gen": "gen1_comsol / gen1_comsol_adjoint",
-      "cos_theta": 0.927,
-      "sign_rate": 1.0,
-      "cv": 0.40,
-      "exceeds_baseline": true,
+      "exp_id": "regularization_20260729",
+      "direction": "正则化精度提升 + 测量密度增强",
+      "pipeline_gen": "gen1_comsol_adjoint (2layer.mph)",
+      "methodology": "exact_adjoint + adaptive_TV + N_k 增强",
+      "results": {
+        "sign_rate": 1.0,
+        "cos_theta": 0.927,
+        "cv": 0.40,
+        "tv_alpha_0.5": {"iter": 8, "sqrt_F": 0.027, "eps_mean": 4.32, "eps_std": 0.79, "eps_max": 8.70},
+        "bottleneck": "N_k=16 严重欠定（48 观测 vs 1164 自由度）"
+      },
       "knowledge_extracted": {
-        "do": ["精确双源伴随 sign 100% 验证通过", "coeff_base=0.5i·ω·ε₀ 正确", "conj(lambda_raw) 双源路径必须", "Armijo 线搜索 mu=1.0 效果最佳"],
-        "dont": ["不要用 bilinear 内积替代 Hermitian（实验 sign 0% 全反）", "CV=0.40 是积分映射 vs 点值映射的结构性偏差，非 bug"]
+        "do": ["自适应 lambda_tv = alpha * ||g_data|| / ||g_tv||", "TV alpha=0.5 平衡过冲和数据拟合", "增大 N_k 是解决过冲的结构性手段"],
+        "dont": ["固定 lambda_tv 无法工作（4 个数量级差异）", "TV 无法完全消除过冲，需结合增大 N_k"]
       }
     }
   ],
   "direction_assessment": {
-    "current_direction": "精确全 Maxwell 双源伴随梯度反演",
+    "current_direction": "正则化精度提升研究 + 测量密度增强",
     "confidence": "healthy",
-    "trend": "validated",
+    "trend": "improving",
     "consecutive_no_improvement": 0,
-    "threats": ["CV=0.40 残余偏差限制收敛速度", "主管线 Armijo 步长需调优"],
+    "threats": ["N_k=16 严重欠定", "Armijo 在 sqrt(F)<0.027 后无法继续"],
+    "next_steps": ["增大 N_k 16→32→64", "增大 N_surface 288→1152", "Tikhonov 先验", "B-spline 降维"],
     "lifespan_estimate": "5+ more iterations"
   }
 }
@@ -96,12 +100,14 @@
 ### 方向健康度评估（覆盖式）
 ```json
 {
-  "round": 1,
-  "direction": "精确全 Maxwell 双源伴随+B-spline",
+  "round": 2,
+  "direction": "正则化精度提升 + 测量密度增强",
   "confidence": "healthy",
-  "trend": "validated",
+  "trend": "improving",
   "consecutive_no_improvement": 0,
-  "threats": ["CV=0.40 残余偏差限制收敛速度"],
+  "threats": ["N_k=16 严重欠定", "Armijo 下界 0.027"],
+  "next_steps": ["增大 N_k", "Tikhonov 先验", "B-spline 降维"],
+  "target_metrics": {"eps_r_range": "[4.5,5.5] ± 10%", "eps_r_std": "< 0.3", "sqrt_F": "< 0.02"},
   "lifespan_estimate": "5+ more iterations",
   "recommendation": "continue"
 }

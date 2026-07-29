@@ -87,18 +87,18 @@
 ### 方向声明（覆盖式）
 ```json
 {
-  "round": 1,
-  "direction": "精确全 Maxwell 伴随梯度反演 + B-spline 参数化",
-  "methodology": "exact_adjoint_dual_source",
+  "round": 2,
+  "direction": "正则化精度提升研究 + 测量密度增强",
+  "methodology": "exact_adjoint_dual_source + TV + Tikhonov + N_k 增大",
   "capability_requirements": {
-    "forward": "COMSOL_mphinterp 或等效",
+    "forward": "COMSOL_mphinterp",
     "adjoint": "exact_maxwell_surface_dual_source",
-    "parameterization": "b-spline",
-    "constraints": ["phantom_prior", "tv_regularization"]
+    "parameterization": "voxel",
+    "constraints": ["tv_regularization", "tikhonov_prior", "b_spline_reduction"]
   },
-  "iteration_budget": "10 rounds",
+  "iteration_budget": "15 rounds",
   "status": "active",
-  "rationale": "精确双源伴随法已四层验证（sign 100%, cos θ=0.927），管线2 跑通 3 轮收敛，主管线已移植"
+  "rationale": "伴随法已验证 sign 100%，TV 自适应正则化已实现。当前瓶颈是过冲（eps_r range [3.3,8.7] vs 真值 5.0）和采样不足（N_k=16）。下一步：增大 N_k/N_surface，加 Tikhonov 先验，B-spline 降维。"
 }
 ```
 
@@ -123,7 +123,30 @@
 
 ### 方向认知（追加式）
 ```markdown
-## Round 1
+## Round 2
+
+### 当前方向判断
+伴随法 + TV 正则化已跑通 8 轮反演（eps_tol=0.02），sqrt(F)=0.027，eps mean=4.32，但 std=0.79（过冲严重）。方向转入精度提升：增大采样密度（N_k 16→32→64）、增加 Tikhonov 先验约束、尝试 B-spline 降维（1164→75 自由度）。
+
+### 精度提升路线图
+1. **增大 N_k**（16→32→64）：当前 16 个 k 方向 × 3 分量 = 48 观测值，1164 个自由度，严重欠定。增大 N_k 可改善条件数
+2. **增大 N_surface**（288→1152）：测量球面密度增加，提高光锥投影精度
+3. **Tikhonov 先验**：F += λ_prior * ||eps_r - eps_prior||²，拉向已知均值
+4. **B-spline 降维**：1164→75 控制点，天然空间平滑
+5. **目标**：eps_r range 从 [3.3, 8.7] 收窄到 [4.5, 5.5]（±10%）
+
+### 当前残余问题
+- CV=0.40 仍是积分映射偏差的固有下界
+- Armijo 线搜索在 sqrt(F)<0.027 后无法继续下降（||g||² 太小）
+- N_k=16 观测信息不足是过冲的结构性原因
+
+### 关注风险
+- N_k 增大会增加光锥投影计算时间（O(N_k × N_surface)）
+- B-spline 降维可能丢失局部细节
+- Tikhonov 先验可能偏置反演结果
+```
+
+## Round 1（归档）
 
 ### 当前方向判断
 精确全 Maxwell 双源伴随法（exact_maxwell_surface_dual_source）已通过四层验证：矩阵级 ratio=1±1e-15，逐体素 sign 100%，非均匀初值鲁棒性确认，过冲体素 FD 验证 sign 100%。管线2 已跑通 3 轮收敛反演。主管线已移植 linesearch_adj + run_inversion_verified。

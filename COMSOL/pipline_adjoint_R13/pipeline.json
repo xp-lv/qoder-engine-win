@@ -1,0 +1,149 @@
+{
+  "generation": "gen1_comsol",
+  "version": "1.0.0",
+  "name": "pipline_adjoint 伴随法验证管线",
+  "status": "stable",
+  "created": "2026-07-28",
+  "abs_path": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline_adjoint",
+  "model_file": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline_adjoint\\2layer.mph",
+  "entry_script": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline_adjoint\\experiment\\verify_per_voxel.m",
+  "config_script": "d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline_adjoint\\config\\config.m",
+
+  "capabilities": {
+    "forward": {
+      "method": "COMSOL_mphinterp",
+      "max_freq_hz": 3000000000,
+      "nonuniform_bg": true,
+      "bg_types": ["planewave"],
+      "description": "极简 2 层球 COMSOL 模型，散射场公式 + PML 球面吸收边界"
+    },
+    "adjoint": {
+      "method": "exact_maxwell_surface_dual_source",
+      "differentiable": false,
+      "description": "精确 Stratton-Chu 伴随：SurfaceCurrent (Js0) + SurfaceMagneticCurrentDensity (Jms0) 双源注入。Js 含双重叉乘预处理，Ms 不做预处理（弱形式内置 n̂×）",
+      "comsol_features": ["SurfaceCurrent", "SurfaceMagneticCurrentDensity"],
+      "lambda_convention": "conj(lambda_raw) for dual-source path",
+      "coeff_base": -2,
+      "probe_script": "experiment/probe_weak_form.m"
+    },
+    "parameterization": {
+      "supported": ["voxel"],
+      "default": "voxel",
+      "voxel_count": 1164
+    },
+    "metrics": {
+      "sign_consistency": true,
+      "cos_theta": true,
+      "cv": true,
+      "ratio": true
+    }
+  },
+
+  "verification": {
+    "layer_1_matrix": {
+      "script": "experiment/verify_matrix_level.m",
+      "status": "PASS",
+      "result": "ratio=1±1e-15（L^H 精确共轭转置）"
+    },
+    "layer_2_fd_truth": {
+      "script": "experiment/run_fd_truth.m",
+      "status": "PASS",
+      "result": "sign 一致, ratio=0.002（全局标量偏差）"
+    },
+    "layer_3_per_voxel": {
+      "script": "experiment/verify_per_voxel.m",
+      "status": "PASS",
+      "result": "sign 30/30=100%, cosθ=0.927, CV=0.40"
+    },
+    "layer_4_inversion": {
+      "script": "experiment/run_inversion_iter.m",
+      "status": "PASS",
+      "result": "F 下降 86%（10 轮, μ=5.0）"
+    },
+    "non_uniform_test": {
+      "script": "experiment/verify_per_voxel.m",
+      "status": "PASS",
+      "result": "非均匀梯度初值 sign 100%, cosθ=0.919"
+    }
+  },
+
+  "directories": {
+    "config": "config/",
+    "core_forward": "core_forward/",
+    "core_adjoint": "core_adjoint/",
+    "core_jhyp": "core_jhyp/",
+    "core_jobs": "core_jobs/",
+    "experiment": "experiment/",
+    "utils": "utils/",
+    "data": "data/"
+  },
+
+  "matlab": {
+    "comsol_port": 2036,
+    "comsol_version": "6.2",
+    "matlab_version": "R2023b",
+    "livelink": true
+  },
+
+  "validated": {
+    "date": "2026-07-28",
+    "voxel_count": 1164,
+    "measurement_points": 288,
+    "k_directions": 16,
+    "dof": 36778,
+    "sign_rate": 1.0,
+    "cos_theta": 0.927,
+    "cv": 0.40,
+    "fd_delta": 0.001
+  },
+
+  "key_scripts": {
+    "verify_per_voxel": "experiment/verify_per_voxel.m",
+    "run_fd_truth": "experiment/run_fd_truth.m",
+    "run_inversion": "experiment/run_inversion_iter.m",
+    "solve_forward": "core_forward/solve_forward.m",
+    "solve_adjoint": "core_forward/solve_adjoint.m",
+    "build_adjoint_source": "core_jhyp/build_adjoint_source_fullmaxwell.m",
+    "compute_gradient": "core_adjoint/compute_gradient.m",
+    "compute_cost": "core_adjoint/compute_cost.m",
+    "fem_mesh_utils": "utils/fem_mesh_utils.m",
+    "probe_weak_form": "experiment/probe_weak_form.m"
+  },
+
+  "usage": {
+    "language": "MATLAB",
+    "language_version": "R2023b",
+    "config_file": "config/config.m",
+    "config_format": "MATLAB struct (p.xxx = value)",
+    "entry_command": "verify_per_voxel(N_sample)",
+    "runtime_requirements": "COMSOL Server port 2036 (mphstart), MATLAB LiveLink",
+    "startup_guide": {
+      "precondition": "COMSOL mphserver 需独立终端长期运行在端口 2036",
+      "check_comsol": "在 MATLAB 中执行 mphstart(2036)，若报错 'Already connected' 说明已连接",
+      "matlab_invoke": "matlab -batch \"cd('d:\\ZJU\\PROJECT\\2026-07-02-qoder-engine\\COMSOL\\pipline_adjoint'); addpath('config','utils','core_forward','core_jobs','core_jhyp','core_adjoint','experiment'); addpath('D:\\LenovoSoftstore\\Install\\COMSOL62\\Multiphysics\\mli'); verify_per_voxel(30);\"",
+      "addpath_required": "必须显式 addpath 所有子目录 + COMSOL mli 路径",
+      "model_load": "使用 mphload(p.comsol_model_path) 加载 2layer.mph"
+    },
+    "key_params": {
+      "geometry": "p.R_inner=0.06, p.R_air=0.12, p.pml_thick=0.04",
+      "sampling": "p.N_theta=12, p.N_phi=24, p.N_k=16",
+      "verification": "p.eps_r_true=5.0, p.eps_r_init=3.0",
+      "fd": "p.fd_deltas_eps=[0.1,0.01,0.001], p.fd_delta_ref=0.001",
+      "gradient_dot": "p.gradient_dot='bilinear'",
+      "coeff_base": -2
+    },
+    "param_modification_guide": "修改 config/config.m 中 p 结构体的对应字段",
+    "execution_steps": [
+      "config() — 初始化参数",
+      "mphstart(port) + mphload(model) — 连接 COMSOL Server 加载 2layer.mph",
+      "fem_mesh_utils — 提取 FEM 体素网格 (1164 内部)",
+      "build_measurement_grid — 构建测量球面网格 (288 点)",
+      "设真值 eps_r=5 → 正演 → 提取散射场 → 光锥投影 → J_obs",
+      "设初值 eps_r → 正演 → 残差 ΔJ",
+      "build_adjoint_source_fullmaxwell — 构建精确双源伴随源 Js+Ms",
+      "solve_adjoint — COMSOL 双源注入 + 求解 + 提取 lambda（含 conj）",
+      "逐体素梯度 — g(v) = -k0²·dV·Re[λ·E] / F_obs",
+      "验证指标 — sign 一致率 / cos θ / CV / ratio"
+    ]
+  }
+}

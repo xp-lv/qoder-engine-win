@@ -27,21 +27,21 @@ p.background.waist       = 0.1;       % 束腰半径 m
 p.background.focus       = [0, 0, 0]; % 焦斑位置 [x,y,z] m
 
 %% ---- 测量球面（S21 采样网格）----
-p.R_sphere  = 0.26;                % 测量球面半径 m（匹配 mph intS(D) 积分面）
-p.N_theta   = 48;                  % theta 采样数（非均匀）
-p.N_phi     = 96;                  % phi 采样数（均匀）
-p.N_surface = p.N_theta * p.N_phi; % = 4608 个采样点
+p.R_sphere  = 0.09;                % 测量球面半径 m（与管线2一致）
+p.N_theta   = 12;                  % theta 采样数（与管线2一致）
+p.N_phi     = 24;                  % phi 采样数（与管线2一致）
+p.N_surface = p.N_theta * p.N_phi; % = 288 个采样点
 
 %% ---- k 空间光锥采样 ----
-p.N_k       = 64;                  % 光锥方向采样数
+p.N_k       = 16;                  % 光锥方向采样数（与管线2一致）
 
 %% ---- 散射体与体素 ----
-p.a_scatter  = 0.13;               % 散射体球半径 m
+p.a_scatter  = 0.06;               % 散射体球半径 m（与管线2一致）
 p.voxel_size = 0.01;               % 体素边长 ~lambda/30 m
 
 %% ---- 迭代参数（伴随法）----
 p.max_iter     = 10;               % 最大迭代次数
-p.eps_tol      = 0.05;             % 残差收敛阈值（★ R22 精确伴随：从 0.2 放宽到 0.05，避免 eps_r 过早冻结）
+p.eps_tol      = 0.05;             % 残差收敛阈值（★ H031: Gate A eps_tol 从 0.2 收紧至 0.05，防止 eps_r 残差过早触发收敛导致 hole_pos 迭代空间不足）
 p.mu_init      = 0.15;             % 梯度下降初始步长（H003: 0.05→0.15，3倍以打破H002残差冻结死锁，使Δ控制点系数>mphinterp数值灵敏度阈值）
 p.mu_min       = 1e-6;             % 线搜索最小步长
 p.mu_max       = 0.5;              % 线搜索最大步长
@@ -124,8 +124,9 @@ p.base_path = fileparts(fileparts(mfilename('fullpath')));
 
 %% ---- COMSOL LiveLink ----
 p.comsol_port       = 2036;        % LiveLink 通信端口
-% 模型文件位于 pipline 父目录（COMSOL/livelink_model.mph），pipline 自包含引用
-p.comsol_model_path = fullfile(p.base_path, '..', 'livelink_model.mph');
+% ★ 切换到管线2的 2layer.mph 模型（与管线2完全一致）
+% 模型位于 COMSOL/pipline_adjoint/2layer.mph
+p.comsol_model_path = fullfile(p.base_path, '..', 'pipline_adjoint', '2layer.mph');
 if ~exist(p.comsol_model_path, 'file')
     error('config:ModelNotFound', 'COMSOL 模型文件不存在: %s', p.comsol_model_path);
 end
@@ -155,9 +156,9 @@ p.viz_save_screenshots = true;     % 是否保存每轮迭代截图
 % 启用后 plugin_c01 进入 cavity_mode，调用 C01_cavity_inversion_loop。
 p.cavity_mode          = true;       % H012: 启用 body+cavity 参数化
 p.cavity_R_hole        = 0.03;       % 空洞半径 [m]（固定先验，~1 个介质波长）
-p.cavity_eps_r_true    = 5.0;        % 主体真值 ε_r（用于生成 J_obs）
+p.cavity_eps_r_true    = 5.0;        % 主体真值 ε_r
 p.cavity_hole_pos_true = [0.03, 0.02, 0.01]; % 真值空洞中心 [m]（偏心）
-p.cavity_eps_r_init    = 3.0;        % 反演初始猜测 ε_r
+p.cavity_eps_r_init    = 3.0;        % 反演初始猜测 ε_r（真值5，初值3）
 p.cavity_hole_pos_init = [0.0, 0.0, 0.0];     % 反演初始猜测空洞中心 [m]
 p.cavity_mu_eps_r      = 1.0;        % ★ H029 迁移: Armijo mu=1.0（验证管线确认最佳初始步长，原值 0.5）
 p.cavity_mu_hole_pos   = 0.02;       % H014: 位置步长 0.005→0.02（4倍，吸收效率建议 A-02；配合梯度方向修正加速 hole 收敛，原 0.005 相对需位移 0.037m 过小 7 倍）
@@ -277,6 +278,14 @@ p.cavity_h021_dF_earlystop    = true;    % Round17: 启用 dF 机器精度早停
 p.cavity_h021_dF_machine_eps  = 1e-10;   % Round17: 机器精度阈值（|dF|<此值判定为离散化不敏感）
 p.cavity_h021_dF_rel_threshold = 0.005;  % Round19: dF 相对阈值（|dF|/F_old<0.5% 时判定为低效步，SDF 场景物理量级 dF 防护）
 
+%% ---- Round23: Gate A 触发轮 LS shortcircuit（H032 needs_optimization P1）----
+% H032 建议扩展 Round19 frozen-LS shortcircuit 至 Gate A 触发轮（eps_r 刚冻结的当轮）。
+% 触发背景：H032 iter4 Gate A 首次触发后 eps_r 冻结，但该轮 hole_pos LS 仍跑 4 trials 全 reject
+%   （F_try=0.0146/0.0097/0.0065/0.0051 vs old=0.0039754 全部上升，浪费 4 次正演 ~48s）。
+% 机制：Gate A 触发轮标记 shortcircuit，LS trial==1 时与 Round19 条件并联触发，跳过该轮全部 LS trial。
+% 仅跳过参数更新，不影响 Gate B 收敛判定/迭代推进/best-state tracking。不改变能力契约。
+p.cavity_gate_a_ls_shortcircuit = true;   % Round23: Gate A 触发轮跳过 post-freeze 第一轮 LS（H032 iter4 4次确定性 reject 防护，节省 ~48s/轮）
+
 %% ---- H022: SDF sub-voxel 软边界连续化（epsilon 映射）----
 % H022 唯一变更：将 cavity epsilon 映射从硬二值体素分配（body ε_r OR cavity ε=1）
 %   升级为符号距离函数（SDF）sub-voxel 软边界连续化。
@@ -296,6 +305,17 @@ p.cavity_h022_sdf_delta = 0.008;    % H022: 软边界半宽 δ [m]（~1/3 体素
 % 连续 N 轮 LS 全 reject 且参数态不变时，第 N+1 轮极大概率也 reject（确定性重演）。
 % best-state tracking 保证不丢最优态。设 3 可恢复旧行为基线。
 p.cavity_reject_threshold    = 2;       % Round21: 连续 reject 阈值（达到即提前终止迭代）
+
+%% ---- H032: hole_pos 步长 backtracking 自适应减半 ----
+% H032 唯一变更：将 hole_pos 步长策略从固定 target_step=0.03 改为 backtracking 自适应减半。
+% 当某步被 Armijo 线搜索接受（F_try < F_cheb）但导致 hole_err 回弹（hole_err_new > hole_err_prev）时，
+% hole_pos 步长自动减半重试（0.03→0.015→0.0075→0.00375，最多 3 次减半）。
+% 与现有 Armijo 线搜索互补不冲突：Armijo 基于 F 整体目标（eps_r 贡献主导）判断接受/拒绝，
+% H032 基于 hole_err 几何指标判断 hole_pos 步长是否过冲。
+% 触发背景：H031 实测 iter2→iter3 hole_err +106.7% 回弹（0.0177→0.0366m），固定大步长在近真值处过冲振荡。
+% 与 H018 A（跨迭代振荡检测减半）区别：H032 在同一迭代的线搜索内即时减半（更精细的 per-step 控制）。
+p.cavity_h032_backtrack      = true;   % H032: 启用 hole_pos backtracking 减半（true=步长自适应减半, false=退化为固定步长）
+p.cavity_h032_max_halvings   = 3;      % H032: 最大减半次数（0.03→0.015→0.0075→0.00375）
 
 %% ---- H022-Round18: 系统性 reject 早停（H023 needs_optimization 正式启用）----
 % 触发：H023 needs_optimization。H022 已编码 Round18 机制但 config.m 未设 true，

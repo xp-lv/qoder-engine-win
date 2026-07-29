@@ -1,6 +1,6 @@
 {
-  "version": 2,
-  "last_updated": "2026-07-28",
+  "version": 4,
+  "last_updated": "2026-07-29",
   "iterations": [
     {
       "exp_id": "adjoint_verification_20260728",
@@ -28,13 +28,54 @@
           "CV=0.40 非 bug，是积分映射 vs 点值映射的结构性偏差"
         ]
       }
+    },
+    {
+      "exp_id": "tv_regularization_20260729",
+      "direction": "TV 正则化精度提升",
+      "methodology": "exact_adjoint + adaptive_TV (alpha_tv=0.5)",
+      "pipeline_gen": "gen1_comsol_adjoint (2layer.mph)",
+      "results": {
+        "tv_alpha_0": {"iter": 3, "sqrt_F": 0.042, "eps_mean": 4.43, "eps_std": 1.00, "eps_max": 9.35},
+        "tv_alpha_0.5": {"iter": 8, "sqrt_F": 0.027, "eps_mean": 4.32, "eps_std": 0.79, "eps_max": 8.70},
+        "tv_effect": "std 降低 21%, max 降低 7%, 过冲受到抑制",
+        "bottleneck": "N_k=16 仅 48 观测值 vs 1164 自由度，严重欠定"
+      },
+      "knowledge": {
+        "do": [
+          "自适应 lambda_tv = alpha * ||g_data|| / ||g_tv|| 有效避免量级匹配问题",
+          "TV alpha=0.5 在抑制过冲和保持数据拟合间达到良好平衡",
+          "eps_tol=0.02 比 0.05 更严格，能驱动更多轮迭代"
+        ],
+        "dont": [
+          "固定 lambda_tv 无法工作（TV 梯度和数据梯度差 4 个数量级）",
+          "lambda_tv=0.01 过大（压制数据梯度，线搜索全拒绝）",
+          "TV 无法完全消除过冲（eps_max 仍 8.7），需结合增大 N_k"
+        ]
+      }
     }
   ],
   "direction_assessment": {
-    "current_direction": "精确全 Maxwell 双源伴随梯度反演",
+    "current_direction": "正则化精度提升研究 + 测量密度增强",
     "confidence": "healthy",
-    "trend": "validated",
-    "threats": ["CV=0.40 限制收敛速度", "主管线 Armijo 步长需调优"],
+    "trend": "improving（TV 验证有效，下一步增大 N_k 解决观测不足根本问题）",
+    "consecutive_no_improvement": 0,
+    "threats": [
+      "N_k=16 严重欠定（48 观测 vs 1164 自由度）是过冲的结构性原因",
+      "Armijo 线搜索在 sqrt(F)<0.027 后 ||g||² 太小无法满足充分下降条件",
+      "B-spline 降维可能丢失局部细节"
+    ],
+    "next_steps": [
+      "增大 N_k 16→32→64，改善观测信息量",
+      "增大 N_surface 288→1152，提高测量密度",
+      "加 Tikhonov 先验约束",
+      "B-spline 降维 1164→75"
+    ],
+    "target_metrics": {
+      "eps_r_range": "从 [3.3,8.7] 收窄到 [4.5,5.5]（±10%）",
+      "eps_r_std": "从 0.79 降低到 < 0.3",
+      "sqrt_F": "< 0.02"
+    },
+    "lifespan_estimate": "5+ more iterations",
     "recommendation": "continue"
   }
 }

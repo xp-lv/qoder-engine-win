@@ -73,6 +73,9 @@ if isfield(p, 'cavity_mode') && p.cavity_mode
     if ~isfield(p, 'cavity_h024_l2_delta_eps'),  p.cavity_h024_l2_delta_eps = 0.01; end  % H024 L2: ε_i 微扰量
     if ~isfield(p, 'cavity_h025_residual_gap'), p.cavity_h025_residual_gap = true; end   % H025: residual_gap_monitoring（默认开启，复用 H024 L2 born_ratio 零额外正演）
     if ~isfield(p, 'cavity_h025_l2_cache'),      p.cavity_h025_l2_cache = true; end      % Round20: L2 诊断跨实验缓存（默认开启，命中跳过冗余正演）
+    if ~isfield(p, 'cavity_h032_backtrack'),    p.cavity_h032_backtrack = false; end   % H032: hole_pos backtracking 减半（默认关闭，config.m 设 true 启用）
+    if ~isfield(p, 'cavity_h032_max_halvings'), p.cavity_h032_max_halvings = 3; end     % H032: 最大减半次数（0.03→0.015→0.0075→0.00375）
+    if ~isfield(p, 'cavity_gate_a_ls_shortcircuit'), p.cavity_gate_a_ls_shortcircuit = false; end  % Round23: Gate A 触发轮 LS shortcircuit（默认关闭，config.m 设 true 启用）
 
     % 输出目录
     if ~isfield(p, 'dir_result_C01')

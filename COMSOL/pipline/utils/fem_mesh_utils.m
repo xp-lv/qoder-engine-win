@@ -95,9 +95,13 @@ N_v = size(voxel.pos, 1);
 R2 = sum(voxel.pos.^2, 2);
 voxel.mask_interior = R2 < R_scatter^2;
 
-%% 6. 初始化 epsilon_r：内部 eps_r=5（匹配均匀球验证条件），外部=1
+%% 6. 初始化 epsilon_r
 voxel.epsilon_r = ones(N_v, 1);
-voxel.epsilon_r(voxel.mask_interior) = 5.0;
+if isfield(p, 'cavity_eps_r_true')
+    voxel.epsilon_r(voxel.mask_interior) = p.cavity_eps_r_true;
+else
+    voxel.epsilon_r(voxel.mask_interior) = 5.0;
+end
 
 %% 7. 为内部tet单元预计算Gauss积分点坐标
 % 仅对tet单元（4节点四面体）使用4-pt Gauss规则

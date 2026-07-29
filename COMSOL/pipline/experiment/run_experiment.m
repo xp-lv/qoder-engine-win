@@ -49,6 +49,8 @@ fprintf('\n=== Step 1: COMSOL LiveLink ===\n');
 % [管线维护 H029-P0] COMSOL Server 存活性预检查
 % mphstart 在 Server 未启动时抛出晦涩的 Java ConnectException，实验执行者易误判为代码 bug。
 % 此处在 mphstart 前探测端口连通性，给出明确的中文错误提示。
+% [管线维护 H031-P0] 错误提示新增辅助脚本指引（start_comsol_server.ps1），
+% 消除实验执行者手动查找 comsolmphserver.exe 路径的摩擦（H029-H031 连续 3 次实验遇到此问题）。
 % （逆散射规范第 5 节：COMSOL Server 需独立终端长期运行于 port 2036）
 try
     comsol_sock = java.net.Socket('localhost', p.comsol_port);
@@ -57,6 +59,8 @@ catch
     error('run_experiment:comsol_server_down', ...
         ['COMSOL Server 未在 localhost:%d 运行。\n', ...
          '请先在独立终端启动：comsolmphserver.exe -port %d（需长期运行，非临时启动）。\n', ...
+         '或使用辅助脚本（自动探测安装路径 + 后台启动 + 等待就绪）：\n', ...
+         '  powershell -ExecutionPolicy Bypass -File experiment/start_comsol_server.ps1\n', ...
          '（此为 mphstart 前的预检查，避免 mphstart 抛出 Java ConnectException 造成误判）'], ...
          p.comsol_port, p.comsol_port);
 end
@@ -79,8 +83,13 @@ N_in = sum(voxel.mask_interior);
 fprintf('[Step 2] Total elements: %d, Inner: %d\n', N_v, N_in);
 
 %% Step 3: 设真值 eps_r
-voxel.epsilon_r(voxel.mask_interior) = 5.0;
-fprintf('[Step 3] Inner eps_r set to 5.0\n');
+if isfield(p, 'cavity_eps_r_true')
+    voxel.epsilon_r(voxel.mask_interior) = p.cavity_eps_r_true;
+    fprintf('[Step 3] Inner eps_r set to %s\n', num2str(p.cavity_eps_r_true));
+else
+    voxel.epsilon_r(voxel.mask_interior) = 5.0;
+    fprintf('[Step 3] Inner eps_r set to 5.0 (default)\n');
+end
 
 %% Step 4: 正演求解
 fprintf('\n=== Step 4: solve_forward ===\n');

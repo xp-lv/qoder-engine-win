@@ -179,6 +179,35 @@ if h021_dF_earlystop
     fprintf('[C01_cavity] [Round19] dF_rel_threshold=%.1f%%: |dF|/F_old<%.1f%% 时终止线搜索（SDF 物理量级 dF 低效步防护）+ 冻结后 LS 短路\n', dF_rel_threshold*100, dF_rel_threshold*100);
 end
 
+% H032: hole_pos 步长 backtracking 自适应减半（线搜索内 hole_err 回弹检测）
+% 当 Armijo 线搜索接受的步（F_try < F_cheb）导致 hole_err 回弹（hole_err_new > hole_err_prev）时，
+% hole_pos 步长自动减半重试（0.03→0.015→0.0075→0.00375，最多 max_halvings 次减半）。
+% 与现有 H018 A（跨迭代振荡检测：连续 2 轮 hole_err 增加→target_step 减半）互补但不同：
+%   H018 A 是跨迭代的宏观振荡检测，修改 h018_target_step（持久）；
+%   H032 是同一迭代线搜索内的 per-step 即时减半（局部，不修改 h018_target_step）。
+% 与 Armijo 互补不冲突：Armijo 基于 F 整体目标（eps_r 贡献主导），H032 基于 hole_err 几何指标——
+%   F 可能下降（eps_r 改善）但 hole_err 上升（hole_pos 过冲），Armijo 接受但 H032 拒绝并减半。
+h032_backtrack = isfield(p, 'cavity_h032_backtrack') && p.cavity_h032_backtrack;
+h032_max_halvings = 3;
+if isfield(p, 'cavity_h032_max_halvings'), h032_max_halvings = p.cavity_h032_max_halvings; end
+if h032_backtrack
+    fprintf('[C01_cavity] [H032] hole_pos backtracking ENABLED: max_halvings=%d (step halving on hole_err rebound within LS)\n', h032_max_halvings);
+end
+
+% 管线维护 Round23 (H032 needs_optimization): Gate A 触发轮 LS shortcircuit
+% H032 建议扩展 Round19 frozen-LS shortcircuit：Gate A 首次触发的那一轮（eps_r 刚冻结），
+% post-freeze 第一轮 LS hole_pos trial 序列确定性地全 reject（H032 iter4 实测：
+% F_try=0.0146/0.0097/0.0065/0.0051 全部 > old=0.0039754，4 次正演浪费 ~48s）。
+% 机制：Gate A 触发轮标记 gate_a_shortcircuit_this_iter=true，LS trial==1 时与 Round19
+% 短路条件并联触发，跳过该轮全部 LS trial。仅跳过参数更新，不影响 Gate B 收敛/迭代推进/best-state。
+% 与 Round19 正交：Round19 用 prev_iter_ls_all_reject（需要历史），Round23 用 Gate A 触发信号（当轮即可判定）。
+% 可配置（默认关闭），config.m 显式启用。不改变能力契约，不改变 eps_r 冻结逻辑。
+gate_a_ls_shortcircuit_on = isfield(p, 'cavity_gate_a_ls_shortcircuit') && p.cavity_gate_a_ls_shortcircuit;
+gate_a_shortcircuit_hits = 0;   % Round23: Gate A 触发轮 LS shortcircuit 命中次数（诊断统计）
+if gate_a_ls_shortcircuit_on
+    fprintf('[C01_cavity] [Round23] gate_a_ls_shortcircuit ENABLED: Gate A 触发轮跳过 post-freeze 第一轮 LS（确定性 reject 防护）\n');
+end
+
 % 约束边界
 hole_margin = R_hole + 0.005;          % 空洞中心距原点最大距离
 
@@ -241,6 +270,8 @@ state.history_g_pos_consistency  = zeros(p.max_iter, 1);  % H021: 逐轮 cos(g_k
 state.history_g_pos_consistency_all = zeros(p.max_iter, 1);  % H022: 全迭代梯度方向一致性（条件_1 首轮验证 cos>0.95）
 state.history_sdf_boundary_voxels   = zeros(p.max_iter, 1);  % H022: 逐轮 SDF 过渡带体素数（|d|<3δ）
 state.history_residual_sensitivity  = zeros(p.max_iter, 1);  % H022: 逐轮 |dF|/|Δhole| 残差灵敏度
+state.history_h032_halvings       = zeros(p.max_iter, 1);  % H032: 逐轮 hole_err backtracking 减半次数
+state.history_h032_step_size      = zeros(p.max_iter, 1);  % H032: 逐轮 hole_pos 实际步长（减半后）
 state.converged = false;
 state.iteration = 0;
 
@@ -313,6 +344,7 @@ for iter = 1:p.max_iter
     tic;
     fprintf('\n--- C01_cavity iter %d/%d ---\n', iter, p.max_iter);
     a03_forced_this_iter = false;  % Round15: 每轮重置 A-03 强制迭代标志
+    gate_a_shortcircuit_this_iter = false;  % Round23: 每轮重置 Gate A 触发轮 shortcircuit 标志
 
     %% 1. 从参数构造 voxel epsilon_r（H022: SDF 软边界连续化）
     rho_v = sqrt(sum((pos_inner - hole_pos(:).').^2, 2));   % [N_inner × 1]
@@ -532,6 +564,11 @@ for iter = 1:p.max_iter
         eps_r_freeze_iter = iter;
         fprintf('  [H021] iter=%d: Gate A 首次满足（F_cheb=%.4e < eps_tol=%.4e），eps_r 冻结于 %.4f（后续迭代仅更新 hole 位置）\n', ...
             iter, F_cheb, p.eps_tol, eps_r_body);
+        % 管线维护 Round23: Gate A 触发轮标记 post-freeze 第一轮 LS 短路
+        if gate_a_ls_shortcircuit_on
+            gate_a_shortcircuit_this_iter = true;
+            fprintf('  [Round23] Gate A 触发轮：post-freeze 第一轮 LS 将短路（eps_r 已收敛，hole_pos 确定性 reject 防护）\n');
+        end
     end
     state.history_eps_r_frozen(iter) = eps_r_frozen;
 
@@ -1406,15 +1443,26 @@ for iter = 1:p.max_iter
         mu_hole_try = mu_hole;
     end
 
+    % H032: 记录线搜索前 hole_err（backtracking 减半判据基准）+ 初始化减半计数器
+    if h032_backtrack
+        hole_err_pre_h032 = norm(hole_pos - hole_true(:));
+        h032_halvings = 0;
+    end
+
     for trial = 1:mu_max_trials
         % 管线维护 Round19 (H023 needs_optimization): 冻结后 LS 短路
         % eps_r 冻结后梯度景观恒定（post-freeze cos(g_k,g_{k-1})=1.0000）。
         % 若前一轮 LS 全 reject，本轮 LS trial 序列将与前一轮逐位相同（确定性重演，零信息增量）。
         % 在 trial==1 时短路：不执行任何正演，直接 break，依赖 Gate B 收敛判定推进迭代。
         % H023 iter4 场景：此机制完全消除 8 次确定性失败重演（节省 ~648s）。
-        if trial == 1 && eps_r_frozen && prev_iter_ls_all_reject
+        if trial == 1 && eps_r_frozen && (prev_iter_ls_all_reject || gate_a_shortcircuit_this_iter)
             frozen_ls_shortcircuit_hits = frozen_ls_shortcircuit_hits + 1;
-            fprintf('  [Round19] iter=%d: LS shortcircuit (frozen + prev LS all-reject, deterministic replay), skipping %d trials\n', iter, mu_max_trials);
+            if gate_a_shortcircuit_this_iter
+                gate_a_shortcircuit_hits = gate_a_shortcircuit_hits + 1;
+                fprintf('  [Round23] iter=%d: LS shortcircuit (Gate A just triggered, post-freeze first LS), skipping %d trials\n', iter, mu_max_trials);
+            else
+                fprintf('  [Round19] iter=%d: LS shortcircuit (frozen + prev LS all-reject, deterministic replay), skipping %d trials\n', iter, mu_max_trials);
+            end
             break;
         end
         % 试探更新：沿下降方向移动（dir 已为下降方向 -∇F，故用 +）
@@ -1520,6 +1568,22 @@ for iter = 1:p.max_iter
         end
 
         if F_try < F_cheb
+            % H032: hole_err 回弹检测——Armijo 接受但 hole_err 几何指标可能过冲
+            % F 可能下降（eps_r 改善）但 hole_err 上升（hole_pos 过冲），Armijo 接受但 H032 拒绝并减半。
+            % 仅减半 mu_hole_try（eps_r 步长不变），continue 重试减半后的 hole 步。
+            % 最多 max_halvings 次减半后强制接受（避免无限重试）。
+            if h032_backtrack && h032_halvings < h032_max_halvings
+                hole_err_try_h032 = norm(hole_try - hole_true(:));
+                if hole_err_try_h032 > hole_err_pre_h032
+                    fprintf('  H032 BACKTRACK: hole_err %.4f→%.4f (+%.1f%%) rebound, halving mu_hole %.5f→%.5f (halving %d/%d)\n', ...
+                        hole_err_pre_h032, hole_err_try_h032, ...
+                        (hole_err_try_h032/hole_err_pre_h032 - 1)*100, ...
+                        mu_hole_try, mu_hole_try*0.5, h032_halvings+1, h032_max_halvings);
+                    mu_hole_try = mu_hole_try * 0.5;
+                    h032_halvings = h032_halvings + 1;
+                    continue;  % 重试减半后的 hole 步（mu_eps_try 不变）
+                end
+            end
             fprintf('  ACCEPT\n');
             eps_r_body = eps_r_try;
             hole_pos = hole_try;
@@ -1562,6 +1626,18 @@ for iter = 1:p.max_iter
     prev_iter_ls_all_reject = ~accepted;
 
     state.history_accepted(iter) = accepted;
+
+    % H032: 记录本轮 backtracking 减半统计（验证机制生效频率）
+    if h032_backtrack
+        state.history_h032_halvings(iter) = h032_halvings;
+        state.history_h032_step_size(iter) = mu_hole_try;
+        if h032_halvings > 0
+            init_ts = NaN;
+            if h018_enabled, init_ts = h018_target_step; end
+            fprintf('  [H032 MONITOR] iter=%d halvings=%d, final_step=%.5f (init target_step=%.4f)\n', ...
+                iter, h032_halvings, mu_hole_try, init_ts);
+        end
+    end
 
     %% ===== H022: 残差灵敏度监测（验证 SDF 恢复 dF/d(r_hole) 梯度反馈）=====
     % H021 冻结后 dF~1e-16（离散化不敏感）。SDF 应使 |dF/d_hole| 从机器精度提升至物理量级。
@@ -1935,8 +2011,9 @@ state.ls_efficiency.dF_machine_eps_hits = dF_earlystop_hits;
 state.ls_efficiency.dF_rel_threshold_hits = dF_rel_earlystop_hits;
 state.ls_efficiency.sysreject_hits = sysreject_hits;
 state.ls_efficiency.frozen_ls_shortcircuit_hits = frozen_ls_shortcircuit_hits;
-fprintf('[C01_cavity] [LS-EFFICIENCY] Round17 machine-eps earlystop=%d hits, Round19 rel-threshold earlystop=%d hits, Round18 sysreject=%d hits, Round19 frozen-LS-shortcircuit=%d hits\n', ...
-    dF_earlystop_hits, dF_rel_earlystop_hits, sysreject_hits, frozen_ls_shortcircuit_hits);
+state.ls_efficiency.gate_a_shortcircuit_hits = gate_a_shortcircuit_hits;
+fprintf('[C01_cavity] [LS-EFFICIENCY] Round17 machine-eps earlystop=%d hits, Round19 rel-threshold earlystop=%d hits, Round18 sysreject=%d hits, Round19 frozen-LS-shortcircuit=%d hits, Round23 gate-a-LS-shortcircuit=%d hits\n', ...
+    dF_earlystop_hits, dF_rel_earlystop_hits, sysreject_hits, frozen_ls_shortcircuit_hits, gate_a_shortcircuit_hits);
 
 fprintf('\n[C01_cavity] done: iter=%d converged=%d eps_r=%.4f hole=[%.4f,%.4f,%.4f] err=%.4fm\n', ...
     state.iteration, state.converged, eps_r_body, hole_pos(1), hole_pos(2), hole_pos(3), state.hole_position_error);
@@ -2009,7 +2086,15 @@ function key = l2_diag_cache_key(hole_pos, eps_r_inner, d_eps, freqs_vec, v_idx,
         adj_method = 'unknown';
     end
     adj_code = double(adj_method);   % 字符串 → ASCII 序列，纳入指纹
-    sig = double([hole_pos(:); eps_r_inner(:); d_eps; freqs_vec(:); double(v_idx); obs_sig(:); adj_code(:)]);
+    % [管线维护 H031-P1] 对 COMSOL 正演输出做 6 位有效数字量化后再哈希。
+    % 根因：obs_sig (J_obs) 是 COMSOL 正演输出，跨 Server session 存在 <1e-7 量级
+    % 数值噪声（网格/求解器内部状态差异），导致确定性重演场景下（H031 iter1-2 轨迹
+    % 与 H030 完全一致）缓存 hits=0 misses=6 全部失效（~144s 浪费，占总耗时 ~27%）。
+    % 量化至 6 sig figs：实验执行者已验证跨实验 born_ratio 匹配至 6 位有效数字，
+    % 故 sub-sig-fig 噪声丢弃不影响 born_ratio 数值正确性，仅消除哈希漂移。
+    obs_sig_q = quantize_sigfig6(obs_sig);
+    eps_r_inner_q = quantize_sigfig6(eps_r_inner);
+    sig = double([hole_pos(:); eps_r_inner_q(:); d_eps; freqs_vec(:); double(v_idx); obs_sig_q(:); adj_code(:)]);
     sig_bytes = [real(sig); imag(sig)];
     if usejava('jvm')
         md = java.security.MessageDigest.getInstance('SHA-256');
@@ -2018,9 +2103,24 @@ function key = l2_diag_cache_key(hole_pos, eps_r_inner, d_eps, freqs_vec, v_idx,
         key = lower(char(reshape(dec2hex(uint8(double(hb)), 2).', 1, [])));
     else
         % 无 JVM 回退：高阶矩数值指纹（诊断场景碰撞概率可接受）
+        obs_sig_q = quantize_sigfig6(obs_sig);
+        eps_r_inner_q = quantize_sigfig6(eps_r_inner);
         key = sprintf('fp_h%.10e%.10e%.10e_eps[m%.10eM%.10emu%.10es2%.10e]_de%.10e_f%.10e_v%d_o[%.10e%.10e]_adj_%s', ...
-            hole_pos(1), hole_pos(2), hole_pos(3), min(real(eps_r_inner)), max(real(eps_r_inner)), ...
-            mean(real(eps_r_inner)), sum(real(eps_r_inner).^2), d_eps, freqs_vec(1), v_idx, ...
-            mean(real(obs_sig)), sum(abs(obs_sig).^2), adj_method);
+            hole_pos(1), hole_pos(2), hole_pos(3), min(real(eps_r_inner_q)), max(real(eps_r_inner_q)), ...
+            mean(real(eps_r_inner_q)), sum(real(eps_r_inner_q).^2), d_eps, freqs_vec(1), v_idx, ...
+            mean(real(obs_sig_q)), sum(abs(obs_sig_q).^2), adj_method);
     end
+end
+
+function y = quantize_sigfig6(x)
+%QUANTIZE_SIGFIG6 将数组元素量化至 6 位有效数字（缓存键哈希鲁棒性）
+%   [管线维护 H031-P1] 消除 COMSOL 正演输出跨 session 数值噪声对缓存键的干扰。
+%   零元素保持为零；非零元素按量级量化到 6 位有效数字精度。
+    y = x;
+    nz = abs(x) > 0;
+    if any(nz)
+        mag = 10.^(floor(log10(abs(x(nz)))) - 5);   % 6 sig figs 量化步长
+        y(nz) = round(x(nz) ./ mag) .* mag;
+    end
+    y(~nz) = 0;
 end
