@@ -122,6 +122,7 @@ if mesh.getNumElem('tet') > 0
         
         inner_tet_idx = find(inner_tet);
         gauss_pos_all = zeros(4 * N_inner_tet, 3);
+        gauss_weights_all = zeros(4 * N_inner_tet, 1);  % weight = V_tet / 4
         for gi = 1:N_inner_tet
             elem_idx = inner_tet_idx(gi);
             tv = verts(tet_conn(elem_idx, :), :);  % [4 x 3]
@@ -129,8 +130,12 @@ if mesh.getNumElem('tet') > 0
             for gp = 1:4
                 gauss_pos_all(gr(gp), :) = gauss_bary(gp, :) * tv;
             end
+            % 4-pt Gauss 权重: 每个 GP 权重 = V_tet * 0.25
+            gauss_weights_all(gr) = voxel.dV(elem_idx) * 0.25;
         end
         voxel.gauss_pos = gauss_pos_all;
+        voxel.gauss_weights = gauss_weights_all;
+        voxel.inner_tet_idx = inner_tet_idx;
         fprintf('  Gauss: %d 内部tet, %d Gauss积分点\n', N_inner_tet, 4*N_inner_tet);
     end
 end

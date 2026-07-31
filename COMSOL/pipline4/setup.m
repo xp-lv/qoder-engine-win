@@ -15,8 +15,8 @@ addpath(fullfile(this_dir, 'core_probe'));
 addpath(fullfile(this_dir, 'core_adjoint'));
 addpath(fullfile(this_dir, 'experiment'));
 
-% COMSOL LiveLink
-comsol_mli = 'D:\LenovoSoftstore\Install\COMSOL62\Multiphysics\mli';
+% COMSOL LiveLink (本地迁移: F:\Software\comsol6.2)
+comsol_mli = 'F:\Software\comsol6.2\COMSOL62\Multiphysics\mli';
 if exist(comsol_mli, 'dir')
     addpath(comsol_mli);
 end

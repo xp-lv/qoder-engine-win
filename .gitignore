@@ -15,3 +15,6 @@ __pycache__/
 .qoder/hooks/_hook_debug.log
 .qoder/hooks/_hook_error.log
 .qoder/hooks/_hook2_role.log
+
+# COMSOL mphserver 运行时临时目录
+csmphserver*/

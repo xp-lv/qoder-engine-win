@@ -1,0 +1,288 @@
+[setup] pipline4 路径已配置
+  可用命令:
+    verify_fd_complex      — FD sign + ratio（主验证，需 COMSOL）
+    verify_lambda_residual — K·λ 残差检查（需 COMSOL）
+    p = config()           — 查看配置参数
+
+========== pipline4 FD 验证: 复数 ε_r (体积代价) ==========
+
+--- [1] COMSOL 连接 ---
+
+MATLAB is now connected to a COMSOL Multiphysics Server at localhost:2036
+
+Run the commands below to access the COMSOL ModelUtil commands:
+import com.comsol.model.util.*
+  模型加载: F:\xplv\qoder-engine\qoder-engine-win-comsol\COMSOL\pipline3\2layer.mph
+
+--- [2] FEM 网格提取 ---
+[fem_mesh_utils] 提取 COMSOL FEM 网格...
+  tet: 5614 单元
+  总顶点: 1084
+  Gauss: 1164 内部tet, 4656 Gauss积分点
+[fem_mesh_utils] 完成: 5614 单元, 1164 内部 (20.7%), dV range [1.39e-07, 1.17e-05]
+  内部体素: 1164
+
+--- [3] 真值正演 (ε_r = 5.0-1.0j) ---
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 5.000], Im range [-1.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 设置 EMW 复数表达式 (首次配置, epsilonr_mat=userdef)...
+  [set_complex] 发现 4 个 EMW features
+  [set_complex] feature[1]: wee1
+  OK emw/wee1.epsilonr: int1(x,y,z) + i*int2(x,y,z) -> int1(x,y,z) + i*int2(x,y,z) (forced re-eval)
+  [set_complex] feature[2]: pec1
+  [set_complex] feature[3]: init1
+  [set_complex] feature[4]: dcont1
+  [update_epsilon] 复数 ε_r 表达式已设置 (首次配置完成)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+  [solve_forward] PARDISO (主) + MUMPS (备) 直接求解器已配置
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [2.2004e-01, 1.7817e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=8.3480e-01
+  |E_truth_vox| mean=8.3480e-01
+
+--- [4] 初值正演 (ε_r = 3.0-0.5j) ---
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8679e-01, 1.6996e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0818e+00
+  |E_hyp_vox| mean=1.0818e+00
+
+--- [5] 体积伴随梯度计算 ---
+[build_adjoint_vol] 体积伴随源构建完成
+  N_voxel=1164, F_norm=7.2010e-04
+  |residual| mean=4.5592e-01, |Je| mean=8.0187e-02
+  F = 2.577351e-01
+[solve_adjoint] 体积伴随源注入路径
+  OK 伴随源插值函数写入完成 (1164 体素点)
+  OK 背景场归零 (Eb=[0,0,0])
+  COMSOL runAll 求解...
+  runAll 完成 (4.19s)
+  提取 Kc (symmetry=off) 诊断对称性...
+  mphmatrix 完成 (4.67s): Kc 34458x34458
+  ||Kc - Kc'|| / ||Kc|| = 3.2019e-01
+  ? K 矩阵非对称！伴随需要 K^T 求解
+  K 对称性诊断失败: 未定义与 'com.comsol.clientapi.impl.ModelClient' 类型的输入参数相对应的函数 'mphsetu'。
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [9.9292e-01, 2.2003e+00]
+  OK λ 提取: 1164 体素, |λ| mean=1.5515e+00
+  OK 模型已恢复
+[compute_gradient] dot=bilinear, ∫E·λ = 1.434628e-03 -4.891607e-04i
+  g_re = dF/dε'  = +6.301697e-01
+  g_im = dF/dε'' = +2.148671e-01
+  |g_re| = 6.3017e-01, |g_im| = 2.1487e-01
+
+--- [6] FD 中心差分验证 (体积代价) ---
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.100], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.6250e-01, 1.7100e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0711e+00
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.6250e-01, 1.7100e+00]
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 2.900], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [6.1108e-01, 1.6892e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0926e+00
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [6.1108e-01, 1.6892e+00]
+  ε' FD δ=0.1000: FD=-2.7265e-01, adj=+6.3017e-01, ratio=-2.3113, sign=?
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.010], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8437e-01, 1.7006e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0808e+00
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8437e-01, 1.7006e+00]
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 2.990], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8921e-01, 1.6985e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0829e+00
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8921e-01, 1.6985e+00]
+  ε' FD δ=0.0100: FD=-2.7257e-01, adj=+6.3017e-01, ratio=-2.3120, sign=?
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.001], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8655e-01, 1.6997e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0817e+00
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8655e-01, 1.6997e+00]
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 2.999], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8703e-01, 1.6995e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0819e+00
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8703e-01, 1.6995e+00]
+  ε' FD δ=0.0010: FD=-2.7257e-01, adj=+6.3017e-01, ratio=-2.3120, sign=?
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.400, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.9556e-01, 1.7367e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.1041e+00
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.9556e-01, 1.7367e+00]
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.600, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.7888e-01, 1.6632e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0603e+00
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.7888e-01, 1.6632e+00]
+  ε'' FD δ=0.1000: FD=+1.3966e-01, adj=+2.1487e-01, ratio=1.5385, sign=?
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.490, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8763e-01, 1.7032e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0840e+00
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8763e-01, 1.7032e+00]
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.510, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8596e-01, 1.6959e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0796e+00
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8596e-01, 1.6959e+00]
+  ε'' FD δ=0.0100: FD=+1.3943e-01, adj=+2.1487e-01, ratio=1.5410, sign=?
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.499, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8687e-01, 1.6999e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0820e+00
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8687e-01, 1.6999e+00]
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.501, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8671e-01, 1.6992e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0816e+00
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8671e-01, 1.6992e+00]
+  ε'' FD δ=0.0010: FD=+1.3943e-01, adj=+2.1487e-01, ratio=1.5410, sign=?
+
+========== 验证总结 ==========
+  ε' sign: ? FAIL (0/3 通过)
+  ε'' sign: ? PASS (3/3 通过)
+  ε' ratio (δ=0.0010): -2.3120
+  ε'' ratio (δ=0.0010): 1.5410
+
+  ?? sign FAIL — 需进一步诊断
+  → 运行 verify_lambda_residual 检查 K·λ 残差
+
+  结果已保存: F:\xplv\qoder-engine\qoder-engine-win-comsol\COMSOL\pipline4\data\results\verify_fd_complex.mat
+
+ans = 
+
+  包含以下字段的 struct:
+
+          g_re: 0.6302
+          g_im: 0.2149
+         fd_re: [-0.2726 -0.2726 -0.2726]
+         fd_im: [0.1397 0.1394 0.1394]
+      ratio_re: -2.3120
+      ratio_im: 1.5410
+    re_sign_ok: 0
+    im_sign_ok: 1
+        F_norm: 7.2010e-04
+       N_inner: 1164
+

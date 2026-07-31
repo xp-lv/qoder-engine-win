@@ -1,0 +1,9 @@
+[setup] pipline4 路径已配置
+  可用命令:
+    verify_fd_complex      — FD sign + ratio（主验证，需 COMSOL）
+    verify_lambda_residual — K·λ 残差检查（需 COMSOL）
+    p = config()           — 查看配置参数
+{错误: 文件: F:\xplv\qoder-engine\qoder-engine-win-comsol\COMSOL\pipline4\experiment\verify_fd_10voxels.m 行: 31 列: 23
+ 无效的数组索引。
+} 
+ERROR: MATLAB error Exit Status: 0x00000001

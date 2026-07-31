@@ -1,0 +1,195 @@
+[setup] pipline4 路径已配置
+  可用命令:
+    verify_fd_complex      — FD sign + ratio（主验证，需 COMSOL）
+    verify_lambda_residual — K·λ 残差检查（需 COMSOL）
+    p = config()           — 查看配置参数
+
+========== pipline4 精确 K 矩阵梯度诊断 ==========
+
+--- [1] COMSOL 连接 ---
+
+MATLAB is now connected to a COMSOL Multiphysics Server at localhost:2036
+
+Run the commands below to access the COMSOL ModelUtil commands:
+import com.comsol.model.util.*
+
+--- [2] FEM 网格 ---
+[fem_mesh_utils] 提取 COMSOL FEM 网格...
+  tet: 5614 单元
+  总顶点: 1084
+  Gauss: 1164 内部tet, 4656 Gauss积分点
+[fem_mesh_utils] 完成: 5614 单元, 1164 内部 (20.7%), dV range [1.39e-07, 1.17e-05]
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 5.000], Im range [-1.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 设置 EMW 复数表达式 (首次配置, epsilonr_mat=userdef)...
+  [set_complex] 发现 4 个 EMW features
+  [set_complex] feature[1]: wee1
+  OK emw/wee1.epsilonr: int1(x,y,z) + i*int2(x,y,z) -> int1(x,y,z) + i*int2(x,y,z) (forced re-eval)
+  [set_complex] feature[2]: pec1
+  [set_complex] feature[3]: init1
+  [set_complex] feature[4]: dcont1
+  [update_epsilon] 复数 ε_r 表达式已设置 (首次配置完成)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+  [solve_forward] PARDISO (主) + MUMPS (备) 直接求解器已配置
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [2.2004e-01, 1.7817e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=8.3480e-01
+
+--- [3] 初值正演 + 提取 K 矩阵 ---
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8679e-01, 1.6996e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0818e+00
+  Kc: 34458x34458
+
+--- [4] 伴随求解 ---
+[read_field] 提取 4656 个评估点...
+[read_field] 完成: |E| range [5.2787e-01, 1.6976e+00]
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 5.000], Im range [-1.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [2.2004e-01, 1.7817e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=8.3480e-01
+[read_field] 提取 4656 个评估点...
+[read_field] 完成: |E| range [1.8966e-01, 1.7786e+00]
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8679e-01, 1.6996e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0818e+00
+[read_field] 提取 4656 个评估点...
+[read_field] 完成: |E| range [5.2787e-01, 1.6976e+00]
+[build_adjoint_vol] 伴随源构建完成 (Gauss, 4656 点)
+  F_norm=7.2091e-04
+  |residual| mean=4.5695e-01, |Je| mean=8.0277e-02
+  F = 2.587208e-01
+  λ 求解完成: |λ_raw| mean=4.7101e-15
+
+--- [5] K 矩阵差分 ---
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.010], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 2.990], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+  dK/dε' 提取完成: ||dK||=1.1371e+02
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.490, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.510, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+  dK/dε'' 提取完成: ||dK||=8.3457e+01
+
+--- [6] 精确梯度计算 ---
+  精确 ε' gradient = -2.094202e-28
+  精确 ε'' gradient = -1.506882e-28
+
+--- [7] FD 对比 ---
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.010], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8437e-01, 1.7006e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0808e+00
+[read_field] 提取 4656 个评估点...
+[read_field] 完成: |E| range [5.2539e-01, 1.6986e+00]
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 2.990], Im range [-0.500, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8921e-01, 1.6985e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0829e+00
+[read_field] 提取 4656 个评估点...
+[read_field] 完成: |E| range [5.3036e-01, 1.6966e+00]
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.490, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8763e-01, 1.7032e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0840e+00
+[read_field] 提取 4656 个评估点...
+[read_field] 完成: |E| range [5.2853e-01, 1.7013e+00]
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 3.000], Im range [-0.510, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [5.8596e-01, 1.6959e+00]
+[solve_forward] 完成: 1164 个体素, |E| mean=1.0796e+00
+[read_field] 提取 4656 个评估点...
+[read_field] 完成: |E| range [5.2723e-01, 1.6939e+00]
+
+========== 精确 K 矩阵梯度 vs FD ==========
+  ε'  K-exact=-2.094202e-28, FD=-2.733879e-01, ratio=0.0000
+  ε'' K-exact=-1.506882e-28, FD=+1.400838e-01, ratio=-0.0000
+
+ans = 
+
+  包含以下字段的 struct:
+
+    grad_re_exact: -2.0942e-28
+    grad_im_exact: -1.5069e-28
+            fd_re: -0.2734
+            fd_im: 0.1401
+         ratio_re: 7.6602e-28
+         ratio_im: -1.0757e-27
+
