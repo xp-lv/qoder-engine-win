@@ -282,7 +282,7 @@ end
 
 %% 4. Adjoint solve
 if use_dual_source
-    % 表面双源路径：仍用 runAll（mphmatrix 对表面 feature 兼容性不确定）
+    % 表面双源路径：仍用 runAll
     try
         model.sol('sol1').runAll();
         fprintf('  OK adjoint solve completed (runAll, dual-source)\n');
@@ -291,70 +291,15 @@ if use_dual_source
         fprintf('  FAIL adjoint solve: %s\n', ME.message);
     end
 else
-    % 体积路径：用 mphmatrix + MATLAB LU 回代（原理 §6.3）
-    % 首次调用做 LU 分解（~85%），后续调用仅回代（~5%）
-    fprintf('  提取系统矩阵 (mphmatrix)...\n');
-    tic;
+    % 体积路径：用 runAll 求解（mphinterp 可精确提取 lambda）
+    % 注意: runAll 解的是 Kλ=f（K 含 PML 不对称），理论上应用 K^T
+    % 但 mphserver 模式下 setU 写回后 mphinterp 无法读取，故暂用 runAll
     try
-        sym_str = 'hermitian';
-        if isfield(p, 'mphmatrix_symmetry'), sym_str = p.mphmatrix_symmetry; end
-        MA = mphmatrix(model, 'sol1', ...
-            'out', {'Kc', 'Lc', 'Null', 'ud', 'uscale'}, ...
-            'initmethod', 'sol', 'initsol', 'sol1', ...
-            'symmetry', sym_str);
-        fprintf('  mphmatrix 完成 (%.2fs): Kc %dx%d\n', toc, size(MA.Kc,1), size(MA.Kc,2));
+        model.sol('sol1').runAll();
+        fprintf('  OK adjoint solve completed (runAll)\n');
+        ok = true;
     catch ME
-        fprintf('  FAIL mphmatrix (%.2fs): %s → 回退到 runAll\n', toc, ME.message);
-        try model.sol('sol1').runAll(); ok = true; catch ME2
-            fprintf('  FAIL runAll fallback: %s\n', ME2.message); end
-    end
-
-    if ~ok && exist('MA', 'var')
-        % LU 分解（首次）或回代（后续）
-        if isempty(K_cache) || ~isa(K_cache, 'decomposition')
-            fprintf('  创建 LU decomposition...\n');
-            tic;
-            try
-                use_dec = true;
-                if isfield(p, 'use_decomposition'), use_dec = p.use_decomposition; end
-                if use_dec
-                    K_cache = decomposition(MA.Kc, 'lu');
-                else
-                    K_cache = MA.Kc;
-                end
-                fprintf('  LU 分解完成 (%.2fs)\n', toc);
-            catch ME
-                fprintf('  FAIL decomposition: %s → 直接 backslash\n', ME.message);
-            end
-        end
-
-        % 回代求解
-        tic;
-        try
-            Uc_raw = K_cache \ MA.Lc;
-            fprintf('  LU 回代完成 (%.4fs)\n', toc);
-
-            % 还原完整解向量
-            Uc = MA.Null * Uc_raw;
-            U0 = Uc + MA.ud;
-            U_full = U0 .* MA.uscale;
-
-            % 写回 COMSOL 以便 mphinterp 提取场值
-            % mphsetu 在 mphserver 模式不可用，用 model.sol.setU 替代
-            try
-                mphsetu(model, 'sol1', U_full);
-            catch
-                % mphserver 模式回退：用 Java API 直接设置解向量
-                model.sol('sol1').setU(U_full);
-                model.sol('sol1').createSolution();
-            end
-            fprintf('  OK LU solve completed (mphmatrix + backslash)\n');
-            ok = true;
-        catch ME
-            fprintf('  FAIL backslash: %s → 回退到 runAll\n', ME.message);
-            try model.sol('sol1').runAll(); ok = true; catch ME2
-                fprintf('  FAIL runAll fallback: %s\n', ME2.message); end
-        end
+        fprintf('  FAIL adjoint solve: %s\n', ME.message);
     end
 end
 

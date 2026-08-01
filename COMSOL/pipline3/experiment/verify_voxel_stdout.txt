@@ -1,0 +1,1287 @@
+
+############################################################
+#  复数逐体素 FD vs 伴随梯度方向验证
+#  测试点: eps_r = 12.0000 -3.0000j
+#  真值:   eps_r = 20.0 -5.0j
+############################################################
+
+[VCPV] 连接 COMSOL Server (port 2036)...
+
+MATLAB is now connected to a COMSOL Multiphysics Server at localhost:2036
+
+Run the commands below to access the COMSOL ModelUtil commands:
+import com.comsol.model.util.*
+[VCPV] 加载模型: D:\ZJU\PROJECT\2026-07-02-qoder-engine\COMSOL\pipline_adjoint\2layer.mph
+[fem_mesh_utils] 提取 COMSOL FEM 网格...
+  tet: 5614 单元
+  总顶点: 1084
+  Gauss: 1164 内部tet, 4656 Gauss积分点
+[fem_mesh_utils] 完成: 5614 单元, 1164 内部 (20.7%), dV range [1.39e-07, 1.17e-05]
+[VCPV] N_inner = 1164 体素
+[build_measurement_grid] N_surface=288 (R=0.090m, 12x24 theta×phi)
+[VCPV] 预计算 J_obs (eps_r = 20-5j)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 20.000], Im range [-5.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 设置 EMW 复数表达式 (首次配置, epsilonr_mat=userdef)...
+  [set_complex] 发现 5 个 EMW features
+  [set_complex] feature[1]: wee1
+  OK emw/wee1.epsilonr: int1(x,y,z) + i*int2(x,y,z) -> int1(x,y,z) + i*int2(x,y,z) (forced re-eval)
+  [set_complex] feature[2]: pec1
+  [set_complex] feature[3]: init1
+  [set_complex] feature[4]: dcont1
+  [set_complex] feature[5]: vec1
+  [update_epsilon] 复数 ε_r 表达式已设置 (首次配置完成)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.4720e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=7.8995e-05
+[VCPV] F_obs_norm = 8.416717e-08
+[VCPV] 在测试点 eps_r = 12.0000 -3.0000j 设置正演...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 开始正演 (N_voxel=5614)...
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[solve_forward] 运行 COMSOL 求解...
+  [solve_forward] param freq = 1000000000 Hz
+  [solve_forward] study plist set to 1e+09[Hz]
+  [solve_forward] PARDISO (主) + MUMPS (备) 直接求解器已配置
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [3.1867e-01, 2.1413e+00]
+[read_field] 提取 4656 个评估点...
+[read_field] 完成: |E| range [3.0435e-01, 2.1399e+00]
+[solve_forward] Gauss点E: 4656 点
+[solve_forward] 完成: 1164 个体素, |E| mean=7.0227e-01
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[VCPV] F_data = 3.782753e-01, sqrt(F) = 6.150409e-01
+[build_adjoint_source_fullmaxwell] ★精确 Stratton-Chu 伴随★ N_surface=288, N_k=16
+  |Js| mean=2.0983e-09, |Ms| mean=8.7361e-12, F_obs=8.4167e-08
+[solve_adjoint] ★精确双源路径★ (SurfaceCurrent + SurfaceMagneticCurrentDensity)
+  OK Js interpolation functions written
+  OK Ms interpolation functions written
+  OK sc_adj (SurfaceCurrent) created [double cross + omega*mu0]
+  OK ms_adj (SurfaceMagneticCurrentDensity) created
+  OK vec1 zeroed (Born volume current disabled)
+  OK background field zeroed (Eb=[0,0,0])
+  OK adjoint solve completed (runAll)
+[read_field] 提取 1164 个评估点...
+[read_field] 完成: |E| range [6.8796e-11, 4.7778e-10]
+  OK lambda field: 1164 voxels, |lambda| mean=1.5973e-10 (conj=1)
+[read_field] 提取 4656 个评估点...
+[read_field] 完成: |E| range [6.8690e-11, 4.7931e-10]
+  OK lambda_gauss: 4656 Gauss points (conj=1)
+  OK model restored
+[VCPV] 复数梯度: 4-pt Gauss 积分 (1164 体素)
+
+[VCPV] 总伴随梯度 g_total = -5.910422e-04 -2.039064e-04j
+[VCPV]   dF/deps_re (2*Re):   -1.182084e-03
+[VCPV]   dF/deps_im (+2*Im):  -4.078127e-04  ← 数学推导
+[VCPV]   dF/deps_im (-2*Im):  +4.078127e-04  ← 代码当前
+
+[VCPV] ===== 均匀扰动 FD 基准 =====
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.100], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1159e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.1452e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 11.900], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1170e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0605e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-2.900, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1086e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=2.9917e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.100, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1236e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.2011e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[VCPV] 均匀 FD dF/deps_re = -2.389875e-02 (adj 2*Re = -1.182084e-03, sign=OK)
+[VCPV] 均匀 FD dF/deps_im = +1.744522e-01
+[VCPV]   vs +2*Im(g) = -4.078127e-04, sign=XX  ← 数学推导
+[VCPV]   vs -2*Im(g) = +4.078127e-04, sign=OK  ← 代码当前
+
+[VCPV] ===== 逐体素 FD 验证 (N_sample = 30) =====
+
+  IDx   r      | FD_re        Adj_re        sign | FD_im        +2Im(g)       -2Im(g)       +sign -sign
+  -----+--------+--------------+--------------+------+--------------+--------------+--------------+-----+-----
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0987e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0985e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0985e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0987e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+    1  0.004  | -4.136e-04  -1.043e-05   OK  | +1.870e-03  -3.541e-06  +3.541e-06   XX   OK
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+    3  0.025  | +6.280e-05  -1.380e-06   XX  | +4.976e-04  -4.440e-07  +4.440e-07   XX   OK
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+    6  0.033  | +1.517e-05  -3.711e-07   XX  | +2.059e-05  -1.018e-07  +1.018e-07   XX   OK
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+    9  0.037  | +3.619e-05  -1.682e-06   XX  | +1.761e-04  -5.887e-07  +5.887e-07   XX   OK
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+   12  0.040  | -8.737e-06  -4.631e-07   OK  | +8.170e-05  -1.535e-07  +1.535e-07   XX   OK
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+   15  0.047  | -5.267e-05  -7.914e-07   OK  | +6.010e-05  -3.295e-07  +3.295e-07   XX   OK
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+   18  0.050  | -3.887e-05  -1.167e-06   OK  | +1.152e-04  -4.904e-07  +4.904e-07   XX   OK
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+   21  0.052  | -5.666e-05  -9.218e-07   OK  | +7.554e-05  -3.864e-07  +3.864e-07   XX   OK
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+   24  0.055  | -2.510e-05  -9.552e-07   OK  | +1.481e-04  -3.621e-07  +3.621e-07   XX   OK
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+   27  0.055  | -3.269e-05  -1.147e-06   OK  | +1.200e-04  -2.847e-07  +2.847e-07   XX   OK
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.010], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.010, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+[extract_scattered] COMSOL relE extracted: 288 points, |E_scat| mean=1.1162e+00
+[lightcone_project] J_obs 光锥投影完成: N_k=16
+  |J_obs_perp| mean=3.0986e-05
+[update_epsilon] 更新 ε_r (N_voxel=5614)...
+  [update_epsilon] 复数 ε_r: Re range [1.000, 12.000], Im range [-3.000, 0.000]
+  OK int1 (Re) 已更新
+  OK int2 (Im) 已更新
+  [set_complex] 已配置 (skip enumerate, expr active)
+   30  0.056  | -2.070e-05  -4.539e-07   OK  | +4.307e-05  -1.922e-07  +1.922e-07   XX   OK
+
+############################################################
+#  逐体素验证结果汇总
+#  测试点: eps_r = 12.0000 -3.0000j, N_sample = 30
+############################################################
+
+  [ε_re 通道] dF/dε_re = 2*Re(g)
+    sign 一致率: 18/30 = 60.0%
+    ratio mean=0.006034 CV=7.008790
+    cos θ = 0.777343
+    判定: ? FAIL
+
+  [ε_im 通道] dF/dε_im = +2*Im(g)  ← 数学推导
+    sign 一致率: 0/30 = 0.0%
+    ratio mean=-0.003555 CV=0.642643
+    cos θ = -0.942956
+    判定: ? FAIL
+
+  [ε_im 通道] dF/dε_im = -2*Im(g)  ← 代码当前
+    sign 一致率: 30/30 = 100.0%
+    ratio mean=0.003555 CV=0.642643
+    cos θ = 0.942956
+    判定: ★★★ PASS
+
+############################################################
+#  裁决: 哪个 Wirtinger 虚部符号约定与 FD 一致？
+#  ★★★ -2*Im(g) 更一致 (100.0% vs 0.0%) → 代码当前符号正确
+############################################################
+
+[VCPV] 结果已保存: data/results/verify_per_voxel_result.mat
